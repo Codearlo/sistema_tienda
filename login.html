@@ -1,3 +1,21 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Si el usuario ya está logueado, redirigir al dashboard
+if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
+    header('Location: dashboard.php');
+    exit();
+}
+
+// Recuperar y limpiar mensajes de error
+$error_message = null;
+if (isset($_SESSION['error_message'])) {
+    $error_message = $_SESSION['error_message'];
+    unset($_SESSION['error_message']);
+}
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -11,7 +29,6 @@
 <body class="login-page">
     <div class="login-container">
         <div class="login-card">
-            <!-- Logo y título -->
             <div class="login-header">
                 <div class="logo">
                     <svg class="logo-img" viewBox="0 0 100 100" width="60" height="60">
@@ -23,17 +40,15 @@
                 <p class="login-subtitle">Gestiona tu negocio de forma inteligente</p>
             </div>
 
-            <!-- Formulario de login -->
             <form class="login-form" id="loginForm">
                 
-                <!-- Mensajes de error/éxito -->
-                <div class="alert alert-error hidden" id="errorAlert">
+                <div class="alert alert-error <?php echo $error_message ? '' : 'hidden'; ?>" id="errorAlert">
                     <svg class="alert-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"></circle>
                         <line x1="15" y1="9" x2="9" y2="15"></line>
                         <line x1="9" y1="9" x2="15" y2="15"></line>
                     </svg>
-                    <span id="errorMessage"></span>
+                    <span id="errorMessage"><?php echo htmlspecialchars($error_message ?? ''); ?></span>
                 </div>
                 
                 <div class="alert alert-success hidden" id="successAlert">
@@ -44,7 +59,6 @@
                     <span id="successMessage"></span>
                 </div>
 
-                <!-- Campo email -->
                 <div class="form-group">
                     <label for="email" class="form-label">Email</label>
                     <div class="input-group">
@@ -65,7 +79,6 @@
                     </div>
                 </div>
 
-                <!-- Campo contraseña -->
                 <div class="form-group">
                     <label for="password" class="form-label">Contraseña</label>
                     <div class="input-group">
@@ -93,7 +106,6 @@
                     </div>
                 </div>
 
-                <!-- Recordar y olvidé contraseña -->
                 <div class="form-row">
                     <label class="checkbox-label">
                         <input type="checkbox" name="remember" class="checkbox">
@@ -103,7 +115,6 @@
                     <a href="forgot-password.html" class="forgot-password">¿Olvidaste tu contraseña?</a>
                 </div>
 
-                <!-- Botón de login -->
                 <button type="submit" class="btn btn-primary btn-full" id="loginBtn">
                     <span class="btn-text">Iniciar Sesión</span>
                     <div class="btn-loading hidden">
@@ -116,20 +127,11 @@
                 </button>
             </form>
 
-            <!-- Enlaces adicionales -->
             <div class="login-footer">
                 <p>¿No tienes una cuenta? <a href="register.html" class="register-link">Registrarse</a></p>
-                
-                <!-- Demo credentials -->
-                <div class="demo-credentials">
-                    <p class="demo-title">Credenciales de demostración:</p>
-                    <p class="demo-info">Email: <strong>admin@treinta.local</strong></p>
-                    <p class="demo-info">Contraseña: <strong>password</strong></p>
-                </div>
             </div>
         </div>
 
-        <!-- Información adicional -->
         <div class="info-section">
             <h2>¿Por qué elegir Treinta?</h2>
             <div class="features-grid">
@@ -160,10 +162,8 @@
         </div>
     </div>
 
-    <!-- JavaScript -->
     <script src="assets/js/app.js"></script>
     <script>
-        // Funcionalidad específica del login
         document.addEventListener('DOMContentLoaded', function() {
             const loginForm = document.getElementById('loginForm');
             const togglePassword = document.getElementById('togglePassword');
@@ -177,7 +177,6 @@
                 const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
                 passwordInput.setAttribute('type', type);
                 
-                // Cambiar icono
                 const eyeIcon = this.querySelector('.eye-icon');
                 if (type === 'text') {
                     eyeIcon.innerHTML = `
@@ -192,37 +191,45 @@
                 }
             });
 
-            // Manejar envío del formulario
-            loginForm.addEventListener('submit', function(e) {
+            // Handle form submission
+            loginForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
-                
-                // Mostrar loading
                 showLoading();
-                
-                // Obtener datos del formulario
-                const formData = new FormData(loginForm);
-                
-                // Simular login (aquí harías la llamada AJAX a tu API PHP)
-                setTimeout(() => {
-                    const email = formData.get('email');
-                    const password = formData.get('password');
-                    
-                    if (email === 'admin@treinta.local' && password === 'password') {
+
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+
+                try {
+                    const response = await fetch('api/index.php/auth/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email, password })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
                         showSuccess('¡Bienvenido! Redirigiendo...');
                         setTimeout(() => {
-                            window.location.href = 'dashboard.html';
+                            window.location.href = 'dashboard.php';
                         }, 1500);
                     } else {
-                        showError('Credenciales incorrectas. Verifique su email y contraseña.');
+                        showError(result.message || 'Error desconocido.');
                         hideLoading();
                     }
-                }, 1000);
+                } catch (error) {
+                    showError('Error de conexión. Por favor, inténtalo de nuevo.');
+                    hideLoading();
+                }
             });
 
             function showLoading() {
                 loginBtn.disabled = true;
                 loginBtn.querySelector('.btn-text').style.display = 'none';
                 loginBtn.querySelector('.btn-loading').classList.remove('hidden');
+                hideAlerts();
             }
 
             function hideLoading() {
@@ -235,14 +242,12 @@
                 hideAlerts();
                 document.getElementById('errorMessage').textContent = message;
                 errorAlert.classList.remove('hidden');
-                errorAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
 
             function showSuccess(message) {
                 hideAlerts();
                 document.getElementById('successMessage').textContent = message;
                 successAlert.classList.remove('hidden');
-                successAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
 
             function hideAlerts() {
