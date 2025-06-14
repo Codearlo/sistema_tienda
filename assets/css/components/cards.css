@@ -1,0 +1,115 @@
+.card {
+  background-color: white;
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-200);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.card-content {
+  color: var(--gray-600);
+}
+
+.card-link {
+  color: var(--primary-600);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: var(--transition-fast);
+}
+
+.card-link:hover {
+  color: var(--primary-700);
+  text-decoration: underline;
+}
+
+/* STATS CARDS */
+.stat-card {
+  background-color: white;
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-200);
+  transition: var(--transition-fast);
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.stat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-md);
+}
+
+.stat-info {
+  flex: 1;
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--border-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+.stat-card.small .stat-icon {
+  width: 40px;
+  height: 40px;
+}
+
+.stat-icon.primary, .stat-icon-primary { background-color: var(--primary-500); }
+.stat-icon.success, .stat-icon-success { background-color: var(--success-500); }
+.stat-icon.warning, .stat-icon-warning { background-color: var(--warning-500); }
+.stat-icon.error, .stat-icon-error { background-color: var(--error-500); }
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--gray-900);
+  font-family: var(--font-mono);
+}
+.stat-card.small .stat-value {
+  font-size: 1.5rem;
+}
+
+.stat-label {
+  color: var(--gray-600);
+  font-size: 0.875rem;
+  margin-bottom: var(--spacing-sm);
+}
+
+.stat-change {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.stat-change.positive, .stat-change-positive { color: var(--success-600); }
+.stat-change.negative, .stat-change-negative { color: var(--error-600); }
+
+.stat-card.small {
+  padding: var(--spacing-md);
+}

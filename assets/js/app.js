@@ -400,12 +400,10 @@ const Forms = {
     },
 
     markFieldError(input) {
-        input.style.borderColor = 'var(--error-500)';
         input.classList.add('error');
     },
 
     clearFieldError(input) {
-        input.style.borderColor = '';
         input.classList.remove('error');
     },
 
@@ -824,23 +822,6 @@ function initializeTooltips() {
         });
     });
 }
-
-// ===== ANIMACIONES CSS =====
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideInRight {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-    @keyframes slideOutRight {
-        from { transform: translateX(0); opacity: 1; }
-        to { transform: translateX(100%); opacity: 0; }
-    }
-    .error {
-        border-color: var(--error-500) !important;
-    }
-`;
-document.head.appendChild(style);
 
 // ===== EXPORTAR PARA USO GLOBAL =====
 window.Utils = Utils;
