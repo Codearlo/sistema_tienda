@@ -16,7 +16,7 @@ if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
     $_SESSION['error_message'] = 'Debes iniciar sesión para acceder a esta página.';
     
     // Redirigir al login
-    header('Location: login.php');
+    header('Location: login.html');
     exit();
 }
 
