@@ -3,9 +3,47 @@
  * Lógica específica para la página del dashboard
  */
 
-document.addEventListener('DOMContentLoaded', function() {
-    initializeDashboard();
+document.addEventListener('DOMContentLoaded', () => {
+    loadSidebar().then(() => {
+        initializeDashboard();
+    });
 });
+
+async function loadSidebar() {
+    try {
+        const response = await fetch('includes/slidebar.php');
+        if (!response.ok) throw new Error('Network response was not ok.');
+        
+        const sidebarHtml = await response.text();
+        const sidebarContainer = document.getElementById('sidebar-container');
+        
+        if (sidebarContainer) {
+            sidebarContainer.innerHTML = sidebarHtml;
+            setActiveSidebarLink();
+        }
+    } catch (error) {
+        console.error('Error al cargar el sidebar:', error);
+        const sidebarContainer = document.getElementById('sidebar-container');
+        if(sidebarContainer) sidebarContainer.innerHTML = '<p>Error al cargar el menú.</p>';
+    }
+}
+
+function setActiveSidebarLink() {
+    // Obtener el nombre del archivo actual, ej: "dashboard.html"
+    const currentPageFile = window.location.pathname.split('/').pop();
+    // Obtener el nombre base sin la extensión, ej: "dashboard"
+    const pageName = currentPageFile.replace('.html', '').replace('.php', '');
+
+    // Quitar la clase 'active' de cualquier enlace que la tenga
+    const activeLinks = document.querySelectorAll('.sidebar-nav-link.active');
+    activeLinks.forEach(link => link.classList.remove('active'));
+
+    // Encontrar el enlace que corresponde a la página actual y agregarle la clase 'active'
+    const targetLink = document.querySelector(`.sidebar-nav-link[data-page='${pageName}']`);
+    if (targetLink) {
+        targetLink.classList.add('active');
+    }
+}
 
 function initializeDashboard() {
     // Mobile menu toggle
@@ -34,21 +72,13 @@ function initializeDashboard() {
 
 async function loadDashboardData() {
     try {
-        // Aquí harías la llamada real a tu API: const response = await API.get('dashboard');
-        // Por ahora, simulamos los datos para la demostración.
         const mockData = {
             stats: {
                 sales_today: { total: 1240.50, count: 12 },
                 products_sold_today: { total: 47 },
                 low_stock_products: 3,
                 pending_debts: { total: 890.00, count: 3 }
-            },
-            recent_sales: [
-                { date: '2025-06-13 14:30:00', customer: 'María García', items: 3, total: 125.50, status: 'Pagado' },
-                { date: '2025-06-13 13:15:00', customer: 'Juan Pérez', items: 1, total: 45.00, status: 'Pagado' },
-                { date: '2025-06-13 12:45:00', customer: 'Ana López', items: 5, total: 230.00, status: 'Pendiente' },
-                { date: '2025-06-13 11:20:00', customer: 'Carlos Ruiz', items: 2, total: 89.75, status: 'Pagado' },
-            ]
+            }
         };
         
         updateDashboardUI(mockData);
@@ -60,13 +90,10 @@ async function loadDashboardData() {
 }
 
 function updateDashboardUI(data) {
-    // Actualizar estadísticas principales
     document.getElementById('salesTodayValue').textContent = Utils.formatCurrency(data.stats.sales_today.total);
     document.getElementById('productsSoldValue').textContent = data.stats.products_sold_today.total;
     document.getElementById('lowStockValue').textContent = data.stats.low_stock_products;
     document.getElementById('pendingDebtsValue').textContent = Utils.formatCurrency(data.stats.pending_debts.total);
-
-    // Aquí se agregarían las actualizaciones para las tablas y otros widgets
 }
 
 // Funciones de acciones rápidas
@@ -90,14 +117,13 @@ function logout() {
     Modal.confirm('¿Estás seguro que deseas cerrar sesión?', 'Confirmar Cierre de Sesión')
         .then(confirmed => {
             if (confirmed) {
-                // Limpiar sesión y redirigir
                 Storage.clear();
                 window.location.href = 'login.html';
             }
         });
 }
 
-// Hacer funciones accesibles globalmente si se llaman desde el HTML
+// Hacer funciones accesibles globalmente
 window.newSale = newSale;
 window.addProduct = addProduct;
 window.addExpense = addExpense;
