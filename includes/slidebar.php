@@ -62,15 +62,15 @@ $menu_items = [
     ]
 ];
 
-// Obtener información del usuario actual
-$user_name = $_SESSION['user_name'] ?? 'Usuario';
-$business_name = $_SESSION['business_name'] ?? 'Mi Negocio';
+// Obtener información del usuario actual (simulado para HTML)
+$user_name = 'Administrador';
+$business_name = 'Mi Negocio';
+$user_type = 'admin';
+
 ?>
 
-<!-- Mobile Overlay -->
 <div class="mobile-overlay" id="mobileOverlay"></div>
 
-<!-- Sidebar -->
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <svg class="sidebar-logo" viewBox="0 0 100 100" width="40" height="40">
@@ -88,8 +88,7 @@ $business_name = $_SESSION['business_name'] ?? 'Mi Negocio';
             <?php foreach ($menu_items as $key => $item): ?>
                 <li class="sidebar-nav-item">
                     <a href="<?php echo $item['url']; ?>" 
-                       class="sidebar-nav-link <?php echo ($current_page === $key || 
-                              ($current_page === 'pos' && $key === 'sales')) ? 'active' : ''; ?>"
+                       class="sidebar-nav-link <?php echo ($current_page === $key) ? 'active' : ''; ?>"
                        data-page="<?php echo $key; ?>">
                         <svg class="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <?php echo $item['icon']; ?>
@@ -105,7 +104,6 @@ $business_name = $_SESSION['business_name'] ?? 'Mi Negocio';
         </ul>
     </nav>
 
-    <!-- Sidebar Footer -->
     <div class="sidebar-footer">
         <div class="user-profile">
             <div class="user-avatar">
@@ -116,7 +114,7 @@ $business_name = $_SESSION['business_name'] ?? 'Mi Negocio';
             </div>
             <div class="user-info">
                 <div class="user-name"><?php echo htmlspecialchars($user_name); ?></div>
-                <div class="user-role"><?php echo ucfirst($_SESSION['user_type'] ?? 'admin'); ?></div>
+                <div class="user-role"><?php echo ucfirst($user_type); ?></div>
             </div>
         </div>
         
@@ -144,93 +142,3 @@ $business_name = $_SESSION['business_name'] ?? 'Mi Negocio';
         </div>
     </div>
 </aside>
-
-<script>
-// JavaScript específico del sidebar
-document.addEventListener('DOMContentLoaded', function() {
-    initializeSidebar();
-});
-
-function initializeSidebar() {
-    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-    const sidebar = document.getElementById('sidebar');
-    const mobileOverlay = document.getElementById('mobileOverlay');
-    
-    // Mobile menu toggle
-    if (mobileMenuBtn) {
-        mobileMenuBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('open');
-            mobileOverlay.classList.toggle('show');
-        });
-    }
-    
-    // Close mobile menu when clicking overlay
-    mobileOverlay.addEventListener('click', () => {
-        sidebar.classList.remove('open');
-        mobileOverlay.classList.remove('show');
-    });
-    
-    // Marcar elemento activo basado en la URL actual
-    updateActiveMenuItem();
-    
-    // Agregar efectos hover y click
-    addSidebarInteractions();
-}
-
-function updateActiveMenuItem() {
-    const currentPath = window.location.pathname;
-    const filename = currentPath.split('/').pop().replace('.html', '').replace('.php', '');
-    
-    // Remover clase active de todos los enlaces
-    document.querySelectorAll('.sidebar-nav-link').forEach(link => {
-        link.classList.remove('active');
-    });
-    
-    // Agregar clase active al enlace correspondiente
-    const currentLink = document.querySelector(`[data-page="${filename}"]`);
-    if (currentLink) {
-        currentLink.classList.add('active');
-    }
-}
-
-function addSidebarInteractions() {
-    // Agregar efecto ripple a los enlaces
-    document.querySelectorAll('.sidebar-nav-link').forEach(link => {
-        link.addEventListener('click', function(e) {
-            // Crear efecto ripple
-            const ripple = document.createElement('span');
-            ripple.classList.add('ripple');
-            this.appendChild(ripple);
-            
-            setTimeout(() => {
-                ripple.remove();
-            }, 600);
-        });
-    });
-}
-
-function toggleTheme() {
-    document.body.classList.toggle('dark-theme');
-    const isDark = document.body.classList.contains('dark-theme');
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    
-    Notifications.success(`Tema ${isDark ? 'oscuro' : 'claro'} activado`);
-}
-
-function logout() {
-    Modal.confirm('¿Estás seguro que deseas cerrar sesión?', 'Confirmar Logout')
-        .then(confirmed => {
-            if (confirmed) {
-                // Limpiar datos de sesión
-                Storage.clear();
-                
-                // Redirigir al login
-                window.location.href = 'login.html';
-            }
-        });
-}
-
-// Funciones globales del sidebar
-window.toggleTheme = toggleTheme;
-window.logout = logout;
-</script>

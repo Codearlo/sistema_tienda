@@ -8,104 +8,10 @@
     <link rel="icon" type="image/x-icon" href="assets/img/favicon.ico">
 </head>
 <body class="dashboard-page">
-    <!-- Mobile Overlay -->
-    <div class="mobile-overlay" id="mobileOverlay"></div>
 
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <svg class="sidebar-logo" viewBox="0 0 100 100" width="40" height="40">
-                <circle cx="50" cy="50" r="45" fill="#2563eb"/>
-                <text x="50" y="58" text-anchor="middle" fill="white" font-size="24" font-weight="bold">30</text>
-            </svg>
-            <h2 class="sidebar-title">Treinta</h2>
-        </div>
+    <?php include 'includes/slidebar.php'; ?>
 
-        <nav class="sidebar-nav">
-            <ul>
-                <li class="sidebar-nav-item">
-                    <a href="dashboard.html" class="sidebar-nav-link active">
-                        <svg class="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                            <polyline points="9,22 9,12 15,12 15,22"/>
-                        </svg>
-                        Dashboard
-                    </a>
-                </li>
-                <li class="sidebar-nav-item">
-                    <a href="sales.html" class="sidebar-nav-link">
-                        <svg class="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"/>
-                            <path d="M16 8l-4 4-4-4"/>
-                        </svg>
-                        Ventas
-                    </a>
-                </li>
-                <li class="sidebar-nav-item">
-                    <a href="products.html" class="sidebar-nav-link">
-                        <svg class="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M20 7h-9a2 2 0 0 1-2-2V2"/>
-                            <path d="M9 2v5a2 2 0 0 0 2 2h9"/>
-                            <path d="M3 13.6V7a2 2 0 0 1 2-2h5"/>
-                            <path d="M3 21h18"/>
-                        </svg>
-                        Productos
-                    </a>
-                </li>
-                <li class="sidebar-nav-item">
-                    <a href="customers.html" class="sidebar-nav-link">
-                        <svg class="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                            <circle cx="12" cy="7" r="4"/>
-                        </svg>
-                        Clientes
-                    </a>
-                </li>
-                <li class="sidebar-nav-item">
-                    <a href="expenses.html" class="sidebar-nav-link">
-                        <svg class="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="1" x2="12" y2="23"/>
-                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                        </svg>
-                        Gastos
-                    </a>
-                </li>
-                <li class="sidebar-nav-item">
-                    <a href="debts.html" class="sidebar-nav-link">
-                        <svg class="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="2" y="3" width="20" height="14" rx="2"/>
-                            <line x1="8" y1="21" x2="16" y2="21"/>
-                            <line x1="12" y1="17" x2="12" y2="21"/>
-                        </svg>
-                        Deudas
-                    </a>
-                </li>
-                <li class="sidebar-nav-item">
-                    <a href="reports.html" class="sidebar-nav-link">
-                        <svg class="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="20" x2="18" y2="10"/>
-                            <line x1="12" y1="20" x2="12" y2="4"/>
-                            <line x1="6" y1="20" x2="6" y2="14"/>
-                        </svg>
-                        Reportes
-                    </a>
-                </li>
-                <li class="sidebar-nav-item">
-                    <a href="settings.html" class="sidebar-nav-link">
-                        <svg class="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="3"/>
-                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                        </svg>
-                        Configuración
-                    </a>
-                </li>
-            </ul>
-        </nav>
-    </aside>
-
-    <!-- Main Content -->
     <main class="main-content">
-        <!-- Header -->
         <header class="main-header">
             <div class="header-left">
                 <button class="mobile-menu-btn" id="mobileMenuBtn">
@@ -132,14 +38,12 @@
             </div>
         </header>
 
-        <!-- Stats Cards -->
         <section class="stats-grid">
-            <!-- Ventas Hoy -->
             <div class="stat-card">
                 <div class="stat-header">
                     <div class="stat-info">
                         <div class="stat-label">Ventas Hoy</div>
-                        <div class="stat-value" id="salesTodayValue">S/ 1,240.50</div>
+                        <div class="stat-value" id="salesTodayValue">S/ 0.00</div>
                     </div>
                     <div class="stat-icon stat-icon-success">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -157,12 +61,11 @@
                 </div>
             </div>
 
-            <!-- Productos Vendidos -->
             <div class="stat-card">
                 <div class="stat-header">
                     <div class="stat-info">
                         <div class="stat-label">Productos Vendidos</div>
-                        <div class="stat-value" id="productsSoldValue">47</div>
+                        <div class="stat-value" id="productsSoldValue">0</div>
                     </div>
                     <div class="stat-icon stat-icon-primary">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -182,12 +85,11 @@
                 </div>
             </div>
 
-            <!-- Stock Bajo -->
             <div class="stat-card">
                 <div class="stat-header">
                     <div class="stat-info">
                         <div class="stat-label">Stock Bajo</div>
-                        <div class="stat-value" id="lowStockValue">3</div>
+                        <div class="stat-value" id="lowStockValue">0</div>
                     </div>
                     <div class="stat-icon stat-icon-warning">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -206,12 +108,11 @@
                 </div>
             </div>
 
-            <!-- Deudas Pendientes -->
             <div class="stat-card">
                 <div class="stat-header">
                     <div class="stat-info">
                         <div class="stat-label">Deudas Pendientes</div>
-                        <div class="stat-value" id="pendingDebtsValue">S/ 890.00</div>
+                        <div class="stat-value" id="pendingDebtsValue">S/ 0.00</div>
                     </div>
                     <div class="stat-icon stat-icon-error">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -231,9 +132,7 @@
             </div>
         </section>
 
-        <!-- Content Grid -->
         <div class="dashboard-grid">
-            <!-- Ventas Recientes -->
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">Ventas Recientes</h3>
@@ -252,41 +151,12 @@
                                 </tr>
                             </thead>
                             <tbody id="recentSalesTable">
-                                <tr>
-                                    <td>13/06/2025 14:30</td>
-                                    <td>María García</td>
-                                    <td>3</td>
-                                    <td>S/ 125.50</td>
-                                    <td><span class="badge badge-success">Pagado</span></td>
-                                </tr>
-                                <tr>
-                                    <td>13/06/2025 13:15</td>
-                                    <td>Juan Pérez</td>
-                                    <td>1</td>
-                                    <td>S/ 45.00</td>
-                                    <td><span class="badge badge-success">Pagado</span></td>
-                                </tr>
-                                <tr>
-                                    <td>13/06/2025 12:45</td>
-                                    <td>Ana López</td>
-                                    <td>5</td>
-                                    <td>S/ 230.00</td>
-                                    <td><span class="badge badge-warning">Pendiente</span></td>
-                                </tr>
-                                <tr>
-                                    <td>13/06/2025 11:20</td>
-                                    <td>Carlos Ruiz</td>
-                                    <td>2</td>
-                                    <td>S/ 89.75</td>
-                                    <td><span class="badge badge-success">Pagado</span></td>
-                                </tr>
-                            </tbody>
+                                </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
-            <!-- Stock Bajo -->
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">Productos con Stock Bajo</h3>
@@ -294,32 +164,10 @@
                 </div>
                 <div class="card-content">
                     <div class="stock-alerts" id="stockAlerts">
-                        <div class="stock-item stock-item-critical">
-                            <div class="stock-info">
-                                <div class="stock-name">Cable USB-C</div>
-                                <div class="stock-quantity">Stock: 2 unidades</div>
-                            </div>
-                            <span class="badge badge-error">Crítico</span>
-                        </div>
-                        <div class="stock-item stock-item-low">
-                            <div class="stock-info">
-                                <div class="stock-name">Pan Integral</div>
-                                <div class="stock-quantity">Stock: 4 unidades</div>
-                            </div>
-                            <span class="badge badge-warning">Bajo</span>
-                        </div>
-                        <div class="stock-item stock-item-out">
-                            <div class="stock-info">
-                                <div class="stock-name">Camiseta Básica</div>
-                                <div class="stock-quantity">Stock: 0 unidades</div>
-                            </div>
-                            <span class="badge badge-error">Agotado</span>
-                        </div>
-                    </div>
+                         </div>
                 </div>
             </div>
 
-            <!-- Deudas por Cobrar -->
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">Deudas por Cobrar</h3>
@@ -327,41 +175,10 @@
                 </div>
                 <div class="card-content">
                     <div class="debt-list" id="debtsList">
-                        <div class="debt-item debt-item-due-soon">
-                            <div class="debt-info">
-                                <div class="debt-customer">Ana López</div>
-                                <div class="debt-date">Vence: 15/06/2025</div>
-                            </div>
-                            <div class="debt-amount-info">
-                                <div class="debt-amount">S/ 230.00</div>
-                                <span class="badge badge-warning">2 días</span>
-                            </div>
                         </div>
-                        <div class="debt-item debt-item-normal">
-                            <div class="debt-info">
-                                <div class="debt-customer">Roberto Silva</div>
-                                <div class="debt-date">Vence: 20/06/2025</div>
-                            </div>
-                            <div class="debt-amount-info">
-                                <div class="debt-amount">S/ 450.00</div>
-                                <span class="badge badge-gray">7 días</span>
-                            </div>
-                        </div>
-                        <div class="debt-item debt-item-overdue">
-                            <div class="debt-info">
-                                <div class="debt-customer">Miguel Torres</div>
-                                <div class="debt-date">Venció: 10/06/2025</div>
-                            </div>
-                            <div class="debt-amount-info">
-                                <div class="debt-amount">S/ 210.00</div>
-                                <span class="badge badge-error">Vencida</span>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
-            <!-- Resumen Financiero -->
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">Resumen del Mes</h3>
@@ -390,7 +207,6 @@
             </div>
         </div>
 
-        <!-- Acciones Rápidas -->
         <div class="card quick-actions-card">
             <div class="card-header">
                 <h3 class="card-title">Acciones Rápidas</h3>
@@ -433,93 +249,7 @@
         </div>
     </main>
 
-    <!-- JavaScript -->
     <script src="assets/js/app.js"></script>
-    <script>
-        // Dashboard específico JavaScript
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeDashboard();
-        });
-
-        function initializeDashboard() {
-            // Mobile menu toggle
-            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-            const sidebar = document.getElementById('sidebar');
-            const mobileOverlay = document.getElementById('mobileOverlay');
-
-            mobileMenuBtn.addEventListener('click', () => {
-                sidebar.classList.toggle('open');
-                mobileOverlay.classList.toggle('show');
-            });
-
-            mobileOverlay.addEventListener('click', () => {
-                sidebar.classList.remove('open');
-                mobileOverlay.classList.remove('show');
-            });
-
-            // Cargar datos del dashboard
-            loadDashboardData();
-
-            // Actualizar cada 30 segundos
-            setInterval(loadDashboardData, 30000);
-        }
-
-        async function loadDashboardData() {
-            try {
-                // Aquí harías la llamada real a tu API
-                // const response = await API.get('dashboard');
-                // updateDashboardData(response.data);
-                
-                // Por ahora, simulamos los datos
-                updateDashboardData({
-                    stats: {
-                        sales_today: { total: 1240.50, count: 12 },
-                        products_sold_today: { total: 47 },
-                        low_stock_products: 3,
-                        pending_debts: { total: 890.00, count: 3 }
-                    }
-                });
-            } catch (error) {
-                console.error('Error cargando datos del dashboard:', error);
-                Notifications.error('Error cargando datos del dashboard');
-            }
-        }
-
-        function updateDashboardData(data) {
-            // Actualizar estadísticas
-            document.getElementById('salesTodayValue').textContent = Utils.formatCurrency(data.stats.sales_today.total);
-            document.getElementById('productsSoldValue').textContent = data.stats.products_sold_today.total;
-            document.getElementById('lowStockValue').textContent = data.stats.low_stock_products;
-            document.getElementById('pendingDebtsValue').textContent = Utils.formatCurrency(data.stats.pending_debts.total);
-        }
-
-        // Funciones de acciones rápidas
-        function newSale() {
-            window.location.href = 'sales.html?action=new';
-        }
-
-        function addProduct() {
-            window.location.href = 'products.html?action=add';
-        }
-
-        function addExpense() {
-            window.location.href = 'expenses.html?action=add';
-        }
-
-        function viewReports() {
-            window.location.href = 'reports.html';
-        }
-
-        function logout() {
-            Modal.confirm('¿Estás seguro que deseas cerrar sesión?', 'Confirmar Logout')
-                .then(confirmed => {
-                    if (confirmed) {
-                        // Limpiar sesión
-                        Storage.clear();
-                        window.location.href = 'login.html';
-                    }
-                });
-        }
-    </script>
+    <script src="assets/js/dashboard.js"></script>
 </body>
 </html>
