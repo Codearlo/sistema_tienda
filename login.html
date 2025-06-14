@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Treinta - Iniciar Sesión</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="icon" type="image/x-icon" href="assets/img/favicon.ico">
+    <meta name="description" content="Sistema de gestión empresarial para pequeños y medianos negocios">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-card">
+            <!-- Logo y título -->
+            <div class="login-header">
+                <div class="logo">
+                    <svg class="logo-img" viewBox="0 0 100 100" width="60" height="60">
+                        <circle cx="50" cy="50" r="45" fill="#2563eb" stroke="#1d4ed8" stroke-width="2"/>
+                        <text x="50" y="58" text-anchor="middle" fill="white" font-size="24" font-weight="bold">30</text>
+                    </svg>
+                </div>
+                <h1 class="login-title">Treinta</h1>
+                <p class="login-subtitle">Gestiona tu negocio de forma inteligente</p>
+            </div>
+
+            <!-- Formulario de login -->
+            <form class="login-form" id="loginForm">
+                
+                <!-- Mensajes de error/éxito -->
+                <div class="alert alert-error hidden" id="errorAlert">
+                    <svg class="alert-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                    </svg>
+                    <span id="errorMessage"></span>
+                </div>
+                
+                <div class="alert alert-success hidden" id="successAlert">
+                    <svg class="alert-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 12l2 2 4-4"></path>
+                        <circle cx="12" cy="12" r="10"></circle>
+                    </svg>
+                    <span id="successMessage"></span>
+                </div>
+
+                <!-- Campo email -->
+                <div class="form-group">
+                    <label for="email" class="form-label">Email</label>
+                    <div class="input-group">
+                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="email" 
+                            class="form-input" 
+                            placeholder="tu@email.com"
+                            value="admin@treinta.local"
+                            required
+                            autocomplete="email"
+                        >
+                    </div>
+                </div>
+
+                <!-- Campo contraseña -->
+                <div class="form-group">
+                    <label for="password" class="form-label">Contraseña</label>
+                    <div class="input-group">
+                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <circle cx="12" cy="16" r="1"></circle>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            class="form-input" 
+                            placeholder="••••••••"
+                            value="password"
+                            required
+                            autocomplete="current-password"
+                        >
+                        <button type="button" class="toggle-password" id="togglePassword">
+                            <svg class="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Recordar y olvidé contraseña -->
+                <div class="form-row">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="remember" class="checkbox">
+                        <span class="checkmark"></span>
+                        Recordarme
+                    </label>
+                    <a href="forgot-password.html" class="forgot-password">¿Olvidaste tu contraseña?</a>
+                </div>
+
+                <!-- Botón de login -->
+                <button type="submit" class="btn btn-primary btn-full" id="loginBtn">
+                    <span class="btn-text">Iniciar Sesión</span>
+                    <div class="btn-loading hidden">
+                        <svg class="loading-spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" stroke-dasharray="31.416" stroke-dashoffset="31.416">
+                                <animate attributeName="stroke-dashoffset" dur="2s" values="31.416;0" repeatCount="indefinite"/>
+                            </circle>
+                        </svg>
+                    </div>
+                </button>
+            </form>
+
+            <!-- Enlaces adicionales -->
+            <div class="login-footer">
+                <p>¿No tienes una cuenta? <a href="register.html" class="register-link">Registrarse</a></p>
+                
+                <!-- Demo credentials -->
+                <div class="demo-credentials">
+                    <p class="demo-title">Credenciales de demostración:</p>
+                    <p class="demo-info">Email: <strong>admin@treinta.local</strong></p>
+                    <p class="demo-info">Contraseña: <strong>password</strong></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información adicional -->
+        <div class="info-section">
+            <h2>¿Por qué elegir Treinta?</h2>
+            <div class="features-grid">
+                <div class="feature-item">
+                    <svg class="feature-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+                    </svg>
+                    <h3>Rápido y Fácil</h3>
+                    <p>Gestiona tu inventario y ventas en segundos</p>
+                </div>
+                <div class="feature-item">
+                    <svg class="feature-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="1" x2="12" y2="23"></line>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                    <h3>Control Financiero</h3>
+                    <p>Mantén el control total de tus finanzas</p>
+                </div>
+                <div class="feature-item">
+                    <svg class="feature-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 19c-5 0-9-4-9-9s4-9 9-9 9 4 9 9-4 9-9 9"></path>
+                        <path d="M15.5 2.5A9 9 0 0 1 15.5 21.5"></path>
+                    </svg>
+                    <h3>Acceso desde cualquier lugar</h3>
+                    <p>Tu negocio en la nube, disponible 24/7</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="assets/js/app.js"></script>
+    <script>
+        // Funcionalidad específica del login
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.getElementById('loginForm');
+            const togglePassword = document.getElementById('togglePassword');
+            const passwordInput = document.getElementById('password');
+            const loginBtn = document.getElementById('loginBtn');
+            const errorAlert = document.getElementById('errorAlert');
+            const successAlert = document.getElementById('successAlert');
+
+            // Toggle password visibility
+            togglePassword.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                
+                // Cambiar icono
+                const eyeIcon = this.querySelector('.eye-icon');
+                if (type === 'text') {
+                    eyeIcon.innerHTML = `
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                    `;
+                } else {
+                    eyeIcon.innerHTML = `
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    `;
+                }
+            });
+
+            // Manejar envío del formulario
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Mostrar loading
+                showLoading();
+                
+                // Obtener datos del formulario
+                const formData = new FormData(loginForm);
+                
+                // Simular login (aquí harías la llamada AJAX a tu API PHP)
+                setTimeout(() => {
+                    const email = formData.get('email');
+                    const password = formData.get('password');
+                    
+                    if (email === 'admin@treinta.local' && password === 'password') {
+                        showSuccess('¡Bienvenido! Redirigiendo...');
+                        setTimeout(() => {
+                            window.location.href = 'dashboard.html';
+                        }, 1500);
+                    } else {
+                        showError('Credenciales incorrectas. Verifique su email y contraseña.');
+                        hideLoading();
+                    }
+                }, 1000);
+            });
+
+            function showLoading() {
+                loginBtn.disabled = true;
+                loginBtn.querySelector('.btn-text').style.display = 'none';
+                loginBtn.querySelector('.btn-loading').classList.remove('hidden');
+            }
+
+            function hideLoading() {
+                loginBtn.disabled = false;
+                loginBtn.querySelector('.btn-text').style.display = 'inline';
+                loginBtn.querySelector('.btn-loading').classList.add('hidden');
+            }
+
+            function showError(message) {
+                hideAlerts();
+                document.getElementById('errorMessage').textContent = message;
+                errorAlert.classList.remove('hidden');
+                errorAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            function showSuccess(message) {
+                hideAlerts();
+                document.getElementById('successMessage').textContent = message;
+                successAlert.classList.remove('hidden');
+                successAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            function hideAlerts() {
+                errorAlert.classList.add('hidden');
+                successAlert.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
