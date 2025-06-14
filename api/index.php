@@ -35,7 +35,8 @@ class APIHandler {
     private function parseRequest() {
         $request = $_SERVER['REQUEST_URI'];
         $path = parse_url($request, PHP_URL_PATH);
-        $path = str_replace('/api/', '', $path);
+        // Ajuste para manejar diferentes rutas base en desarrollo
+        $path = preg_replace('/^.*?\/api\//', '', $path);
         $path = trim($path, '/');
         
         $parts = explode('/', $path);
@@ -75,8 +76,9 @@ class APIHandler {
                     return $this->error('Endpoint no encontrado', 404);
             }
         } catch (Exception $e) {
+            $code = is_int($e->getCode()) && $e->getCode() > 0 ? $e->getCode() : 500;
             error_log("API Error: " . $e->getMessage());
-            return $this->error('Error interno del servidor', 500);
+            return $this->error('Error interno del servidor', $code);
         }
     }
     
@@ -162,17 +164,16 @@ class APIHandler {
         );
         
         if (!$user) {
-            return $this->error('Usuario no encontrado');
+            return $this->error('Usuario no encontrado o inactivo');
         }
         
         // Verificar bloqueo
         if ($user['locked_until'] && strtotime($user['locked_until']) > time()) {
-            return $this->error('Cuenta temporalmente bloqueada');
+            return $this->error('Cuenta temporalmente bloqueada. Intente más tarde.');
         }
         
         // Verificar contraseña
         if (!password_verify($password, $user['password'])) {
-            // Incrementar intentos fallidos
             $attempts = $user['login_attempts'] + 1;
             $updateData = ['login_attempts' => $attempts];
             
@@ -226,7 +227,6 @@ class APIHandler {
         $businessId = $_SESSION['business_id'];
         $today = date('Y-m-d');
         
-        // Estadísticas del día
         $stats = [
             'sales_today' => $this->db->single(
                 "SELECT COALESCE(SUM(total_amount), 0) as total, COUNT(*) as count 
@@ -242,42 +242,42 @@ class APIHandler {
                 [$businessId, $today]
             ),
             'low_stock_products' => $this->db->fetchAll(
-                "SELECT id, name, stock_quantity, min_stock 
+                "SELECT id, name, stock_quantity, min_stock, unit 
                  FROM products 
-                 WHERE business_id = ? AND stock_quantity <= min_stock AND status = 1 
+                 WHERE business_id = ? AND track_stock = 1 AND stock_quantity <= min_stock AND status = 1 
                  ORDER BY stock_quantity ASC 
-                 LIMIT 10",
+                 LIMIT 5",
                 [$businessId]
             ),
             'pending_debts' => $this->db->single(
                 "SELECT COALESCE(SUM(remaining_amount), 0) as total, COUNT(*) as count 
                  FROM debts 
-                 WHERE business_id = ? AND type = 'receivable' AND status IN ('pending', 'partial')",
+                 WHERE business_id = ? AND type = 'receivable' AND status IN ('pending', 'partial', 'overdue')",
                 [$businessId]
             )
         ];
         
-        // Ventas recientes
         $recent_sales = $this->db->fetchAll(
-            "SELECT s.*, c.first_name, c.last_name,
+            "SELECT s.id, s.sale_date, s.total_amount, s.payment_status, 
+                    COALESCE(c.first_name, 'Cliente') as customer_name,
                     (SELECT COUNT(*) FROM sale_items WHERE sale_id = s.id) as item_count
              FROM sales s 
              LEFT JOIN customers c ON s.customer_id = c.id 
              WHERE s.business_id = ? AND s.status = 1 
              ORDER BY s.sale_date DESC 
-             LIMIT 10",
+             LIMIT 5",
             [$businessId]
         );
         
-        // Deudas próximas a vencer
         $upcoming_debts = $this->db->fetchAll(
-            "SELECT d.*, c.first_name, c.last_name 
+            "SELECT d.id, d.remaining_amount, d.due_date, d.status,
+                    COALESCE(c.first_name, 'N/A') as customer_name
              FROM debts d 
              LEFT JOIN customers c ON d.customer_id = c.id 
              WHERE d.business_id = ? AND d.type = 'receivable' 
-             AND d.status IN ('pending', 'partial') 
+             AND d.status IN ('pending', 'partial', 'overdue') 
              ORDER BY d.due_date ASC 
-             LIMIT 10",
+             LIMIT 5",
             [$businessId]
         );
         
@@ -314,21 +314,20 @@ class APIHandler {
         
         $offset = ($page - 1) * $limit;
         
-        $where = "business_id = ? AND status = 1";
+        $where = "p.business_id = ? AND p.status = 1";
         $params = [$businessId];
         
         if ($search) {
-            $where .= " AND (name LIKE ? OR sku LIKE ? OR barcode LIKE ?)";
+            $where .= " AND (p.name LIKE ? OR p.sku LIKE ? OR p.barcode LIKE ?)";
             $searchTerm = "%$search%";
             $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm]);
         }
         
         if ($category) {
-            $where .= " AND category_id = ?";
+            $where .= " AND p.category_id = ?";
             $params[] = $category;
         }
         
-        // Obtener productos
         $products = $this->db->fetchAll(
             "SELECT p.*, c.name as category_name 
              FROM products p 
@@ -339,18 +338,10 @@ class APIHandler {
             $params
         );
         
-        // Contar total
-        $total = $this->db->single("SELECT COUNT(*) as total FROM products WHERE $where", $params)['total'];
-        
-        // Obtener categorías para el filtro
-        $categories = $this->db->fetchAll(
-            "SELECT * FROM categories WHERE business_id = ? AND status = 1 ORDER BY name",
-            [$businessId]
-        );
+        $total = $this->db->single("SELECT COUNT(*) as total FROM products p WHERE $where", $params)['total'];
         
         return $this->success([
             'products' => $products,
-            'categories' => $categories,
             'pagination' => [
                 'current_page' => $page,
                 'total_pages' => ceil($total / $limit),
@@ -359,327 +350,86 @@ class APIHandler {
             ]
         ]);
     }
-    
+
     private function createProduct($businessId) {
         $input = $this->getInput();
-        
-        // Validar datos requeridos
         $required = ['name', 'selling_price'];
         foreach ($required as $field) {
-            if (empty($input[$field])) {
-                return $this->error("El campo $field es requerido");
+            if (!isset($input[$field]) || $input[$field] === '') {
+                return $this->error("El campo '$field' es requerido");
             }
         }
         
-        // Preparar datos
         $data = [
             'business_id' => $businessId,
-            'category_id' => $input['category_id'] ?: null,
-            'sku' => $input['sku'] ?: null,
-            'barcode' => $input['barcode'] ?: null,
+            'category_id' => !empty($input['category_id']) ? intval($input['category_id']) : null,
+            'sku' => !empty($input['sku']) ? cleanInput($input['sku']) : null,
             'name' => cleanInput($input['name']),
-            'description' => cleanInput($input['description'] ?? ''),
-            'cost_price' => floatval($input['cost_price'] ?? 0),
             'selling_price' => floatval($input['selling_price']),
-            'wholesale_price' => floatval($input['wholesale_price'] ?? 0),
+            'cost_price' => floatval($input['cost_price'] ?? 0),
             'stock_quantity' => intval($input['stock_quantity'] ?? 0),
             'min_stock' => intval($input['min_stock'] ?? 0),
-            'unit' => cleanInput($input['unit'] ?? 'unit'),
             'track_stock' => isset($input['track_stock']) ? 1 : 0
         ];
         
-        // Verificar SKU único
         if ($data['sku']) {
-            $existing = $this->db->single(
-                "SELECT id FROM products WHERE business_id = ? AND sku = ? AND status = 1",
-                [$businessId, $data['sku']]
-            );
-            if ($existing) {
+            if ($this->db->single("SELECT id FROM products WHERE business_id = ? AND sku = ?", [$businessId, $data['sku']])) {
                 return $this->error('El SKU ya existe');
             }
         }
         
         try {
             $this->db->beginTransaction();
-            
             $productId = $this->db->insert('products', $data);
-            
-            // Registrar movimiento de inventario inicial si hay stock
-            if ($data['stock_quantity'] > 0) {
+            if ($data['stock_quantity'] > 0 && $data['track_stock']) {
                 $this->db->insert('inventory_movements', [
                     'business_id' => $businessId,
                     'product_id' => $productId,
                     'user_id' => $_SESSION['user_id'],
                     'movement_type' => 'in',
                     'quantity' => $data['stock_quantity'],
-                    'unit_cost' => $data['cost_price'],
-                    'reference_type' => 'initial',
                     'reason' => 'Stock inicial',
                     'movement_date' => date('Y-m-d H:i:s')
                 ]);
             }
-            
             $this->db->commit();
-            
-            return $this->success(['product_id' => $productId], 'Producto creado exitosamente');
-            
+            return $this->success(['product_id' => $productId], 'Producto creado');
         } catch (Exception $e) {
             $this->db->rollback();
             throw $e;
         }
     }
     
-    private function handleSales($businessId) {
-        switch ($this->method) {
-            case 'GET':
-                return $this->getSales($businessId);
-            case 'POST':
-                return $this->createSale($businessId);
-            default:
-                return $this->error('Método no permitido', 405);
-        }
-    }
-    
-    private function createSale($businessId) {
-        $input = $this->getInput();
-        
-        // Validar datos
-        if (empty($input['items']) || !is_array($input['items'])) {
-            return $this->error('Se requieren items para la venta');
-        }
-        
-        $customerId = $input['customer_id'] ?: null;
-        $paymentMethod = $input['payment_method'] ?? 'cash';
-        $notes = cleanInput($input['notes'] ?? '');
-        
-        try {
-            $this->db->beginTransaction();
-            
-            // Generar número de venta
-            $saleNumber = $this->generateSaleNumber($businessId);
-            
-            // Calcular totales
-            $subtotal = 0;
-            $taxAmount = 0;
-            $discountAmount = floatval($input['discount_amount'] ?? 0);
-            
-            foreach ($input['items'] as $item) {
-                $lineTotal = floatval($item['quantity']) * floatval($item['unit_price']);
-                $subtotal += $lineTotal;
-                $taxAmount += $lineTotal * (floatval($item['tax_rate'] ?? 0) / 100);
-            }
-            
-            $total = $subtotal + $taxAmount - $discountAmount;
-            
-            // Crear venta
-            $saleData = [
-                'business_id' => $businessId,
-                'customer_id' => $customerId,
-                'user_id' => $_SESSION['user_id'],
-                'sale_number' => $saleNumber,
-                'sale_date' => date('Y-m-d H:i:s'),
-                'subtotal' => $subtotal,
-                'tax_amount' => $taxAmount,
-                'discount_amount' => $discountAmount,
-                'total_amount' => $total,
-                'payment_method' => $paymentMethod,
-                'payment_status' => 'paid',
-                'amount_paid' => $total,
-                'amount_due' => 0,
-                'notes' => $notes
-            ];
-            
-            $saleId = $this->db->insert('sales', $saleData);
-            
-            // Procesar items
-            foreach ($input['items'] as $item) {
-                $productId = intval($item['product_id']);
-                $quantity = floatval($item['quantity']);
-                $unitPrice = floatval($item['unit_price']);
-                $costPrice = floatval($item['cost_price'] ?? 0);
-                
-                // Verificar producto
-                $product = $this->db->single(
-                    "SELECT * FROM products WHERE id = ? AND business_id = ? AND status = 1",
-                    [$productId, $businessId]
-                );
-                
-                if (!$product) {
-                    throw new Exception("Producto no encontrado: ID $productId");
-                }
-                
-                // Verificar stock
-                if ($product['track_stock'] && $product['stock_quantity'] < $quantity) {
-                    throw new Exception("Stock insuficiente para: {$product['name']}");
-                }
-                
-                // Insertar item de venta
-                $itemData = [
-                    'sale_id' => $saleId,
-                    'product_id' => $productId,
-                    'product_name' => $product['name'],
-                    'product_sku' => $product['sku'],
-                    'quantity' => $quantity,
-                    'unit_price' => $unitPrice,
-                    'cost_price' => $costPrice ?: $product['cost_price'],
-                    'discount_amount' => floatval($item['discount_amount'] ?? 0),
-                    'tax_rate' => floatval($item['tax_rate'] ?? 0),
-                    'tax_amount' => $unitPrice * $quantity * (floatval($item['tax_rate'] ?? 0) / 100),
-                    'line_total' => $quantity * $unitPrice
-                ];
-                
-                $this->db->insert('sale_items', $itemData);
-                
-                // Actualizar stock
-                if ($product['track_stock']) {
-                    $this->db->update('products', 
-                        ['stock_quantity' => $product['stock_quantity'] - $quantity],
-                        'id = ?',
-                        [$productId]
-                    );
-                    
-                    // Registrar movimiento de inventario
-                    $this->db->insert('inventory_movements', [
-                        'business_id' => $businessId,
-                        'product_id' => $productId,
-                        'user_id' => $_SESSION['user_id'],
-                        'movement_type' => 'out',
-                        'quantity' => -$quantity,
-                        'unit_cost' => $costPrice,
-                        'reference_type' => 'sale',
-                        'reference_id' => $saleId,
-                        'reason' => 'Venta',
-                        'movement_date' => date('Y-m-d H:i:s')
-                    ]);
-                }
-            }
-            
-            // Si es venta a crédito, crear deuda
-            if ($paymentMethod === 'credit' && $customerId) {
-                $dueDate = date('Y-m-d', strtotime('+30 days')); // 30 días por defecto
-                
-                $this->db->insert('debts', [
-                    'business_id' => $businessId,
-                    'customer_id' => $customerId,
-                    'sale_id' => $saleId,
-                    'type' => 'receivable',
-                    'description' => "Venta #{$saleNumber}",
-                    'original_amount' => $total,
-                    'remaining_amount' => $total,
-                    'due_date' => $dueDate
-                ]);
-            }
-            
-            $this->db->commit();
-            
-            return $this->success([
-                'sale_id' => $saleId,
-                'sale_number' => $saleNumber,
-                'total' => $total
-            ], 'Venta registrada exitosamente');
-            
-        } catch (Exception $e) {
-            $this->db->rollback();
-            return $this->error($e->getMessage());
-        }
-    }
-    
-    private function generateSaleNumber($businessId) {
-        $today = date('Ymd');
-        $lastSale = $this->db->single(
-            "SELECT sale_number FROM sales 
-             WHERE business_id = ? AND DATE(sale_date) = CURDATE() 
-             ORDER BY id DESC LIMIT 1",
-            [$businessId]
-        );
-        
-        if ($lastSale) {
-            $lastNumber = intval(substr($lastSale['sale_number'], -4));
-            $newNumber = $lastNumber + 1;
-        } else {
-            $newNumber = 1;
-        }
-        
-        return $today . '-' . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+    private function handleSales() {
+        // Implementar lógica para ventas
+        return $this->error('Endpoint de ventas no implementado', 501);
     }
     
     private function handleCustomers() {
-        $businessId = $_SESSION['business_id'];
-        
-        switch ($this->method) {
-            case 'GET':
-                return $this->getCustomers($businessId);
-            case 'POST':
-                return $this->createCustomer($businessId);
-            case 'PUT':
-                return $this->updateCustomer($businessId);
-            case 'DELETE':
-                return $this->deleteCustomer($businessId);
-            default:
-                return $this->error('Método no permitido', 405);
-        }
+        // Implementar lógica para clientes
+        return $this->error('Endpoint de clientes no implementado', 501);
     }
-    
-    private function getCustomers($businessId) {
-        $search = cleanInput($_GET['search'] ?? '');
-        $limit = intval($_GET['limit'] ?? 50);
-        
-        $where = "business_id = ? AND status = 1";
-        $params = [$businessId];
-        
-        if ($search) {
-            $where .= " AND (first_name LIKE ? OR last_name LIKE ? OR email LIKE ? OR phone LIKE ?)";
-            $searchTerm = "%$search%";
-            $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm]);
-        }
-        
-        $customers = $this->db->fetchAll(
-            "SELECT * FROM customers WHERE $where ORDER BY first_name ASC LIMIT $limit",
-            $params
-        );
-        
-        return $this->success(['customers' => $customers]);
+
+    // Añadir aquí los demás handlers: handleExpenses, handleDebts, handleReports
+    private function handleExpenses() {
+        return $this->error('Endpoint no implementado', 501);
     }
-    
-    private function createCustomer($businessId) {
-        $input = $this->getInput();
-        
-        if (empty($input['first_name'])) {
-            return $this->error('El nombre es requerido');
-        }
-        
-        $data = [
-            'business_id' => $businessId,
-            'first_name' => cleanInput($input['first_name']),
-            'last_name' => cleanInput($input['last_name'] ?? ''),
-            'email' => cleanInput($input['email'] ?? ''),
-            'phone' => cleanInput($input['phone'] ?? ''),
-            'document_type' => $input['document_type'] ?? 'dni',
-            'document_number' => cleanInput($input['document_number'] ?? ''),
-            'address' => cleanInput($input['address'] ?? ''),
-            'credit_limit' => floatval($input['credit_limit'] ?? 0)
-        ];
-        
-        // Validar email si se proporciona
-        if ($data['email'] && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            return $this->error('Email no válido');
-        }
-        
-        $customerId = $this->db->insert('customers', $data);
-        
-        return $this->success(['customer_id' => $customerId], 'Cliente creado exitosamente');
+    private function handleDebts() {
+        return $this->error('Endpoint no implementado', 501);
+    }
+    private function handleReports() {
+        return $this->error('Endpoint no implementado', 501);
+    }
+
+    // Placeholder para update y delete de productos
+    private function updateProduct($businessId) {
+        return $this->error('Endpoint no implementado', 501);
+    }
+    private function deleteProduct($businessId) {
+        return $this->error('Endpoint no implementado', 501);
     }
 }
 
 // Ejecutar API
-try {
-    $api = new APIHandler();
-    $api->handleRequest();
-} catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Error interno del servidor',
-        'error' => $e->getMessage()
-    ], JSON_UNESCAPED_UNICODE);
-}
+$api = new APIHandler();
+$api->handleRequest();

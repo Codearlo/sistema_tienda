@@ -29,24 +29,18 @@ async function loadSidebar() {
 }
 
 function setActiveSidebarLink() {
-    // Obtener el nombre del archivo actual, ej: "dashboard.html"
-    const currentPageFile = window.location.pathname.split('/').pop();
-    // Obtener el nombre base sin la extensión, ej: "dashboard"
+    const currentPageFile = window.location.pathname.split('/').pop() || 'dashboard.html';
     const pageName = currentPageFile.replace('.html', '').replace('.php', '');
 
-    // Quitar la clase 'active' de cualquier enlace que la tenga
-    const activeLinks = document.querySelectorAll('.sidebar-nav-link.active');
-    activeLinks.forEach(link => link.classList.remove('active'));
-
-    // Encontrar el enlace que corresponde a la página actual y agregarle la clase 'active'
     const targetLink = document.querySelector(`.sidebar-nav-link[data-page='${pageName}']`);
     if (targetLink) {
+        // Quitar la clase 'active' de cualquier otro enlace
+        document.querySelectorAll('.sidebar-nav-link.active').forEach(link => link.classList.remove('active'));
         targetLink.classList.add('active');
     }
 }
 
 function initializeDashboard() {
-    // Mobile menu toggle
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
     const sidebar = document.getElementById('sidebar');
     const mobileOverlay = document.getElementById('mobileOverlay');
@@ -63,57 +57,98 @@ function initializeDashboard() {
         });
     }
 
-    // Cargar datos del dashboard
     loadDashboardData();
-
-    // Actualizar cada 30 segundos
-    setInterval(loadDashboardData, 30000);
+    setInterval(loadDashboardData, 30000); // Actualizar cada 30 segundos
 }
 
 async function loadDashboardData() {
     try {
-        const mockData = {
-            stats: {
-                sales_today: { total: 1240.50, count: 12 },
-                products_sold_today: { total: 47 },
-                low_stock_products: 3,
-                pending_debts: { total: 890.00, count: 3 }
-            }
-        };
-        
-        updateDashboardUI(mockData);
-        
+        const response = await API.get('dashboard');
+        if (response && response.success) {
+            updateDashboardUI(response.data);
+        } else {
+            Notifications.error(response.message || 'No se pudieron cargar los datos del dashboard.');
+        }
     } catch (error) {
         console.error('Error cargando datos del dashboard:', error);
-        Notifications.error('Error al cargar datos del dashboard');
+        Notifications.error('Error de conexión al cargar datos del dashboard.');
     }
 }
 
 function updateDashboardUI(data) {
+    // 1. Actualizar Tarjetas de Estadísticas
     document.getElementById('salesTodayValue').textContent = Utils.formatCurrency(data.stats.sales_today.total);
     document.getElementById('productsSoldValue').textContent = data.stats.products_sold_today.total;
-    document.getElementById('lowStockValue').textContent = data.stats.low_stock_products;
+    document.getElementById('lowStockValue').textContent = data.stats.low_stock_products.length;
     document.getElementById('pendingDebtsValue').textContent = Utils.formatCurrency(data.stats.pending_debts.total);
+
+    // 2. Renderizar Ventas Recientes
+    const recentSalesTable = document.getElementById('recentSalesTable');
+    if(recentSalesTable) {
+        recentSalesTable.innerHTML = data.recent_sales.map(sale => `
+            <tr>
+                <td>${Utils.formatDate(sale.sale_date, 'DD/MM/YY HH:mm')}</td>
+                <td>${Utils.cleanInput(sale.customer_name)}</td>
+                <td>${sale.item_count}</td>
+                <td>${Utils.formatCurrency(sale.total_amount)}</td>
+                <td><span class="badge badge-${sale.payment_status === 'paid' ? 'success' : 'warning'}">${sale.payment_status}</span></td>
+            </tr>
+        `).join('');
+    }
+
+    // 3. Renderizar Productos con Stock Bajo
+    const stockAlertsContainer = document.getElementById('stockAlerts');
+    if(stockAlertsContainer) {
+        if (data.stats.low_stock_products.length > 0) {
+            stockAlertsContainer.innerHTML = data.stats.low_stock_products.map(product => {
+                const isOutOfStock = product.stock_quantity <= 0;
+                return `
+                <div class="stock-item ${isOutOfStock ? 'stock-item-critical' : 'stock-item-low'}">
+                    <div class="stock-info">
+                        <div class="stock-name">${Utils.cleanInput(product.name)}</div>
+                        <div class="stock-quantity">Stock: ${product.stock_quantity} ${product.unit}</div>
+                    </div>
+                    <span class="badge ${isOutOfStock ? 'badge-error' : 'badge-warning'}">${isOutOfStock ? 'Agotado' : 'Bajo'}</span>
+                </div>
+            `}).join('');
+        } else {
+            stockAlertsContainer.innerHTML = '<p>No hay productos con stock bajo.</p>';
+        }
+    }
+
+    // 4. Renderizar Deudas por Cobrar
+    const debtsListContainer = document.getElementById('debtsList');
+    if(debtsListContainer) {
+        if (data.upcoming_debts.length > 0) {
+            debtsListContainer.innerHTML = data.upcoming_debts.map(debt => {
+                const dueDate = new Date(debt.due_date);
+                const today = new Date();
+                const isOverdue = dueDate < today;
+                return `
+                <div class="debt-item ${isOverdue ? 'debt-item-overdue' : 'debt-item-due-soon'}">
+                    <div class="debt-info">
+                        <div class="debt-customer">${Utils.cleanInput(debt.customer_name)}</div>
+                        <div class="debt-date">${isOverdue ? 'Venció' : 'Vence'}: ${Utils.formatDate(debt.due_date)}</div>
+                    </div>
+                    <div class="debt-amount-info">
+                        <div class="debt-amount">${Utils.formatCurrency(debt.remaining_amount)}</div>
+                        <span class="badge ${isOverdue ? 'badge-error' : 'badge-warning'}">${debt.status}</span>
+                    </div>
+                </div>
+            `}).join('');
+        } else {
+            debtsListContainer.innerHTML = '<p>No hay deudas pendientes por cobrar.</p>';
+        }
+    }
 }
 
-// Funciones de acciones rápidas
-function newSale() {
-    window.location.href = 'pos.html';
-}
 
-function addProduct() {
-    window.location.href = 'products.html?action=add';
-}
-
-function addExpense() {
-    window.location.href = 'expenses.html?action=add';
-}
-
-function viewReports() {
-    window.location.href = 'reports.html';
-}
-
-function logout() {
+// Funciones de acciones rápidas (accesibles globalmente)
+window.newSale = () => window.location.href = 'pos.html';
+window.addProduct = () => window.location.href = 'products.html?action=add';
+window.addExpense = () => window.location.href = 'expenses.html?action=add';
+window.viewReports = () => window.location.href = 'reports.html';
+window.logout = () => {
     Modal.confirm('¿Estás seguro que deseas cerrar sesión?', 'Confirmar Cierre de Sesión')
         .then(confirmed => {
             if (confirmed) {
@@ -121,11 +156,4 @@ function logout() {
                 window.location.href = 'login.html';
             }
         });
-}
-
-// Hacer funciones accesibles globalmente
-window.newSale = newSale;
-window.addProduct = addProduct;
-window.addExpense = addExpense;
-window.viewReports = viewReports;
-window.logout = logout;
+};
