@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-// Rutas corregidas
+// Incluir database
 require_once __DIR__ . '/../config/database.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -36,13 +36,13 @@ try {
     }
     
     // Verificar si está bloqueado
-    if ($user['locked_until'] && strtotime($user['locked_until']) > time()) {
+    if (!empty($user['locked_until']) && strtotime($user['locked_until']) > time()) {
         $_SESSION['error_message'] = 'Cuenta bloqueada. Intente más tarde.';
         header('Location: ../../login.php');
         exit();
     }
     
-    // Login exitoso
+    // Login exitoso - actualizar usuario
     $db->update('users', [
         'login_attempts' => 0,
         'locked_until' => null,
@@ -54,7 +54,7 @@ try {
     $_SESSION['user_name'] = $user['first_name'] . ' ' . $user['last_name'];
     $_SESSION['user_type'] = $user['user_type'];
     $_SESSION['business_id'] = $user['business_id'];
-    $_SESSION['business_name'] = $user['business_name'];
+    $_SESSION['business_name'] = $user['business_name'] ?? 'Mi Negocio';
     $_SESSION['logged_in_at'] = time();
     
     // Redirigir al dashboard
