@@ -1,0 +1,20 @@
+# Denegar acceso directo a archivos PHP en backend
+<FilesMatch "\.php$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
+
+# Permitir acceso solo a archivos de API y auth
+<FilesMatch "(api|auth)/.*\.php$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
+
+# Denegar listado de directorios
+Options -Indexes
+
+# Proteger archivos de configuración
+<FilesMatch "\.(ini|log|sh|inc|bak|config)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>

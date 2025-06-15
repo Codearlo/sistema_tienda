@@ -1,9 +1,8 @@
 <?php
 /**
  * Verificador de Autenticación
- * Archivo: includes/auth.php
- * Descripción: Inicia la sesión y verifica si el usuario está autenticado.
- * Si no lo está, lo redirige a la página de login.
+ * Archivo: backend/includes/auth.php
+ * Descripción: Verifica si el usuario está autenticado y mantiene la sesión activa
  */
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -12,30 +11,54 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Verificar si el usuario está logueado
 if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
-    // Guardar un mensaje de error para mostrar en la página de login
     $_SESSION['error_message'] = 'Debes iniciar sesión para acceder a esta página.';
-    
-    // Redirigir al login
-    header('Location: login.html');
+    header('Location: login.php');
     exit();
 }
 
-// Refrescar el tiempo de la sesión para mantenerla activa
+// Verificar tiempo de inactividad (30 minutos)
 if (isset($_SESSION['logged_in_at'])) {
-    // Opcional: Definir un tiempo de inactividad máximo (e.g., 30 minutos)
-    $max_inactive_time = 30 * 60; 
+    $max_inactive_time = 30 * 60; // 30 minutos
     if (time() - $_SESSION['logged_in_at'] > $max_inactive_time) {
         // Destruir sesión por inactividad
         session_unset();
         session_destroy();
         
+        // Reiniciar sesión para mensaje de error
+        session_start();
         $_SESSION['error_message'] = 'Tu sesión ha expirado por inactividad.';
         header('Location: login.php');
         exit();
     }
 }
 
-// Actualizar el timestamp de la última actividad
+// Actualizar timestamp de última actividad
 $_SESSION['logged_in_at'] = time();
 
+// Incluir archivos de configuración necesarios
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../config/database.php';
+
+// Verificar que el usuario sigue activo en la BD
+if (isset($_SESSION['user_id'])) {
+    try {
+        $db = getDB();
+        $user = $db->single(
+            "SELECT status FROM users WHERE id = ?",
+            [$_SESSION['user_id']]
+        );
+        
+        if (!$user || $user['status'] != STATUS_ACTIVE) {
+            session_unset();
+            session_destroy();
+            session_start();
+            $_SESSION['error_message'] = 'Tu cuenta ha sido desactivada.';
+            header('Location: login.php');
+            exit();
+        }
+    } catch (Exception $e) {
+        // Si hay error de BD, continuar pero registrar
+        error_log('Error verificando usuario activo: ' . $e->getMessage());
+    }
+}
 ?>
