@@ -175,6 +175,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 
 .sidebar:hover .sidebar-nav-icon {
@@ -465,6 +466,19 @@
   .sidebar-footer {
     padding: 16px;
   }
+}
+
+/* ===== ICONOS CENTRADOS ===== */
+.sidebar-nav-icon svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.user-avatar svg {
+  width: 20px;
+  height: 20px;
+  display: block;
 }
 
 /* ===== ESTADOS ESPECÍFICOS ===== */
