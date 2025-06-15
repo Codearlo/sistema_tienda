@@ -11,9 +11,6 @@ if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
     exit();
 }
-require_once __DIR__ . 'includes/cache_control.php';
-
-
 
 // ===== CONFIGURACIÓN DE BASE DE DATOS =====
 $host = 'localhost';
