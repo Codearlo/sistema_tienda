@@ -20,11 +20,11 @@ $menu_items = [
 
 <aside class="sidebar" id="sidebar">
     <!-- Botón de colapso -->
-    <div class="sidebar-toggle" onclick="toggleSidebar()">
+    <button class="sidebar-toggle" onclick="toggleSidebar()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="15,18 9,12 15,6"/>
         </svg>
-    </div>
+    </button>
 
     <div class="sidebar-header">
         <svg class="sidebar-logo" viewBox="0 0 100 100" width="40" height="40">
@@ -95,7 +95,6 @@ function toggleSidebar() {
 }
 
 function toggleTheme() {
-    // Implementar cambio de tema si es necesario
     console.log('Toggle theme');
 }
 

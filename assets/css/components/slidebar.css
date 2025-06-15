@@ -57,8 +57,8 @@
 }
 
 .sidebar-content-expanded {
-  opacity: 0;
-  visibility: hidden;
+  opacity: 1;
+  visibility: visible;
   transition: opacity var(--transition-fast);
 }
 
@@ -173,7 +173,7 @@
 /* ===== SIDEBAR TOGGLE BUTTON ===== */
 .sidebar-toggle {
   position: absolute;
-  top: 20px;
+  top: 15px;
   right: -15px;
   width: 30px;
   height: 30px;
@@ -192,6 +192,7 @@
 .sidebar-toggle:hover {
   background-color: var(--gray-50);
   transform: scale(1.1);
+  box-shadow: var(--shadow-md);
 }
 
 .sidebar-toggle svg {
@@ -361,10 +362,11 @@
   z-index: 1000;
   margin-left: var(--spacing-sm);
   opacity: 0;
-  animation: fadeIn 0.2s ease-out 0.5s forwards;
+  animation: fadeInTooltip 0.2s ease-out 0.5s forwards;
+  pointer-events: none;
 }
 
-@keyframes fadeIn {
+@keyframes fadeInTooltip {
   to { opacity: 1; }
 }
 
