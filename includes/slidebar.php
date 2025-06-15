@@ -23,6 +23,8 @@ $menu_items = [
 
 // Forzar recarga de cache
 forceCssReload();
+
+includeCss('assets/css/style.css');
 ?>
 <div class="mobile-overlay" id="mobileOverlay"></div>
 
