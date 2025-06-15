@@ -1,27 +1,22 @@
-# Denegar acceso por defecto
-Order Deny,Allow
-Deny from all
-
-# Permitir archivos de autenticación
-<FilesMatch "^auth/(login|logout)\.php$">
+# Permitir archivos de autenticación específicos
+<Files "auth/login.php">
     Order Allow,Deny
     Allow from all
-</FilesMatch>
+</Files>
 
-# Permitir archivos API (para futuro)
+<Files "auth/logout.php">
+    Order Allow,Deny
+    Allow from all
+</Files>
+
+# Permitir directorio API completo
 <FilesMatch "^api/.*\.php$">
     Order Allow,Deny
     Allow from all
 </FilesMatch>
 
-# Denegar archivos de configuración
-<FilesMatch "^config/.*\.php$">
-    Order Deny,Allow
-    Deny from all
-</FilesMatch>
-
-# Denegar archivos includes
-<FilesMatch "^includes/.*\.php$">
+# Denegar todo lo demás por defecto
+<FilesMatch "\.php$">
     Order Deny,Allow
     Deny from all
 </FilesMatch>
