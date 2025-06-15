@@ -22,7 +22,6 @@ function formatCurrency($amount) {
 </head>
 <body class="dashboard-page">
 
-    <?php include 'backend/includes/slidebar.php'; ?>
 
     <main class="main-content">
         <header class="main-header">
