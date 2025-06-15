@@ -14,16 +14,14 @@ function formatCurrency($amount) {
 
 // Conexión a BD
 require_once 'backend/config/database.php';
+require_once 'includes/cache_control.php';
 
 try {
     $db = getDB();
-    
     $business_id = $_SESSION['business_id'];
     
     // Cargar categorías
-    $categories = $pdo->prepare("SELECT * FROM categories WHERE business_id = ? AND status = 1 ORDER BY name");
-    $categories->execute([$business_id]);
-    $categories = $categories->fetchAll();
+    $categories = $db->fetchAll("SELECT * FROM categories WHERE business_id = ? AND status = 1 ORDER BY name", [$business_id]);
     
     // Cargar productos con filtros
     $search = $_GET['search'] ?? '';
@@ -52,18 +50,17 @@ try {
         $where .= " AND p.stock_quantity > p.min_stock";
     }
     
-    $products_query = $pdo->prepare(
+    $products = $db->fetchAll(
         "SELECT p.*, c.name as category_name, c.color as category_color
          FROM products p
          LEFT JOIN categories c ON p.category_id = c.id
          WHERE $where
-         ORDER BY p.name ASC"
+         ORDER BY p.name ASC",
+        $params
     );
-    $products_query->execute($params);
-    $products = $products_query->fetchAll();
     
     // Estadísticas
-    $stats_query = $pdo->prepare("
+    $stats = $db->single("
         SELECT 
             COUNT(*) as total_products,
             COALESCE(SUM(cost_price * stock_quantity), 0) as inventory_value,
@@ -71,9 +68,7 @@ try {
             SUM(CASE WHEN stock_quantity = 0 THEN 1 ELSE 0 END) as out_of_stock
         FROM products 
         WHERE business_id = ? AND status = 1
-    ");
-    $stats_query->execute([$business_id]);
-    $stats = $stats_query->fetch();
+    ", [$business_id]);
     
 } catch (Exception $e) {
     $error_message = "Error de conexión: " . $e->getMessage();
@@ -88,7 +83,7 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Productos - Treinta</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <?php includeCss('assets/css/style.css'); ?>
 </head>
 <body class="dashboard-page">
 
