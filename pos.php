@@ -79,7 +79,7 @@ try {
 <body class="pos-page">
     
     <!-- ===== SIDEBAR ===== -->
-    <?php include 'backend/includes/slidebar.php'; ?>
+    <?php include 'includes/slidebar.php'; ?>
 
     <!-- ===== CONTENEDOR PRINCIPAL ===== -->
     <div class="pos-container">

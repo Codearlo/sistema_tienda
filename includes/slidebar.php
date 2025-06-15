@@ -36,7 +36,7 @@ $menu_items = [
         <ul class="sidebar-nav-list">
             <?php foreach ($menu_items as $key => $item): ?>
                 <li class="sidebar-nav-item">
-                    <a href="<?php echo $item['url']; ?>" class="sidebar-nav-link <?php echo $current_page === $key ? 'active' : ''; ?>" data-page="<?php echo $key; ?>">
+                    <a href="<?php echo $item['url']; ?>" class="sidebar-nav-link <?php echo $current_page === $key ? 'active' : ''; ?>" data-page="<?php echo $key; ?>" data-tooltip="<?php echo $item['label']; ?>">
                         <svg class="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <?php echo $item['icon']; ?>
                         </svg>
