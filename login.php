@@ -1,5 +1,9 @@
 <?php
 session_start();
+// Limpiar errores viejos para debug
+if (isset($_GET['clear'])) {
+    unset($_SESSION['error_message']);
+}
 
 // Si ya está logueado, redirigir al dashboard
 if (isset($_SESSION['user_id'])) {
@@ -33,7 +37,7 @@ unset($_SESSION['error_message']);
                 <p class="login-subtitle">Gestiona tu negocio de forma inteligente</p>
             </div>
 
-            <form class="login-form" id="loginForm" action="test-login.php" method="POST">
+            <form class="login-form" id="loginForm" action="process-login.php" method="POST">
                 <?php if ($error_message): ?>
                 <div class="alert alert-error">
                     <svg class="alert-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
