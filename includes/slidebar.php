@@ -1,6 +1,6 @@
 <?php
 // Incluir sistema de control de cache
-require_once 'includes/cache_control.php';
+require_once __DIR__ . '/cache_control.php';
 
 if (!isset($_SESSION['user_id'])) {
     exit('No autorizado');

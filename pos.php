@@ -11,7 +11,8 @@ if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
     exit();
 }
-require_once 'includes/cache_control.php';
+require_once __DIR__ . '/cache_control.php';
+
 
 
 // ===== CONFIGURACIÓN DE BASE DE DATOS =====
