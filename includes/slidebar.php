@@ -110,10 +110,59 @@ function closeMobileSidebar() {
     document.body.style.overflow = '';
 }
 
+function handleSidebarNavigation(event, url) {
+    event.preventDefault();
+    
+    const sidebar = document.getElementById('sidebar');
+    const isExpanded = sidebar.matches(':hover') || window.innerWidth <= 1024;
+    
+    if (isExpanded) {
+        // Agregar clase de animación de contracción
+        sidebar.classList.add('sidebar-contracting');
+        
+        // Forzar contracción
+        if (window.innerWidth > 1024) {
+            // En desktop, simular fin de hover
+            sidebar.style.width = '70px';
+            sidebar.style.pointerEvents = 'none';
+        } else {
+            // En móvil, cerrar sidebar
+            closeMobileSidebar();
+        }
+        
+        // Esperar a que termine la animación de contracción
+        setTimeout(() => {
+            window.location.href = url;
+        }, 300);
+    } else {
+        // Si ya está contraído, navegar directamente
+        window.location.href = url;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const overlay = document.getElementById('mobileOverlay');
     if (overlay) {
         overlay.addEventListener('click', closeMobileSidebar);
+    }
+    
+    // Agregar event listeners a todos los enlaces del sidebar
+    const sidebarLinks = document.querySelectorAll('.sidebar-nav-link');
+    sidebarLinks.forEach(link => {
+        link.addEventListener('click', function(event) {
+            const url = this.getAttribute('href');
+            handleSidebarNavigation(event, url);
+        });
+    });
+    
+    // Restaurar funcionalidad normal después de la contracción
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        sidebar.addEventListener('transitionend', function() {
+            this.classList.remove('sidebar-contracting');
+            this.style.pointerEvents = '';
+            this.style.width = '';
+        });
     }
 });
 

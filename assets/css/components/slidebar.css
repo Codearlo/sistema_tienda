@@ -483,15 +483,89 @@
   }
 }
 
+@keyframes contractSidebar {
+  from {
+    width: 280px;
+  }
+  to {
+    width: 70px;
+  }
+}
+
 .sidebar:hover .sidebar-nav-label,
 .sidebar:hover .sidebar-title-section,
 .sidebar:hover .user-info {
   animation: slideIn 0.3s ease 0.1s both;
 }
 
+/* Animación de contracción al hacer clic */
+.sidebar.sidebar-contracting {
+  animation: contractSidebar 0.3s ease forwards;
+}
+
+.sidebar.sidebar-contracting .sidebar-nav-label,
+.sidebar.sidebar-contracting .sidebar-title-section,
+.sidebar.sidebar-contracting .user-info,
+.sidebar.sidebar-contracting .sidebar-nav-badge,
+.sidebar.sidebar-contracting .sidebar-actions {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  overflow: hidden !important;
+  transition: all 0.2s ease !important;
+}
+
+.sidebar.sidebar-contracting .sidebar-header {
+  justify-content: center !important;
+  padding: 1rem !important;
+}
+
+.sidebar.sidebar-contracting .sidebar-logo {
+  margin-right: 0 !important;
+}
+
+.sidebar.sidebar-contracting .sidebar-nav-link {
+  justify-content: center !important;
+  padding: 12px !important;
+}
+
+.sidebar.sidebar-contracting .sidebar-nav-icon {
+  margin-right: 0 !important;
+}
+
+.sidebar.sidebar-contracting .user-profile {
+  justify-content: center !important;
+}
+
+.sidebar.sidebar-contracting .user-avatar {
+  margin-right: 0 !important;
+}
+
+.sidebar.sidebar-contracting .user-profile-info {
+  justify-content: center !important;
+}
+
 /* ===== ESTADOS ESPECÍFICOS ===== */
 .sidebar-nav-link[data-page="pos"] {
   position: relative;
+}
+
+.sidebar-nav-link[data-page="pos"]::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 20px;
+  background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+  border-radius: 0 2px 2px 0;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.sidebar-nav-link[data-page="pos"].active::before {
+  opacity: 1;
 }
 
 /* ===== PRINT STYLES ===== */
