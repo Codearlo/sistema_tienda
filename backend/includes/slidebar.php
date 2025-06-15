@@ -19,12 +19,19 @@ $menu_items = [
 <div class="mobile-overlay" id="mobileOverlay"></div>
 
 <aside class="sidebar" id="sidebar">
+    <!-- Botón de colapso -->
+    <div class="sidebar-toggle" onclick="toggleSidebar()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15,18 9,12 15,6"/>
+        </svg>
+    </div>
+
     <div class="sidebar-header">
         <svg class="sidebar-logo" viewBox="0 0 100 100" width="40" height="40">
             <circle cx="50" cy="50" r="45" fill="#2563eb"/>
             <text x="50" y="58" text-anchor="middle" fill="white" font-size="24" font-weight="bold">30</text>
         </svg>
-        <div class="sidebar-title-section">
+        <div class="sidebar-title-section sidebar-content-expanded">
             <h2 class="sidebar-title">Treinta</h2>
             <p class="sidebar-business"><?php echo htmlspecialchars($_SESSION['business_name'] ?? 'Mi Negocio'); ?></p>
         </div>
@@ -34,13 +41,13 @@ $menu_items = [
         <ul class="sidebar-nav-list">
             <?php foreach ($menu_items as $key => $item): ?>
                 <li class="sidebar-nav-item">
-                    <a href="<?php echo $item['url']; ?>" class="sidebar-nav-link" data-page="<?php echo $key; ?>">
+                    <a href="<?php echo $item['url']; ?>" class="sidebar-nav-link" data-page="<?php echo $key; ?>" data-tooltip="<?php echo $item['label']; ?>">
                         <svg class="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <?php echo $item['icon']; ?>
                         </svg>
-                        <span class="sidebar-nav-label"><?php echo $item['label']; ?></span>
+                        <span class="sidebar-nav-label sidebar-content-expanded"><?php echo $item['label']; ?></span>
                         <?php if ($key === 'pos'): ?>
-                            <span class="sidebar-nav-badge">POS</span>
+                            <span class="sidebar-nav-badge sidebar-content-expanded">POS</span>
                         <?php endif; ?>
                     </a>
                 </li>
@@ -56,12 +63,12 @@ $menu_items = [
                     <circle cx="12" cy="7" r="4"/>
                 </svg>
             </div>
-            <div class="user-info">
+            <div class="user-info sidebar-content-expanded">
                 <div class="user-name"><?php echo htmlspecialchars($_SESSION['user_name']); ?></div>
                 <div class="user-role"><?php echo ucfirst($_SESSION['user_type']); ?></div>
             </div>
         </div>
-        <div class="sidebar-actions">
+        <div class="sidebar-actions sidebar-content-expanded">
             <button class="sidebar-action-btn" onclick="toggleTheme()" title="Cambiar tema">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
@@ -75,3 +82,65 @@ $menu_items = [
         </div>
     </div>
 </aside>
+
+<script>
+// Funcionalidad del sidebar
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.toggle('collapsed');
+    
+    // Guardar estado en localStorage
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    localStorage.setItem('sidebarCollapsed', isCollapsed);
+}
+
+function toggleTheme() {
+    // Implementar cambio de tema si es necesario
+    console.log('Toggle theme');
+}
+
+// Manejar móvil
+function toggleMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('mobileOverlay');
+    
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('show');
+}
+
+// Restaurar estado del sidebar al cargar
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebar = document.getElementById('sidebar');
+    const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+    
+    if (isCollapsed) {
+        sidebar.classList.add('collapsed');
+    }
+    
+    // Marcar enlace activo
+    setActiveSidebarLink();
+    
+    // Configurar overlay móvil
+    const overlay = document.getElementById('mobileOverlay');
+    if (overlay) {
+        overlay.addEventListener('click', toggleMobileSidebar);
+    }
+});
+
+function setActiveSidebarLink() {
+    const currentPageFile = window.location.pathname.split('/').pop() || 'dashboard.php';
+    const pageName = currentPageFile.replace('.php', '').replace('.html', '');
+
+    const targetLink = document.querySelector(`.sidebar-nav-link[data-page='${pageName}']`);
+    if (targetLink) {
+        // Quitar la clase 'active' de cualquier otro enlace
+        document.querySelectorAll('.sidebar-nav-link.active').forEach(link => link.classList.remove('active'));
+        targetLink.classList.add('active');
+    }
+}
+
+// Exportar funciones globales
+window.toggleSidebar = toggleSidebar;
+window.toggleMobileSidebar = toggleMobileSidebar;
+window.toggleTheme = toggleTheme;
+</script>

@@ -1,17 +1,26 @@
 /* =====================================================
-   POS LAYOUT - Punto de Venta Layout
+   POS LAYOUT - Punto de Venta Layout con Sidebar ajustado
    ===================================================== */
 
 .pos-page {
   background-color: var(--gray-100);
   min-height: 100vh;
   overflow: hidden;
+  display: flex;
 }
 
 .pos-container {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  transition: margin-left var(--transition-normal);
+}
+
+/* Ajuste cuando el sidebar está colapsado */
+.sidebar.collapsed ~ .pos-container {
+  margin-left: 60px;
 }
 
 /* ===== HEADER ===== */
@@ -62,6 +71,24 @@
   color: var(--primary-600);
   margin-top: var(--spacing-xs);
   font-size: var(--text-xs);
+}
+
+/* ===== MOBILE MENU BUTTON ===== */
+.pos-title .mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--gray-600);
+  cursor: pointer;
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius-md);
+  transition: var(--transition-fast);
+  margin-right: var(--spacing-md);
+}
+
+.pos-title .mobile-menu-btn:hover {
+  background-color: var(--gray-100);
+  color: var(--gray-800);
 }
 
 /* ===== MAIN LAYOUT ===== */
@@ -698,6 +725,18 @@
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
+  .pos-container {
+    margin-left: 0;
+  }
+  
+  .sidebar.collapsed ~ .pos-container {
+    margin-left: 0;
+  }
+  
+  .pos-title .mobile-menu-btn {
+    display: block;
+  }
+  
   .pos-main {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr auto;

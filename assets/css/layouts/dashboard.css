@@ -17,6 +17,11 @@
   transition: margin-left var(--transition-normal);
 }
 
+/* Ajuste del contenido cuando el sidebar está colapsado */
+.sidebar.collapsed ~ .main-content {
+  margin-left: 60px;
+}
+
 /* Header del contenido principal */
 .main-header {
   display: flex;
@@ -168,6 +173,10 @@
 /* Responsive design */
 @media (max-width: 1024px) {
   .main-content {
+    margin-left: 0;
+  }
+  
+  .sidebar.collapsed ~ .main-content {
     margin-left: 0;
   }
   

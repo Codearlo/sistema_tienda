@@ -22,74 +22,18 @@ function formatCurrency($amount) {
 </head>
 <body class="dashboard-page">
 
-    <!-- Sidebar básico -->
-    <aside class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <svg class="sidebar-logo" viewBox="0 0 100 100" width="40" height="40">
-                <circle cx="50" cy="50" r="45" fill="#2563eb"/>
-                <text x="50" y="58" text-anchor="middle" fill="white" font-size="24" font-weight="bold">30</text>
-            </svg>
-            <div class="sidebar-title-section">
-                <h2 class="sidebar-title">Treinta</h2>
-                <p class="sidebar-business"><?php echo htmlspecialchars($_SESSION['business_name'] ?? 'Mi Negocio'); ?></p>
-            </div>
-        </div>
-
-        <nav class="sidebar-nav">
-            <ul class="sidebar-nav-list">
-                <li class="sidebar-nav-item">
-                    <a href="dashboard.php" class="sidebar-nav-link active">
-                        <svg class="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                        </svg>
-                        <span class="sidebar-nav-label">Dashboard</span>
-                    </a>
-                </li>
-                <li class="sidebar-nav-item">
-                    <a href="pos.php" class="sidebar-nav-link">
-                        <svg class="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="2" y="3" width="20" height="14" rx="2"/>
-                        </svg>
-                        <span class="sidebar-nav-label">Punto de Venta</span>
-                    </a>
-                </li>
-                <li class="sidebar-nav-item">
-                    <a href="products.php" class="sidebar-nav-link">
-                        <svg class="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M20 7h-9a2 2 0 0 1-2-2V2"/>
-                        </svg>
-                        <span class="sidebar-nav-label">Productos</span>
-                    </a>
-                </li>
-            </ul>
-        </nav>
-
-        <div class="sidebar-footer">
-            <div class="user-profile">
-                <div class="user-avatar">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="7" r="4"/>
-                    </svg>
-                </div>
-                <div class="user-info">
-                    <div class="user-name"><?php echo htmlspecialchars($_SESSION['user_name']); ?></div>
-                    <div class="user-role"><?php echo ucfirst($_SESSION['user_type']); ?></div>
-                </div>
-            </div>
-            <div class="sidebar-actions">
-                <a href="backend/auth/logout.php" class="sidebar-action-btn" title="Cerrar sesión">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                        <polyline points="16,17 21,12 16,7"/>
-                    </svg>
-                </a>
-            </div>
-        </div>
-    </aside>
+    <?php include 'backend/includes/slidebar.php'; ?>
 
     <main class="main-content">
         <header class="main-header">
             <div class="header-left">
+                <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <line x1="3" y1="12" x2="21" y2="12"/>
+                        <line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
                 <h1 class="page-title">Dashboard</h1>
             </div>
             <div class="header-actions">

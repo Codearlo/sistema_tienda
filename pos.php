@@ -58,9 +58,19 @@ try {
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body class="pos-page">
+    
+    <?php include 'backend/includes/slidebar.php'; ?>
+
     <div class="pos-container">
         <header class="pos-header">
             <div class="pos-title">
+                <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <line x1="3" y1="12" x2="21" y2="12"/>
+                        <line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
                 <svg class="pos-logo" viewBox="0 0 100 100" width="40" height="40">
                     <circle cx="50" cy="50" r="45" fill="#2563eb"/>
                     <text x="50" y="58" text-anchor="middle" fill="white" font-size="24" font-weight="bold">30</text>
