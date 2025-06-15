@@ -1,7 +1,0 @@
-# Order Deny,Allow
-# Deny from all
-# 
-# <FilesMatch "(api|auth)/.*\.php$">
-#     Order Allow,Deny
-#     Allow from all
-# </FilesMatch>
