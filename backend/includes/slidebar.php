@@ -84,62 +84,189 @@ $menu_items = [
 </aside>
 
 <script>
-// Funcionalidad del sidebar
+// ===== FUNCIONALIDAD MEJORADA DEL SIDEBAR =====
+
+// Inicialización del sidebar
+document.addEventListener('DOMContentLoaded', function() {
+    initializeSidebar();
+});
+
+function initializeSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.querySelector('.sidebar-toggle');
+    const overlay = document.getElementById('mobileOverlay');
+    
+    // Verificar que los elementos existen
+    if (!sidebar) {
+        console.error('Sidebar no encontrado');
+        return;
+    }
+    
+    // Restaurar estado guardado
+    restoreSidebarState();
+    
+    // Event listeners
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', toggleSidebar);
+    }
+    
+    if (overlay) {
+        overlay.addEventListener('click', closeMobileSidebar);
+    }
+    
+    // Event listeners para hover en sidebar colapsado
+    setupHoverEvents();
+    
+    // Marcar enlace activo
+    setActiveSidebarLink();
+    
+    console.log('Sidebar inicializado correctamente');
+}
+
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+    
     sidebar.classList.toggle('collapsed');
     
-    // Guardar estado en localStorage
+    // Guardar estado
     const isCollapsed = sidebar.classList.contains('collapsed');
     localStorage.setItem('sidebarCollapsed', isCollapsed);
+    
+    console.log('Sidebar toggled:', isCollapsed ? 'collapsed' : 'expanded');
+    
+    // Trigger resize event para que otros componentes se ajusten
+    window.dispatchEvent(new Event('resize'));
+}
+
+function setupHoverEvents() {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+    
+    let hoverTimeout;
+    
+    sidebar.addEventListener('mouseenter', function() {
+        if (sidebar.classList.contains('collapsed')) {
+            clearTimeout(hoverTimeout);
+            sidebar.classList.add('hover-expanded');
+            console.log('Sidebar hover: expanded');
+        }
+    });
+    
+    sidebar.addEventListener('mouseleave', function() {
+        if (sidebar.classList.contains('collapsed')) {
+            hoverTimeout = setTimeout(() => {
+                sidebar.classList.remove('hover-expanded');
+                console.log('Sidebar hover: collapsed');
+            }, 300); // Delay para evitar flickering
+        }
+    });
+}
+
+function restoreSidebarState() {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+    
+    const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+    
+    if (isCollapsed) {
+        sidebar.classList.add('collapsed');
+        console.log('Sidebar restored: collapsed');
+    } else {
+        sidebar.classList.remove('collapsed');
+        console.log('Sidebar restored: expanded');
+    }
+}
+
+function setActiveSidebarLink() {
+    // Obtener página actual
+    const currentPage = window.location.pathname.split('/').pop() || 'dashboard.php';
+    const pageName = currentPage.replace('.php', '').replace('.html', '');
+    
+    // Limpiar enlaces activos
+    document.querySelectorAll('.sidebar-nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
+    
+    // Marcar enlace activo
+    const activeLink = document.querySelector(`.sidebar-nav-link[data-page="${pageName}"]`);
+    if (activeLink) {
+        activeLink.classList.add('active');
+        console.log('Active link set:', pageName);
+    } else {
+        console.log('No active link found for:', pageName);
+    }
+}
+
+// Funciones para móvil
+function toggleMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('mobileOverlay');
+    
+    if (!sidebar || !overlay) return;
+    
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('show');
+    
+    // Prevenir scroll del body cuando el sidebar está abierto
+    if (sidebar.classList.contains('open')) {
+        document.body.style.overflow = 'hidden';
+    } else {
+        document.body.style.overflow = '';
+    }
+    
+    console.log('Mobile sidebar toggled');
+}
+
+function closeMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('mobileOverlay');
+    
+    if (!sidebar || !overlay) return;
+    
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+    document.body.style.overflow = '';
+    
+    console.log('Mobile sidebar closed');
 }
 
 function toggleTheme() {
     console.log('Toggle theme');
 }
 
-// Manejar móvil
-function toggleMobileSidebar() {
+// Debug function para verificar estado
+function debugSidebar() {
     const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('mobileOverlay');
+    if (!sidebar) {
+        console.log('❌ Sidebar element not found');
+        return;
+    }
     
-    sidebar.classList.toggle('open');
-    overlay.classList.toggle('show');
+    console.log('🔍 Sidebar Debug Info:');
+    console.log('- Element exists:', !!sidebar);
+    console.log('- Classes:', sidebar.className);
+    console.log('- Collapsed:', sidebar.classList.contains('collapsed'));
+    console.log('- Open (mobile):', sidebar.classList.contains('open'));
+    console.log('- Hover expanded:', sidebar.classList.contains('hover-expanded'));
+    console.log('- Local storage:', localStorage.getItem('sidebarCollapsed'));
+    
+    const toggle = document.querySelector('.sidebar-toggle');
+    console.log('- Toggle button exists:', !!toggle);
+    
+    const overlay = document.getElementById('mobileOverlay');
+    console.log('- Mobile overlay exists:', !!overlay);
 }
 
-// Restaurar estado del sidebar al cargar
-document.addEventListener('DOMContentLoaded', function() {
-    const sidebar = document.getElementById('sidebar');
-    const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-    
-    if (isCollapsed) {
-        sidebar.classList.add('collapsed');
-    }
-    
-    // Marcar enlace activo
-    setActiveSidebarLink();
-    
-    // Configurar overlay móvil
-    const overlay = document.getElementById('mobileOverlay');
-    if (overlay) {
-        overlay.addEventListener('click', toggleMobileSidebar);
-    }
-});
-
-function setActiveSidebarLink() {
-    const currentPageFile = window.location.pathname.split('/').pop() || 'dashboard.php';
-    const pageName = currentPageFile.replace('.php', '').replace('.html', '');
-
-    const targetLink = document.querySelector(`.sidebar-nav-link[data-page='${pageName}']`);
-    if (targetLink) {
-        // Quitar la clase 'active' de cualquier otro enlace
-        document.querySelectorAll('.sidebar-nav-link.active').forEach(link => link.classList.remove('active'));
-        targetLink.classList.add('active');
-    }
-}
-
-// Exportar funciones globales
+// Exponer funciones globalmente
 window.toggleSidebar = toggleSidebar;
 window.toggleMobileSidebar = toggleMobileSidebar;
+window.closeMobileSidebar = closeMobileSidebar;
+window.debugSidebar = debugSidebar;
 window.toggleTheme = toggleTheme;
+
+// Auto-ejecutar debug en desarrollo
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    setTimeout(debugSidebar, 1000);
+}
 </script>
