@@ -1,27 +1,7 @@
-# Denegar acceso directo por defecto
-Order Deny,Allow
-Deny from all
-
-# Permitir archivos API
-<FilesMatch "^api/.*\.php$">
-    Order Allow,Deny
-    Allow from all
-</FilesMatch>
-
-# Permitir archivos de autenticación
-<FilesMatch "^auth/.*\.php$">
-    Order Allow,Deny
-    Allow from all
-</FilesMatch>
-
-# Denegar acceso a archivos de configuración
-<FilesMatch "^config/.*\.php$">
-    Order Deny,Allow
-    Deny from all
-</FilesMatch>
-
-# Denegar acceso a includes (excepto si son llamados internamente)
-<FilesMatch "^includes/.*\.php$">
-    Order Deny,Allow
-    Deny from all
-</FilesMatch>
+# Order Deny,Allow
+# Deny from all
+# 
+# <FilesMatch "(api|auth)/.*\.php$">
+#     Order Allow,Deny
+#     Allow from all
+# </FilesMatch>
