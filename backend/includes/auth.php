@@ -31,7 +31,7 @@ if (isset($_SESSION['logged_in_at'])) {
 $_SESSION['logged_in_at'] = time();
 
 // Incluir configuración básica
-require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . 'backend/config/database.php';
 
 // Definir constantes básicas si no están definidas
 if (!defined('STATUS_ACTIVE')) {
