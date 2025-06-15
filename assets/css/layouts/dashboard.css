@@ -11,17 +11,11 @@
 /* Main content area */
 .main-content {
   flex: 1;
-  margin-left: var(--sidebar-width);
+  margin-left: 70px;
   padding: var(--spacing-lg);
   min-height: 100vh;
-  transition: margin-left var(--transition-normal);
-  width: calc(100% - var(--sidebar-width));
-}
-
-/* Ajuste del contenido cuando el sidebar está colapsado */
-.sidebar.collapsed ~ .main-content {
-  margin-left: 60px;
-  width: calc(100% - 60px);
+  transition: margin-left 0.3s ease;
+  width: calc(100% - 70px);
 }
 
 /* Header del contenido principal */
@@ -56,7 +50,7 @@
   gap: var(--spacing-md);
 }
 
-/* Mobile menu button */
+/* Mobile menu button - SOLO EN MÓVIL */
 .mobile-menu-btn {
   display: none;
   background: none;
@@ -175,11 +169,6 @@
 /* Responsive design */
 @media (max-width: 1024px) {
   .main-content {
-    margin-left: 0;
-    width: 100%;
-  }
-  
-  .sidebar.collapsed ~ .main-content {
     margin-left: 0;
     width: 100%;
   }
