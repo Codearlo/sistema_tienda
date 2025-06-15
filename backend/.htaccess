@@ -1,0 +1,23 @@
+# Denegar acceso directo
+Order Deny,Allow
+Deny from all
+
+# Permitir solo archivos API y auth
+<FilesMatch "(api|auth)/.*\.php$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
+
+3. /uploads/.htaccess
+---------------------
+# Denegar ejecución de PHP
+<FilesMatch "\.php$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
+
+# Permitir solo imágenes
+<FilesMatch "\.(jpg|jpeg|png|gif|pdf)$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
