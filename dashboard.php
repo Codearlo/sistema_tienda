@@ -7,8 +7,6 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-// Incluir sistema de control de cache
-require_once 'includes/cache_control.php';
 
 // Función simple para formatear moneda
 function formatCurrency($amount) {
