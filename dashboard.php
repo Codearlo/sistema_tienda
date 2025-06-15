@@ -7,6 +7,9 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+// Incluir sistema de control de cache
+require_once 'includes/cache_control.php';
+
 // Función simple para formatear moneda
 function formatCurrency($amount) {
     return 'S/ ' . number_format($amount, 2);
@@ -18,7 +21,144 @@ function formatCurrency($amount) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Treinta</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    
+    <?php 
+    // Forzar recarga de cache en el head
+    forceCssReload(); 
+    
+    // Incluir CSS con cache buster automático
+    includeCss('assets/css/style.css');
+    ?>
+    
+    <!-- CSS directo para sidebar oscuro (emergencia) -->
+    <style>
+    .sidebar {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        height: 100vh !important;
+        width: 70px !important;
+        background-color: #2a2a2a !important;
+        border-right: 1px solid #3a3a3a !important;
+        z-index: 30 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+        transition: width 0.3s ease, box-shadow 0.3s ease !important;
+    }
+
+    .sidebar:hover {
+        width: 280px !important;
+        z-index: 50 !important;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    .sidebar-header {
+        display: flex !important;
+        align-items: center !important;
+        padding: 1rem !important;
+        border-bottom: 1px solid #3a3a3a !important;
+        background-color: #2a2a2a !important;
+        color: white !important;
+        min-height: 80px !important;
+        justify-content: center !important;
+        transition: all 0.3s ease !important;
+    }
+
+    .sidebar:hover .sidebar-header {
+        justify-content: flex-start !important;
+        padding: 1rem 1.5rem !important;
+    }
+
+    .sidebar-nav-link {
+        display: flex !important;
+        align-items: center !important;
+        padding: 12px !important;
+        color: rgba(255, 255, 255, 0.7) !important;
+        text-decoration: none !important;
+        transition: all 0.2s ease !important;
+        font-weight: 500 !important;
+        font-size: 0.875rem !important;
+        position: relative !important;
+        justify-content: center !important;
+        border-radius: 8px !important;
+        margin: 0 8px !important;
+    }
+
+    .sidebar:hover .sidebar-nav-link {
+        justify-content: flex-start !important;
+        padding: 12px 16px !important;
+    }
+
+    .sidebar-nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        color: white !important;
+    }
+
+    .sidebar-nav-link.active {
+        background-color: #3b82f6 !important;
+        color: white !important;
+        font-weight: 600 !important;
+    }
+
+    .sidebar-nav-label {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        overflow: hidden !important;
+        transition: all 0.3s ease !important;
+    }
+
+    .sidebar:hover .sidebar-nav-label {
+        opacity: 1 !important;
+        visibility: visible !important;
+        width: auto !important;
+        overflow: visible !important;
+        transition-delay: 0.1s !important;
+    }
+
+    .sidebar-title-section {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        overflow: hidden !important;
+        transition: all 0.3s ease !important;
+    }
+
+    .sidebar:hover .sidebar-title-section {
+        opacity: 1 !important;
+        visibility: visible !important;
+        width: auto !important;
+        overflow: visible !important;
+        transition-delay: 0.1s !important;
+    }
+
+    .main-content {
+        margin-left: 70px !important;
+        transition: margin-left 0.3s ease !important;
+    }
+
+    .mobile-menu-btn {
+        display: none !important;
+    }
+
+    @media (max-width: 1024px) {
+        .mobile-menu-btn {
+            display: block !important;
+        }
+        .main-content {
+            margin-left: 0 !important;
+        }
+        .sidebar {
+            transform: translateX(-100%) !important;
+            width: 280px !important;
+        }
+        .sidebar.open {
+            transform: translateX(0) !important;
+        }
+    }
+    </style>
 </head>
 <body class="dashboard-page">
 
