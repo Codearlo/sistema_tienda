@@ -12,25 +12,16 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-// ===== CONFIGURACIÓN DE BASE DE DATOS =====
-$host = 'localhost';
-$db_name = 'u347334547_inv_db';
-$username = 'u347334547_inv_user';
-$db_password = 'CH7322a#';
+// ===== CONFIGURACIÓN Y CARGA DE DATOS =====
+require_once 'backend/config/database.php';
 
-// ===== VARIABLES INICIALES =====
 $error_message = null;
 $categories = [];
 $customers = [];
 $products = [];
 
-// ===== CONEXIÓN Y CARGA DE DATOS =====
 try {
-    // Conexión PDO
-    $pdo = new PDO("mysql:host={$host};dbname={$db_name};charset=utf8mb4", $username, $db_password, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
+    $db = getDB();
     
     $business_id = $_SESSION['business_id'];
     

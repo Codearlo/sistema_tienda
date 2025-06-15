@@ -31,6 +31,10 @@ class Database {
         }
     }
 
+    public function prepare($sql) {
+        return $this->pdo->prepare($sql);
+    }
+
     public function single($sql, $params = []) {
         try {
             $stmt = $this->pdo->prepare($sql);
@@ -38,6 +42,32 @@ class Database {
             return $stmt->fetch();
         } catch (PDOException $e) {
             throw new Exception("Error en consulta: " . $e->getMessage());
+        }
+    }
+
+    public function fetchAll($sql, $params = []) {
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll();
+        } catch (PDOException $e) {
+            throw new Exception("Error en consulta: " . $e->getMessage());
+        }
+    }
+
+    public function insert($table, $data) {
+        try {
+            $keys = array_keys($data);
+            $fields = implode(',', $keys);
+            $placeholders = ':' . implode(', :', $keys);
+            
+            $sql = "INSERT INTO {$table} ({$fields}) VALUES ({$placeholders})";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($data);
+            
+            return $this->pdo->lastInsertId();
+        } catch (PDOException $e) {
+            throw new Exception("Error en inserción: " . $e->getMessage());
         }
     }
 
@@ -57,6 +87,28 @@ class Database {
         } catch (PDOException $e) {
             throw new Exception("Error en actualización: " . $e->getMessage());
         }
+    }
+
+    public function delete($table, $where, $params = []) {
+        try {
+            $sql = "DELETE FROM {$table} WHERE {$where}";
+            $stmt = $this->pdo->prepare($sql);
+            return $stmt->execute($params);
+        } catch (PDOException $e) {
+            throw new Exception("Error en eliminación: " . $e->getMessage());
+        }
+    }
+
+    public function beginTransaction() {
+        return $this->pdo->beginTransaction();
+    }
+
+    public function commit() {
+        return $this->pdo->commit();
+    }
+
+    public function rollback() {
+        return $this->pdo->rollBack();
     }
 }
 
