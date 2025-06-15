@@ -1,9 +1,6 @@
 <?php
 session_start();
 
-// Incluir configuración de base de datos
-require_once __DIR__ . 'backend/config/database.php';
-
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ../../login.php');
     exit();
@@ -19,15 +16,26 @@ if (empty($email) || empty($password)) {
 }
 
 try {
-    $db = getDB();
+    // Conexión directa
+    $host = 'localhost';
+    $db_name = 'u347334547_inv_db';
+    $username = 'u347334547_inv_user';
+    $db_password = 'CH7322a#';
     
-    $user = $db->single(
+    $dsn = "mysql:host={$host};dbname={$db_name};charset=utf8mb4";
+    $pdo = new PDO($dsn, $username, $db_password, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+    ]);
+    
+    $stmt = $pdo->prepare(
         "SELECT u.*, b.business_name 
          FROM users u 
          LEFT JOIN businesses b ON u.business_id = b.id 
-         WHERE u.email = ? AND u.status = 1",
-        [$email]
+         WHERE u.email = ? AND u.status = 1"
     );
+    $stmt->execute([$email]);
+    $user = $stmt->fetch();
     
     if (!$user || !password_verify($password, $user['password'])) {
         $_SESSION['error_message'] = 'Credenciales incorrectas.';
@@ -43,11 +51,10 @@ try {
     }
     
     // Login exitoso - actualizar usuario
-    $db->update('users', [
-        'login_attempts' => 0,
-        'locked_until' => null,
-        'last_login' => date('Y-m-d H:i:s')
-    ], 'id = ?', [$user['id']]);
+    $update_stmt = $pdo->prepare(
+        "UPDATE users SET login_attempts = 0, locked_until = NULL, last_login = ? WHERE id = ?"
+    );
+    $update_stmt->execute([date('Y-m-d H:i:s'), $user['id']]);
     
     // Establecer sesión
     $_SESSION['user_id'] = $user['id'];
