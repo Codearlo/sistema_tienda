@@ -1,5 +1,5 @@
 /* =====================================================
-   POS LAYOUT - Punto de Venta Layout con Sidebar ajustado
+   POS LAYOUT - Punto de Venta Layout
    ===================================================== */
 
 .pos-page {
@@ -14,13 +14,8 @@
   flex-direction: column;
   height: 100vh;
   flex: 1;
-  margin-left: var(--sidebar-width);
+  margin-left: 70px;
   transition: margin-left var(--transition-normal);
-}
-
-/* Ajuste cuando el sidebar está colapsado */
-.sidebar.collapsed ~ .pos-container {
-  margin-left: 60px;
 }
 
 /* ===== HEADER ===== */
@@ -726,10 +721,6 @@
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
   .pos-container {
-    margin-left: 0;
-  }
-  
-  .sidebar.collapsed ~ .pos-container {
     margin-left: 0;
   }
   
