@@ -11,7 +11,7 @@ if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
     exit();
 }
-require_once __DIR__ . '/cache_control.php';
+require_once __DIR__ . 'includes/cache_control.php';
 
 
 

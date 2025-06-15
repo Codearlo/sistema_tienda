@@ -8,7 +8,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Incluir sistema de control de cache
-require_once __DIR__ . '/cache_control.php';
+require_once __DIR__ . 'includes/cache_control.php';
 
 
 // Función simple para formatear moneda
