@@ -79,16 +79,16 @@
   flex: 1;
   opacity: 0;
   visibility: hidden;
-  width: 0;
-  overflow: hidden;
+  transform: translateX(-20px);
   transition: all 0.3s ease;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .sidebar:hover .sidebar-title-section {
   opacity: 1;
   visibility: visible;
-  width: auto;
-  overflow: visible;
+  transform: translateX(0);
   transition-delay: 0.1s;
 }
 
@@ -186,16 +186,15 @@
   white-space: nowrap;
   opacity: 0;
   visibility: hidden;
-  width: 0;
-  overflow: hidden;
+  transform: translateX(-20px);
   transition: all 0.3s ease;
+  overflow: hidden;
 }
 
 .sidebar:hover .sidebar-nav-label {
   opacity: 1;
   visibility: visible;
-  width: auto;
-  overflow: visible;
+  transform: translateX(0);
   transition-delay: 0.1s;
 }
 
@@ -211,21 +210,18 @@
   margin-left: 8px;
   opacity: 0;
   visibility: hidden;
-  width: 0;
-  overflow: hidden;
+  transform: translateX(-20px);
   transition: all 0.3s ease;
   box-shadow: 0 1px 3px rgba(59, 130, 246, 0.3);
-  position: absolute;
-  right: 8px;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .sidebar:hover .sidebar-nav-badge {
   opacity: 1;
   visibility: visible;
-  width: auto;
-  overflow: visible;
+  transform: translateX(0);
   transition-delay: 0.1s;
-  position: static;
 }
 
 /* ===== TOOLTIP PARA SIDEBAR COLAPSADO ===== */
@@ -318,16 +314,16 @@
   flex: 1;
   opacity: 0;
   visibility: hidden;
-  width: 0;
-  overflow: hidden;
+  transform: translateX(-20px);
   transition: all 0.3s ease;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .sidebar:hover .user-info {
   opacity: 1;
   visibility: visible;
-  width: auto;
-  overflow: visible;
+  transform: translateX(0);
   transition-delay: 0.1s;
 }
 
@@ -354,20 +350,16 @@
   justify-content: center;
   opacity: 0;
   visibility: hidden;
-  height: 0;
-  overflow: hidden;
+  transform: translateX(-20px);
   transition: all 0.3s ease;
-  position: absolute;
-  right: 8px;
+  overflow: hidden;
 }
 
 .sidebar:hover .sidebar-actions {
   opacity: 1;
   visibility: visible;
-  height: auto;
-  overflow: visible;
+  transform: translateX(0);
   transition-delay: 0.1s;
-  position: static;
 }
 
 .sidebar-action-btn {
@@ -444,7 +436,7 @@
   .sidebar-actions {
     opacity: 1;
     visibility: visible;
-    width: auto;
+    transform: translateX(0);
     overflow: visible;
   }
   
@@ -459,6 +451,10 @@
   }
   
   .user-profile {
+    justify-content: space-between;
+  }
+  
+  .user-profile-info {
     justify-content: flex-start;
   }
   
@@ -469,80 +465,6 @@
   .sidebar-footer {
     padding: 16px;
   }
-}
-
-/* ===== ANIMACIONES ADICIONALES ===== */
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes contractSidebar {
-  from {
-    width: 280px;
-  }
-  to {
-    width: 70px;
-  }
-}
-
-.sidebar:hover .sidebar-nav-label,
-.sidebar:hover .sidebar-title-section,
-.sidebar:hover .user-info {
-  animation: slideIn 0.3s ease 0.1s both;
-}
-
-/* Animación de contracción al hacer clic */
-.sidebar.sidebar-contracting {
-  animation: contractSidebar 0.3s ease forwards;
-}
-
-.sidebar.sidebar-contracting .sidebar-nav-label,
-.sidebar.sidebar-contracting .sidebar-title-section,
-.sidebar.sidebar-contracting .user-info,
-.sidebar.sidebar-contracting .sidebar-nav-badge,
-.sidebar.sidebar-contracting .sidebar-actions {
-  opacity: 0 !important;
-  visibility: hidden !important;
-  width: 0 !important;
-  overflow: hidden !important;
-  transition: all 0.2s ease !important;
-}
-
-.sidebar.sidebar-contracting .sidebar-header {
-  justify-content: center !important;
-  padding: 1rem !important;
-}
-
-.sidebar.sidebar-contracting .sidebar-logo {
-  margin-right: 0 !important;
-}
-
-.sidebar.sidebar-contracting .sidebar-nav-link {
-  justify-content: center !important;
-  padding: 12px !important;
-}
-
-.sidebar.sidebar-contracting .sidebar-nav-icon {
-  margin-right: 0 !important;
-}
-
-.sidebar.sidebar-contracting .user-profile {
-  justify-content: center !important;
-}
-
-.sidebar.sidebar-contracting .user-avatar {
-  margin-right: 0 !important;
-}
-
-.sidebar.sidebar-contracting .user-profile-info {
-  justify-content: center !important;
 }
 
 /* ===== ESTADOS ESPECÍFICOS ===== */
