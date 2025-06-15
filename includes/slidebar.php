@@ -1,4 +1,5 @@
 <?php
+// Archivo: includes/slidebar.php
 // Incluir sistema de control de cache
 require_once __DIR__ . '/cache_control.php';
 
@@ -10,7 +11,7 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
 
 $menu_items = [
     'dashboard' => ['url' => 'dashboard.php', 'icon' => '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/>', 'label' => 'Dashboard'],
-    'pos' => ['url' => 'pos.php', 'icon' => '<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>', 'label' => 'Punto de Venta'],
+    'pos' => ['url' => 'pos.php', 'icon' => '<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>', 'label' => 'Punto de Venta', 'badge' => 'POS'],
     'sales' => ['url' => 'sales.php', 'icon' => '<circle cx="12" cy="12" r="10"/><path d="M16 8l-4 4-4-4"/>', 'label' => 'Ventas'],
     'products' => ['url' => 'products.php', 'icon' => '<path d="M20 7h-9a2 2 0 0 1-2-2V2"/><path d="M9 2v5a2 2 0 0 0 2 2h9"/><path d="M3 13.6V7a2 2 0 0 1 2-2h5"/><path d="M3 21h18"/>', 'label' => 'Productos'],
     'customers' => ['url' => 'customers.php', 'icon' => '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', 'label' => 'Clientes'],
@@ -23,8 +24,6 @@ $menu_items = [
 
 // Forzar recarga de cache
 forceCssReload();
-
-includeCss('assets/css/style.css');
 ?>
 <div class="mobile-overlay" id="mobileOverlay"></div>
 
@@ -49,8 +48,8 @@ includeCss('assets/css/style.css');
                             <?php echo $item['icon']; ?>
                         </svg>
                         <span class="sidebar-nav-label"><?php echo $item['label']; ?></span>
-                        <?php if ($key === 'pos'): ?>
-                            <span class="sidebar-nav-badge">POS</span>
+                        <?php if (isset($item['badge'])): ?>
+                            <span class="sidebar-nav-badge"><?php echo $item['badge']; ?></span>
                         <?php endif; ?>
                     </a>
                 </li>
@@ -60,23 +59,25 @@ includeCss('assets/css/style.css');
 
     <div class="sidebar-footer">
         <div class="user-profile">
-            <div class="user-avatar">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                    <circle cx="12" cy="7" r="4"/>
-                </svg>
+            <div class="user-profile-info">
+                <div class="user-avatar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                </div>
+                <div class="user-info">
+                    <div class="user-name"><?php echo htmlspecialchars($_SESSION['user_name']); ?></div>
+                    <div class="user-role"><?php echo ucfirst($_SESSION['user_type']); ?></div>
+                </div>
             </div>
-            <div class="user-info">
-                <div class="user-name"><?php echo htmlspecialchars($_SESSION['user_name']); ?></div>
-                <div class="user-role"><?php echo ucfirst($_SESSION['user_type']); ?></div>
+            <div class="sidebar-actions">
+                <a href="backend/auth/logout.php" class="sidebar-action-btn" title="Cerrar sesión">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                </a>
             </div>
-        </div>
-        <div class="sidebar-actions">
-            <a href="backend/auth/logout.php" class="sidebar-action-btn" title="Cerrar sesión">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/>
-                </svg>
-            </a>
         </div>
     </div>
 </aside>

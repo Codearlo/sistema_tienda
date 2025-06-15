@@ -215,6 +215,8 @@
   overflow: hidden;
   transition: all 0.3s ease;
   box-shadow: 0 1px 3px rgba(59, 130, 246, 0.3);
+  position: absolute;
+  right: 8px;
 }
 
 .sidebar:hover .sidebar-nav-badge {
@@ -223,6 +225,7 @@
   width: auto;
   overflow: visible;
   transition-delay: 0.1s;
+  position: static;
 }
 
 /* ===== TOOLTIP PARA SIDEBAR COLAPSADO ===== */
@@ -268,16 +271,28 @@
   border: 1px solid var(--gray-200);
   transition: all 0.2s ease;
   justify-content: center;
+  position: relative;
 }
 
 .sidebar:hover .user-profile {
-  justify-content: flex-start;
+  justify-content: space-between;
   margin-bottom: 12px;
 }
 
 .user-profile:hover {
   background-color: var(--primary-50);
   border-color: var(--primary-200);
+}
+
+.user-profile-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  justify-content: center;
+}
+
+.sidebar:hover .user-profile-info {
+  justify-content: flex-start;
 }
 
 .user-avatar {
@@ -342,6 +357,8 @@
   height: 0;
   overflow: hidden;
   transition: all 0.3s ease;
+  position: absolute;
+  right: 8px;
 }
 
 .sidebar:hover .sidebar-actions {
@@ -350,6 +367,7 @@
   height: auto;
   overflow: visible;
   transition-delay: 0.1s;
+  position: static;
 }
 
 .sidebar-action-btn {
