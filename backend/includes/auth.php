@@ -1,8 +1,6 @@
 <?php
 /**
- * Verificador de Autenticación
- * Archivo: backend/includes/auth.php
- * Descripción: Verifica si el usuario está autenticado y mantiene la sesión activa
+ * Verificador de Autenticación Simple
  */
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -20,11 +18,8 @@ if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
 if (isset($_SESSION['logged_in_at'])) {
     $max_inactive_time = 30 * 60; // 30 minutos
     if (time() - $_SESSION['logged_in_at'] > $max_inactive_time) {
-        // Destruir sesión por inactividad
         session_unset();
         session_destroy();
-        
-        // Reiniciar sesión para mensaje de error
         session_start();
         $_SESSION['error_message'] = 'Tu sesión ha expirado por inactividad.';
         header('Location: login.php');
@@ -35,30 +30,19 @@ if (isset($_SESSION['logged_in_at'])) {
 // Actualizar timestamp de última actividad
 $_SESSION['logged_in_at'] = time();
 
-// Incluir archivos de configuración necesarios
-require_once __DIR__ . '/../config/config.php';
+// Incluir configuración básica
 require_once __DIR__ . '/../config/database.php';
 
-// Verificar que el usuario sigue activo en la BD
-if (isset($_SESSION['user_id'])) {
-    try {
-        $db = getDB();
-        $user = $db->single(
-            "SELECT status FROM users WHERE id = ?",
-            [$_SESSION['user_id']]
-        );
-        
-        if (!$user || $user['status'] != STATUS_ACTIVE) {
-            session_unset();
-            session_destroy();
-            session_start();
-            $_SESSION['error_message'] = 'Tu cuenta ha sido desactivada.';
-            header('Location: login.php');
-            exit();
-        }
-    } catch (Exception $e) {
-        // Si hay error de BD, continuar pero registrar
-        error_log('Error verificando usuario activo: ' . $e->getMessage());
+// Definir constantes básicas si no están definidas
+if (!defined('STATUS_ACTIVE')) {
+    define('STATUS_ACTIVE', 1);
+}
+
+// Función para formatear moneda
+if (!function_exists('formatCurrency')) {
+    function formatCurrency($amount, $includeSymbol = true) {
+        $formatted = number_format($amount, 2, '.', ',');
+        return $includeSymbol ? 'S/ ' . $formatted : $formatted;
     }
 }
 ?>
