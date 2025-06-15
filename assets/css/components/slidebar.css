@@ -494,24 +494,6 @@
   position: relative;
 }
 
-.sidebar-nav-link[data-page="pos"]::before {
-  content: '';
-  position: absolute;
-  left: -2px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 20px;
-  background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
-  border-radius: 0 2px 2px 0;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.sidebar-nav-link[data-page="pos"].active::before {
-  opacity: 1;
-}
-
 /* ===== PRINT STYLES ===== */
 @media print {
   .sidebar {
