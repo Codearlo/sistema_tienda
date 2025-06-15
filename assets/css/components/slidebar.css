@@ -1,5 +1,5 @@
 /* =====================================================
-   SIDEBAR COMPONENT - Versión que funciona del debug
+   SIDEBAR COMPONENT - Versión Corregida Completa
    ===================================================== */
 
 /* ===== MOBILE OVERLAY ===== */
@@ -408,6 +408,7 @@
     visibility: visible;
     width: auto;
     overflow: visible;
+    height: auto;
   }
   
   .sidebar-nav-link {
