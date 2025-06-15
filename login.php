@@ -33,7 +33,7 @@ unset($_SESSION['error_message']);
                 <p class="login-subtitle">Gestiona tu negocio de forma inteligente</p>
             </div>
 
-            <form class="login-form" id="loginForm" action="auth/login.php" method="POST">
+            <form class="login-form" id="loginForm" action="backend/auth/login.php" method="POST">
                 <?php if ($error_message): ?>
                 <div class="alert alert-error">
                     <svg class="alert-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

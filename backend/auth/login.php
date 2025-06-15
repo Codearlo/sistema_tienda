@@ -2,7 +2,7 @@
 session_start();
 
 // Incluir configuración de base de datos
-require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . 'backend/config/database.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ../../login.php');
