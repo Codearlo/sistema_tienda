@@ -1,0 +1,16 @@
+# Redirigir a HTTPS
+RewriteEngine On
+RewriteCond %{HTTPS} !=on
+RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+# Denegar acceso a archivos sensibles
+<FilesMatch "\.(sql|log|md|gitignore|git|env)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Configuración PHP
+php_value upload_max_filesize 5M
+php_value post_max_size 5M
+php_value max_execution_time 300
+php_value max_input_time 300
