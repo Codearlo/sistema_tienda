@@ -1,6 +1,7 @@
 /* =====================================================
-   TREINTA APP - ESTILOS PRINCIPALES (Importador)
+   TREINTA APP - ESTILOS PRINCIPALES
    Versión: 1.0.0
+   Arquitectura CSS organizada y escalable
    ===================================================== */
 
 /* ===== BASE ===== */
@@ -21,6 +22,7 @@
 @import url('components/tables.css');
 
 /* ===== LAYOUTS ===== */
+@import url('layouts/grid.css');
 @import url('layouts/dashboard.css');
 @import url('layouts/login.css');
 @import url('layouts/pos.css');
