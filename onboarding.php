@@ -10,6 +10,7 @@ if (!isset($_SESSION['user_id']) || isset($_SESSION['business_id'])) {
 
 $error = '';
 $success = '';
+$db = null;
 
 // Obtener datos del usuario
 try {
@@ -45,6 +46,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if (empty($business_type)) {
             throw new Exception('El tipo de negocio es requerido');
+        }
+        
+        // Asegurar que tenemos la conexión a la BD
+        if (!$db) {
+            $db = getDB();
         }
         
         // Iniciar transacción
@@ -116,7 +122,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirectWithMessage('dashboard.php?welcome=1', '¡Bienvenido! Tu negocio ha sido configurado exitosamente.', 'success');
         
     } catch (Exception $e) {
-        $db->rollback();
+        if ($db) {
+            try {
+                $db->rollback();
+            } catch (Exception $rollbackError) {
+                error_log('Error en rollback: ' . $rollbackError->getMessage());
+            }
+        }
         $error = $e->getMessage();
         error_log('Error en onboarding: ' . $e->getMessage());
     }
