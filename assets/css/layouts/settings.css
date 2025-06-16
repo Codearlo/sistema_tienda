@@ -168,6 +168,7 @@ input:focus + .slider {
 .btn-error {
   background-color: var(--error-600);
   color: white;
+  padding: var(--spacing-md) var(--spacing-lg);
 }
 
 .btn-error:hover:not(:disabled) {

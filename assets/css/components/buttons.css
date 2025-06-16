@@ -11,6 +11,7 @@
   font-size: 1rem;
   position: relative;
   overflow: hidden;
+  padding: var(--spacing-md) var(--spacing-lg);
 }
 
 .btn:disabled {
@@ -38,6 +39,7 @@
 .btn-success {
   background-color: var(--success-600);
   color: white;
+  padding: var(--spacing-md) var(--spacing-lg);
 }
 
 .btn-success:hover:not(:disabled) {
@@ -49,6 +51,7 @@
 .btn-warning {
   background-color: var(--warning-600);
   color: white;
+  padding: var(--spacing-md) var(--spacing-lg);
 }
 
 .btn-warning:hover:not(:disabled) {
@@ -60,6 +63,7 @@
 .btn-gray {
   background-color: var(--gray-600);
   color: white;
+  padding: var(--spacing-md) var(--spacing-lg);
 }
 
 .btn-gray:hover:not(:disabled) {
@@ -71,6 +75,7 @@
 .btn-logout {
   background-color: var(--gray-500);
   color: white;
+  padding: var(--spacing-md) var(--spacing-lg);
 }
 
 .btn-logout:hover {
@@ -124,7 +129,6 @@
   border-color: var(--warning-300);
   color: var(--warning-600);
 }
-
 
 .btn-loading {
   position: absolute;
