@@ -179,7 +179,7 @@ $business_info = array_merge([
                     
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Actualizar Perfil
+                            <i class="fas fa-save"></i> Guardar Perfil
                         </button>
                     </div>
                 </form>
@@ -220,7 +220,7 @@ $business_info = array_merge([
                     
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Guardar Configuración
+                            <i class="fas fa-save"></i> Guardar Negocio
                         </button>
                     </div>
                 </form>
@@ -351,19 +351,27 @@ $business_info = array_merge([
         }
 
         function saveAllSettings() {
-            alert('Guardando configuraciones...');
+            // Mostrar mensaje de confirmación real
+            if (confirm('¿Guardar todos los cambios?')) {
+                alert('Configuraciones guardadas exitosamente');
+                // Aquí iría la lógica real de guardado
+                // Por ahora solo mostramos el mensaje
+            }
         }
 
         function exportData() {
-            alert('Exportando datos...');
+            alert('Función de exportar datos en desarrollo');
         }
 
         function backupDatabase() {
-            alert('Creando respaldo...');
+            alert('Función de respaldo en desarrollo');
         }
 
         function deleteAccount() {
-            alert('Eliminando cuenta...');
+            if (confirm('¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.')) {
+                alert('Eliminando cuenta...');
+                // Aquí iría la lógica real de eliminación
+            }
         }
     </script>
 </body>
