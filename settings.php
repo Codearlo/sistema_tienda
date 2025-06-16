@@ -23,7 +23,7 @@ $business_id = $_SESSION['business_id'];
 try {
     $db = getDB();
     
-    // Corregir: usar la tabla 'settings' en lugar de 'business_settings'
+    // Obtener configuraciones de la tabla settings
     $settings = $db->fetchAll(
         "SELECT * FROM settings WHERE business_id = ?",
         [$business_id]
@@ -33,6 +33,12 @@ try {
     foreach ($settings as $setting) {
         $config[$setting['setting_key']] = $setting['setting_value'];
     }
+    
+    // Obtener datos del negocio desde la tabla businesses
+    $business_data = $db->single(
+        "SELECT * FROM businesses WHERE id = ?",
+        [$business_id]
+    );
     
     // Obtener datos del usuario
     $user = $db->single(
@@ -66,6 +72,7 @@ try {
         'phone' => '',
         'user_type' => $_SESSION['user_type'] ?? 'admin'
     ];
+    $business_data = [];
 }
 
 // Configuraciones por defecto
@@ -74,10 +81,17 @@ $config = array_merge([
     'email_low_stock' => 0,
     'whatsapp_receipts' => 0,
     'whatsapp_reminders' => 0,
-    'low_stock_threshold' => 10,
-    'business_phone' => '',
-    'business_email' => ''
+    'low_stock_threshold' => 10
 ], $config);
+
+// Datos del negocio por defecto
+$business_data = $business_data ?? [];
+$business_info = array_merge([
+    'business_name' => $_SESSION['business_name'] ?? '',
+    'phone' => '',
+    'email' => '',
+    'address' => ''
+], $business_data ?? []);
 ?>
 
 <!DOCTYPE html>
@@ -183,25 +197,25 @@ $config = array_merge([
                         <div class="form-group">
                             <label for="businessName" class="required">Nombre del negocio:</label>
                             <input type="text" id="businessName" class="form-input" 
-                                   value="<?php echo htmlspecialchars($_SESSION['business_name'] ?? ''); ?>" required>
+                                   value="<?php echo htmlspecialchars($business_info['business_name'] ?? ''); ?>" required>
                         </div>
                         
                         <div class="form-group">
                            <label for="businessPhone">Teléfono del negocio:</label>
                            <input type="tel" id="businessPhone" class="form-input" 
-                                  value="<?php echo htmlspecialchars($config['business_phone'] ?? ''); ?>">
+                                  value="<?php echo htmlspecialchars($business_info['phone'] ?? ''); ?>">
                         </div>
                         
                         <div class="form-group">
                            <label for="businessEmail">Email del negocio:</label>
                            <input type="email" id="businessEmail" class="form-input" 
-                                  value="<?php echo htmlspecialchars($config['business_email'] ?? ''); ?>">
+                                  value="<?php echo htmlspecialchars($business_info['email'] ?? ''); ?>">
                         </div>
                     </div>
                     
                     <div class="form-group full-width">
                         <label for="businessAddress">Dirección:</label>
-                        <textarea id="businessAddress" class="form-input" rows="3"><?php echo htmlspecialchars($config['business_address'] ?? ''); ?></textarea>
+                        <textarea id="businessAddress" class="form-input" rows="3"><?php echo htmlspecialchars($business_info['address'] ?? ''); ?></textarea>
                     </div>
                     
                     <div class="form-actions">
