@@ -10,10 +10,135 @@ requireOnboarding();
 require_once 'backend/config/database.php';
 require_once 'includes/cache_control.php';
 
+// Verificar autenticación
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit();
+}
+
+$error_message = null;
+$success_message = null;
+
 try {
     $db = getDB();
     $business_id = $_SESSION['business_id'];
     $user_id = $_SESSION['user_id'];
+    
+    // Procesar formulario de configuración del negocio
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_business'])) {
+        $business_name = trim($_POST['business_name']);
+        $business_address = trim($_POST['business_address']);
+        $business_phone = trim($_POST['business_phone']);
+        $business_email = trim($_POST['business_email']);
+        $tax_id = trim($_POST['tax_id']);
+        $currency = $_POST['currency'];
+        $timezone = $_POST['timezone'];
+        
+        if (empty($business_name)) {
+            $error_message = "El nombre del negocio es requerido";
+        } else {
+            $result = $db->update(
+                'businesses',
+                [
+                    'name' => $business_name,
+                    'address' => $business_address,
+                    'phone' => $business_phone,
+                    'email' => $business_email,
+                    'tax_id' => $tax_id,
+                    'currency' => $currency,
+                    'timezone' => $timezone,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ],
+                'id = ?',
+                [$business_id]
+            );
+            
+            if ($result) {
+                $success_message = "Configuración del negocio actualizada correctamente";
+            } else {
+                $error_message = "Error al actualizar la configuración";
+            }
+        }
+    }
+    
+    // Procesar configuración de notificaciones
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_notifications'])) {
+        $notifications = [
+            'email_sales_report' => isset($_POST['email_sales_report']) ? 1 : 0,
+            'email_low_stock' => isset($_POST['email_low_stock']) ? 1 : 0,
+            'whatsapp_receipts' => isset($_POST['whatsapp_receipts']) ? 1 : 0,
+            'whatsapp_reminders' => isset($_POST['whatsapp_reminders']) ? 1 : 0,
+            'low_stock_threshold' => intval($_POST['low_stock_threshold'])
+        ];
+        
+        foreach ($notifications as $key => $value) {
+            $existing = $db->single(
+                "SELECT id FROM settings WHERE business_id = ? AND setting_key = ?",
+                [$business_id, $key]
+            );
+            
+            if ($existing) {
+                $db->update(
+                    'settings',
+                    [
+                        'setting_value' => $value,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ],
+                    'id = ?',
+                    [$existing['id']]
+                );
+            } else {
+                $db->insert('settings', [
+                    'business_id' => $business_id,
+                    'setting_key' => $key,
+                    'setting_value' => $value,
+                    'setting_type' => is_numeric($value) ? 'int' : 'boolean',
+                    'created_at' => date('Y-m-d H:i:s')
+                ]);
+            }
+        }
+        
+        $success_message = "Configuración de notificaciones actualizada correctamente";
+    }
+    
+    // Procesar cambio de contraseña
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
+        $current_password = $_POST['current_password'];
+        $new_password = $_POST['new_password'];
+        $confirm_password = $_POST['confirm_password'];
+        
+        if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
+            $error_message = "Todos los campos de contraseña son requeridos";
+        } elseif ($new_password !== $confirm_password) {
+            $error_message = "Las contraseñas nuevas no coinciden";
+        } elseif (strlen($new_password) < 8) {
+            $error_message = "La contraseña debe tener al menos 8 caracteres";
+        } else {
+            $user = $db->single("SELECT password FROM users WHERE id = ?", [$user_id]);
+            
+            if (password_verify($current_password, $user['password'])) {
+                $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
+                
+                $result = $db->update(
+                    'users',
+                    [
+                        'password' => $hashed_password,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ],
+                    'id = ?',
+                    [$user_id]
+                );
+                
+                if ($result) {
+                    $success_message = "Contraseña actualizada correctamente";
+                } else {
+                    $error_message = "Error al actualizar la contraseña";
+                }
+            } else {
+                $error_message = "La contraseña actual es incorrecta";
+            }
+        }
+    }
     
     // Cargar información del negocio
     $business = $db->single(
@@ -41,544 +166,412 @@ try {
     
 } catch (Exception $e) {
     $error_message = "Error: " . $e->getMessage();
-    $business = [];
-    $config = [];
-    $user = [];
 }
+
+// Valores por defecto
+$config = array_merge([
+    'email_sales_report' => 0,
+    'email_low_stock' => 0,
+    'whatsapp_receipts' => 0,
+    'whatsapp_reminders' => 0,
+    'low_stock_threshold' => 10
+], $config);
 ?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configuración - Treinta</title>
-    <?php includeCss('assets/css/style.css'); ?>
+    <?php 
+    forceCssReload();
+    includeCss('assets/css/dashboard.css');
+    includeCss('assets/css/settings.css');
+    ?>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="dashboard-page">
-
-    <?php include 'includes/slidebar.php'; ?>
-
-    <main class="main-content">
-        <header class="main-header">
-            <div class="header-left">
-                <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="3" y1="6" x2="21" y2="6"/>
-                        <line x1="3" y1="12" x2="21" y2="12"/>
-                        <line x1="3" y1="18" x2="21" y2="18"/>
-                    </svg>
-                </button>
-                <h1 class="page-title">Configuración</h1>
-            </div>
-        </header>
-
-        <?php if (isset($error_message)): ?>
-        <div class="alert alert-error">
-            <span><?php echo htmlspecialchars($error_message); ?></span>
-        </div>
-        <?php endif; ?>
-
-        <div class="dashboard-grid">
-            <!-- Información del Negocio -->
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Información del Negocio</h3>
-                    <button class="btn btn-primary btn-small" onclick="editBusiness()">Editar</button>
-                </div>
-                <div class="card-content">
-                    <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        <div>
-                            <label style="font-weight: 600; color: var(--gray-700); display: block; margin-bottom: 0.25rem;">Nombre del Negocio</label>
-                            <div style="color: var(--gray-900);" data-business-name><?php echo htmlspecialchars($business['business_name'] ?? 'No definido'); ?></div>
-                        </div>
-                        <div>
-                            <label style="font-weight: 600; color: var(--gray-700); display: block; margin-bottom: 0.25rem;">Tipo de Negocio</label>
-                            <div style="color: var(--gray-900);" data-business-type><?php echo htmlspecialchars($business['business_type'] ?? 'No definido'); ?></div>
-                        </div>
-                        <div>
-                            <label style="font-weight: 600; color: var(--gray-700); display: block; margin-bottom: 0.25rem;">RUC</label>
-                            <div style="color: var(--gray-900);" data-ruc><?php echo htmlspecialchars($business['ruc'] ?? 'No definido'); ?></div>
-                        </div>
-                        <div>
-                            <label style="font-weight: 600; color: var(--gray-700); display: block; margin-bottom: 0.25rem;">Dirección</label>
-                            <div style="color: var(--gray-900);" data-address><?php echo htmlspecialchars($business['address'] ?? 'No definida'); ?></div>
-                        </div>
-                        <div>
-                            <label style="font-weight: 600; color: var(--gray-700); display: block; margin-bottom: 0.25rem;">Teléfono</label>
-                            <div style="color: var(--gray-900);" data-phone><?php echo htmlspecialchars($business['phone'] ?? 'No definido'); ?></div>
-                        </div>
-                        <div>
-                            <label style="font-weight: 600; color: var(--gray-700); display: block; margin-bottom: 0.25rem;">Email</label>
-                            <div style="color: var(--gray-900);" data-email><?php echo htmlspecialchars($business['email'] ?? 'No definido'); ?></div>
-                        </div>
-                    </div>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-cash-register"></i>
+                    <span>Treinta</span>
                 </div>
             </div>
+            
+            <nav class="sidebar-nav">
+                <a href="dashboard.php" class="nav-item">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="pos.php" class="nav-item">
+                    <i class="fas fa-cash-register"></i>
+                    <span>Punto de Venta</span>
+                </a>
+                <a href="products.php" class="nav-item">
+                    <i class="fas fa-box"></i>
+                    <span>Productos</span>
+                </a>
+                <a href="customers.php" class="nav-item">
+                    <i class="fas fa-users"></i>
+                    <span>Clientes</span>
+                </a>
+                <a href="sales.php" class="nav-item">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Ventas</span>
+                </a>
+                <a href="expenses.php" class="nav-item">
+                    <i class="fas fa-receipt"></i>
+                    <span>Gastos</span>
+                </a>
+                <a href="reports.php" class="nav-item">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Reportes</span>
+                </a>
+                <a href="settings.php" class="nav-item active">
+                    <i class="fas fa-cog"></i>
+                    <span>Configuración</span>
+                </a>
+            </nav>
 
-            <!-- Información del Usuario -->
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Mi Perfil</h3>
-                    <button class="btn btn-primary btn-small" onclick="editProfile()">Editar</button>
-                </div>
-                <div class="card-content">
-                    <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        <div>
-                            <label style="font-weight: 600; color: var(--gray-700); display: block; margin-bottom: 0.25rem;">Nombre</label>
-                            <div style="color: var(--gray-900);"><?php echo htmlspecialchars(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')); ?></div>
-                        </div>
-                        <div>
-                            <label style="font-weight: 600; color: var(--gray-700); display: block; margin-bottom: 0.25rem;">Email</label>
-                            <div style="color: var(--gray-900);"><?php echo htmlspecialchars($user['email'] ?? 'No definido'); ?></div>
-                        </div>
-                        <div>
-                            <label style="font-weight: 600; color: var(--gray-700); display: block; margin-bottom: 0.25rem;">Tipo de Usuario</label>
-                            <div style="color: var(--gray-900);"><?php echo ucfirst($user['user_type'] ?? 'usuario'); ?></div>
-                        </div>
-                        <div>
-                            <label style="font-weight: 600; color: var(--gray-700); display: block; margin-bottom: 0.25rem;">Último Acceso</label>
-                            <div style="color: var(--gray-900);"><?php echo $user['last_login'] ? date('d/m/Y H:i', strtotime($user['last_login'])) : 'Primera vez'; ?></div>
-                        </div>
-                    </div>
-                    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e5e7eb;">
-                        <button class="btn btn-gray btn-small" onclick="changePassword()">Cambiar Contraseña</button>
-                    </div>
-                </div>
+            <div class="sidebar-footer">
+                <a href="logout.php" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Cerrar Sesión</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-header">
+                <h1><i class="fas fa-cog"></i> Configuración</h1>
             </div>
 
-            <!-- Configuraciones del Sistema -->
-            <div class="card" style="grid-column: 1 / -1;">
-                <div class="card-header">
-                    <h3 class="card-title">Configuraciones del Sistema</h3>
-                    <button class="btn btn-primary btn-small" onclick="saveSettings()">Guardar Cambios</button>
+            <?php if ($error_message): ?>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <?php echo $error_message; ?>
                 </div>
-                <div class="card-content">
-                    <form id="settingsForm">
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
-                            <!-- Configuraciones Generales -->
-                            <div>
-                                <h4 style="margin-bottom: 1rem; color: var(--gray-900); font-weight: 600;">Configuraciones Generales</h4>
-                                <div class="form-group">
-                                    <label for="currency_symbol">Símbolo de Moneda</label>
-                                    <input type="text" id="currency_symbol" name="currency_symbol" class="form-input" 
-                                           value="<?php echo htmlspecialchars($config['currency_symbol'] ?? 'S/'); ?>">
-                                </div>
-                                <div class="form-group">
-                                    <label for="default_tax_rate">Tasa de Impuesto por Defecto (%)</label>
-                                    <input type="number" id="default_tax_rate" name="default_tax_rate" class="form-input" 
-                                           step="0.01" min="0" max="100" 
-                                           value="<?php echo htmlspecialchars($config['default_tax_rate'] ?? '18'); ?>">
-                                </div>
-                                <div class="form-group">
-                                    <label for="business_timezone">Zona Horaria</label>
-                                    <select id="business_timezone" name="business_timezone" class="form-input">
-                                        <option value="America/Lima" <?php echo ($config['business_timezone'] ?? '') === 'America/Lima' ? 'selected' : ''; ?>>Lima, Perú (UTC-5)</option>
-                                        <option value="America/Bogota" <?php echo ($config['business_timezone'] ?? '') === 'America/Bogota' ? 'selected' : ''; ?>>Bogotá, Colombia (UTC-5)</option>
-                                        <option value="America/Mexico_City" <?php echo ($config['business_timezone'] ?? '') === 'America/Mexico_City' ? 'selected' : ''; ?>>Ciudad de México (UTC-6)</option>
-                                        <option value="America/Argentina/Buenos_Aires" <?php echo ($config['business_timezone'] ?? '') === 'America/Argentina/Buenos_Aires' ? 'selected' : ''; ?>>Buenos Aires, Argentina (UTC-3)</option>
-                                    </select>
-                                </div>
+            <?php endif; ?>
+
+            <?php if ($success_message): ?>
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <?php echo $success_message; ?>
+                </div>
+            <?php endif; ?>
+
+            <div class="settings-container">
+                <!-- Configuración del Negocio -->
+                <div class="settings-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-store"></i> Información del Negocio</h2>
+                        <p>Configuración básica de tu negocio</p>
+                    </div>
+
+                    <form method="POST" class="settings-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="business_name">Nombre del Negocio *</label>
+                                <input type="text" id="business_name" name="business_name" 
+                                       value="<?php echo htmlspecialchars($business['name'] ?? ''); ?>" required>
                             </div>
 
-                            <!-- Notificaciones y Alertas -->
-                            <div>
-                                <h4 style="margin-bottom: 1rem; color: var(--gray-900); font-weight: 600;">Notificaciones y Alertas</h4>
-                                <div class="form-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" name="low_stock_alert" value="1" 
-                                               <?php echo ($config['low_stock_alert'] ?? '1') === '1' ? 'checked' : ''; ?>>
-                                        <span class="checkmark"></span>
-                                        Alertas de Stock Bajo
-                                    </label>
-                                </div>
-                                <div class="form-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" name="payment_reminders" value="1" 
-                                               <?php echo ($config['payment_reminders'] ?? '1') === '1' ? 'checked' : ''; ?>>
-                                        <span class="checkmark"></span>
-                                        Recordatorios de Pago
-                                    </label>
-                                </div>
-                                <div class="form-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" name="daily_reports" value="1" 
-                                               <?php echo ($config['daily_reports'] ?? '0') === '1' ? 'checked' : ''; ?>>
-                                        <span class="checkmark"></span>
-                                        Reportes Diarios Automáticos
-                                    </label>
-                                </div>
+                            <div class="form-group">
+                                <label for="tax_id">RUC/DNI</label>
+                                <input type="text" id="tax_id" name="tax_id" 
+                                       value="<?php echo htmlspecialchars($business['tax_id'] ?? ''); ?>">
                             </div>
 
-                            <!-- Backup y Seguridad -->
-                            <div>
-                                <h4 style="margin-bottom: 1rem; color: var(--gray-900); font-weight: 600;">Backup y Seguridad</h4>
-                                <div class="form-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" name="auto_backup" value="1" 
-                                               <?php echo ($config['auto_backup'] ?? '1') === '1' ? 'checked' : ''; ?>>
-                                        <span class="checkmark"></span>
-                                        Backup Automático
-                                    </label>
-                                </div>
-                                <div class="form-group">
-                                    <label for="backup_frequency">Frecuencia de Backup</label>
-                                    <select id="backup_frequency" name="backup_frequency" class="form-input">
-                                        <option value="daily" <?php echo ($config['backup_frequency'] ?? 'daily') === 'daily' ? 'selected' : ''; ?>>Diario</option>
-                                        <option value="weekly" <?php echo ($config['backup_frequency'] ?? '') === 'weekly' ? 'selected' : ''; ?>>Semanal</option>
-                                        <option value="monthly" <?php echo ($config['backup_frequency'] ?? '') === 'monthly' ? 'selected' : ''; ?>>Mensual</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <button type="button" class="btn btn-gray" onclick="createBackup()">Crear Backup Manual</button>
-                                </div>
+                            <div class="form-group">
+                                <label for="business_phone">Teléfono</label>
+                                <input type="tel" id="business_phone" name="business_phone" 
+                                       value="<?php echo htmlspecialchars($business['phone'] ?? ''); ?>">
                             </div>
+
+                            <div class="form-group">
+                                <label for="business_email">Email</label>
+                                <input type="email" id="business_email" name="business_email" 
+                                       value="<?php echo htmlspecialchars($business['email'] ?? ''); ?>">
+                            </div>
+
+                            <div class="form-group full-width">
+                                <label for="business_address">Dirección</label>
+                                <textarea id="business_address" name="business_address" 
+                                          rows="3"><?php echo htmlspecialchars($business['address'] ?? ''); ?></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="currency">Moneda</label>
+                                <select id="currency" name="currency">
+                                    <option value="PEN" <?php echo ($business['currency'] ?? 'PEN') === 'PEN' ? 'selected' : ''; ?>>Sol Peruano (S/)</option>
+                                    <option value="USD" <?php echo ($business['currency'] ?? '') === 'USD' ? 'selected' : ''; ?>>Dólar Americano ($)</option>
+                                    <option value="EUR" <?php echo ($business['currency'] ?? '') === 'EUR' ? 'selected' : ''; ?>>Euro (€)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="timezone">Zona Horaria</label>
+                                <select id="timezone" name="timezone">
+                                    <option value="America/Lima" <?php echo ($business['timezone'] ?? 'America/Lima') === 'America/Lima' ? 'selected' : ''; ?>>Lima (UTC-5)</option>
+                                    <option value="America/Bogota" <?php echo ($business['timezone'] ?? '') === 'America/Bogota' ? 'selected' : ''; ?>>Bogotá (UTC-5)</option>
+                                    <option value="America/Mexico_City" <?php echo ($business['timezone'] ?? '') === 'America/Mexico_City' ? 'selected' : ''; ?>>Ciudad de México (UTC-6)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" name="update_business" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Guardar Cambios
+                            </button>
                         </div>
                     </form>
                 </div>
-            </div>
 
-            <!-- Acciones de Datos -->
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Gestión de Datos</h3>
+                <!-- Configuración de Notificaciones -->
+                <div class="settings-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-bell"></i> Notificaciones</h2>
+                        <p>Configura cómo y cuándo recibir notificaciones</p>
+                    </div>
+
+                    <form method="POST" class="settings-form">
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <h3>Notificaciones por Email</h3>
+                                <div class="checkbox-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" name="email_sales_report" value="1" 
+                                               <?php echo $config['email_sales_report'] ? 'checked' : ''; ?>>
+                                        <span class="checkmark"></span>
+                                        Reporte diario de ventas
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" name="email_low_stock" value="1" 
+                                               <?php echo $config['email_low_stock'] ? 'checked' : ''; ?>>
+                                        <span class="checkmark"></span>
+                                        Alertas de stock bajo
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="form-group full-width">
+                                <h3>Notificaciones WhatsApp</h3>
+                                <div class="checkbox-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" name="whatsapp_receipts" value="1" 
+                                               <?php echo $config['whatsapp_receipts'] ? 'checked' : ''; ?>>
+                                        <span class="checkmark"></span>
+                                        Enviar recibos por WhatsApp
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" name="whatsapp_reminders" value="1" 
+                                               <?php echo $config['whatsapp_reminders'] ? 'checked' : ''; ?>>
+                                        <span class="checkmark"></span>
+                                        Recordatorios de pago
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="low_stock_threshold">Umbral de Stock Bajo</label>
+                                <input type="number" id="low_stock_threshold" name="low_stock_threshold" 
+                                       value="<?php echo $config['low_stock_threshold']; ?>" min="1" max="100">
+                                <small>Cantidad mínima antes de considerar stock bajo</small>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" name="update_notifications" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Guardar Configuración
+                            </button>
+                        </div>
+                    </form>
                 </div>
-                <div class="card-content">
-                    <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        <button class="btn btn-primary" onclick="exportData()">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24" style="margin-right: 0.5rem;">
-                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-                            </svg>
-                            Exportar Datos
+
+                <!-- Seguridad -->
+                <div class="settings-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-shield-alt"></i> Seguridad</h2>
+                        <p>Cambiar contraseña y configuración de seguridad</p>
+                    </div>
+
+                    <form method="POST" class="settings-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="current_password">Contraseña Actual *</label>
+                                <input type="password" id="current_password" name="current_password" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="new_password">Nueva Contraseña *</label>
+                                <input type="password" id="new_password" name="new_password" required minlength="8">
+                                <small>Mínimo 8 caracteres</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="confirm_password">Confirmar Nueva Contraseña *</label>
+                                <input type="password" id="confirm_password" name="confirm_password" required minlength="8">
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" name="change_password" class="btn btn-warning">
+                                <i class="fas fa-key"></i> Cambiar Contraseña
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Información del Sistema -->
+                <div class="settings-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-info-circle"></i> Información del Sistema</h2>
+                        <p>Detalles técnicos y de la cuenta</p>
+                    </div>
+
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Usuario:</label>
+                            <span><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></span>
+                        </div>
+                        <div class="info-item">
+                            <label>Email:</label>
+                            <span><?php echo htmlspecialchars($user['email']); ?></span>
+                        </div>
+                        <div class="info-item">
+                            <label>Tipo de Usuario:</label>
+                            <span class="badge badge-<?php echo $user['user_type']; ?>">
+                                <?php echo ucfirst($user['user_type']); ?>
+                            </span>
+                        </div>
+                        <div class="info-item">
+                            <label>Cuenta Creada:</label>
+                            <span><?php echo date('d/m/Y', strtotime($user['created_at'])); ?></span>
+                        </div>
+                        <div class="info-item">
+                            <label>Última Conexión:</label>
+                            <span><?php echo $user['last_login'] ? date('d/m/Y H:i', strtotime($user['last_login'])) : 'Primera vez'; ?></span>
+                        </div>
+                        <div class="info-item">
+                            <label>Versión del Sistema:</label>
+                            <span>Treinta v1.0.0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Acciones de Sistema -->
+                <div class="settings-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-tools"></i> Herramientas del Sistema</h2>
+                        <p>Herramientas avanzadas y mantenimiento</p>
+                    </div>
+
+                    <div class="system-actions">
+                        <button class="btn btn-secondary" onclick="exportData()">
+                            <i class="fas fa-download"></i> Exportar Datos
                         </button>
-                        <button class="btn btn-yellow" onclick="createBackup()">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24" style="margin-right: 0.5rem;">
-                                <path d="M12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/>
-                            </svg>
-                            Backup Manual
+                        <button class="btn btn-info" onclick="generateReport()">
+                            <i class="fas fa-file-pdf"></i> Generar Reporte Completo
                         </button>
-                        <button class="btn btn-red" onclick="clearData()">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24" style="margin-right: 0.5rem;">
-                                <path d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z"/>
-                            </svg>
-                            Limpiar Datos Antiguos
+                        <button class="btn btn-warning" onclick="clearCache()">
+                            <i class="fas fa-broom"></i> Limpiar Caché
+                        </button>
+                        <button class="btn btn-danger" onclick="confirmDataReset()">
+                            <i class="fas fa-exclamation-triangle"></i> Resetear Datos de Prueba
                         </button>
                     </div>
                 </div>
             </div>
-        </div>
-    </main>
-
-    <!-- Modal de Cambio de Contraseña -->
-    <div class="modal" id="passwordModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Cambiar Contraseña</h3>
-                <button type="button" class="modal-close" onclick="closePasswordModal()">×</button>
-            </div>
-            <div class="modal-body">
-                <form id="passwordForm">
-                    <div class="form-group">
-                        <label for="current_password">Contraseña Actual</label>
-                        <input type="password" id="current_password" name="current_password" class="form-input" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="new_password">Nueva Contraseña</label>
-                        <input type="password" id="new_password" name="new_password" class="form-input" required minlength="8">
-                    </div>
-                    <div class="form-group">
-                        <label for="confirm_password">Confirmar Nueva Contraseña</label>
-                        <input type="password" id="confirm_password" name="confirm_password" class="form-input" required minlength="8">
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-gray" onclick="closePasswordModal()">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Cambiar Contraseña</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de Edición de Negocio -->
-    <div class="modal" id="businessModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Editar Información del Negocio</h3>
-                <button type="button" class="modal-close" onclick="closeBusinessModal()">×</button>
-            </div>
-            <div class="modal-body">
-                <form id="businessForm" onsubmit="handleBusinessUpdate(event)">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="edit_business_name">Nombre del Negocio *</label>
-                            <input type="text" id="edit_business_name" name="business_name" 
-                                   class="form-input" required 
-                                   value="<?php echo htmlspecialchars($business['business_name'] ?? ''); ?>">
-                        </div>
-                        <div class="form-group">
-                            <label for="edit_business_type">Tipo de Negocio *</label>
-                            <select id="edit_business_type" name="business_type" class="form-input" required>
-                                <option value="">Seleccionar tipo</option>
-                                <option value="Retail" <?php echo ($business['business_type'] ?? '') === 'Retail' ? 'selected' : ''; ?>>Retail</option>
-                                <option value="Restaurante" <?php echo ($business['business_type'] ?? '') === 'Restaurante' ? 'selected' : ''; ?>>Restaurante</option>
-                                <option value="Servicios" <?php echo ($business['business_type'] ?? '') === 'Servicios' ? 'selected' : ''; ?>>Servicios</option>
-                                <option value="Mayorista" <?php echo ($business['business_type'] ?? '') === 'Mayorista' ? 'selected' : ''; ?>>Mayorista</option>
-                                <option value="Manufactura" <?php echo ($business['business_type'] ?? '') === 'Manufactura' ? 'selected' : ''; ?>>Manufactura</option>
-                                <option value="Otro" <?php echo ($business['business_type'] ?? '') === 'Otro' ? 'selected' : ''; ?>>Otro</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="edit_ruc">RUC</label>
-                            <input type="text" id="edit_ruc" name="ruc" class="form-input" 
-                                   maxlength="11" value="<?php echo htmlspecialchars($business['ruc'] ?? ''); ?>">
-                        </div>
-                        <div class="form-group">
-                            <label for="edit_phone">Teléfono</label>
-                            <input type="tel" id="edit_phone" name="phone" class="form-input" 
-                                   value="<?php echo htmlspecialchars($business['phone'] ?? ''); ?>">
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="edit_email">Email del Negocio</label>
-                        <input type="email" id="edit_email" name="email" class="form-input" 
-                               value="<?php echo htmlspecialchars($business['email'] ?? ''); ?>">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="edit_address">Dirección</label>
-                        <textarea id="edit_address" name="address" class="form-input" rows="2"><?php echo htmlspecialchars($business['address'] ?? ''); ?></textarea>
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-gray" onclick="closeBusinessModal()">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+        </main>
     </div>
 
     <script>
-        function editBusiness() {
-            document.getElementById('businessModal').classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeBusinessModal() {
-            document.getElementById('businessModal').classList.remove('show');
-            document.body.style.overflow = '';
-        }
-
-        async function handleBusinessUpdate(event) {
-            event.preventDefault();
+        // Validación de formulario de contraseña
+        document.addEventListener('DOMContentLoaded', function() {
+            const newPassword = document.getElementById('new_password');
+            const confirmPassword = document.getElementById('confirm_password');
             
-            const formData = new FormData(event.target);
-            const businessData = {};
-            
-            // Convertir FormData a objeto
-            for (let [key, value] of formData.entries()) {
-                businessData[key] = value.trim();
-            }
-            
-            // Validaciones
-            if (!businessData.business_name) {
-                alert('El nombre del negocio es requerido');
-                return;
-            }
-            
-            if (!businessData.business_type) {
-                alert('El tipo de negocio es requerido');
-                return;
-            }
-            
-            // Mostrar loading
-            const submitBtn = event.target.querySelector('button[type="submit"]');
-            const originalText = submitBtn.textContent;
-            submitBtn.textContent = 'Guardando...';
-            submitBtn.disabled = true;
-            
-            try {
-                const response = await fetch('backend/business/update.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(businessData)
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    // Actualizar la información mostrada en la página
-                    updateBusinessDisplay(businessData);
-                    closeBusinessModal();
-                    
-                    // Mostrar notificación de éxito
-                    showNotification('Información del negocio actualizada exitosamente', 'success');
+            function validatePasswords() {
+                if (newPassword.value !== confirmPassword.value) {
+                    confirmPassword.setCustomValidity('Las contraseñas no coinciden');
                 } else {
-                    throw new Error(result.message || 'Error al actualizar la información');
+                    confirmPassword.setCustomValidity('');
                 }
-                
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error al actualizar la información: ' + error.message);
-            } finally {
-                submitBtn.textContent = originalText;
-                submitBtn.disabled = false;
-            }
-        }
-
-        function updateBusinessDisplay(businessData) {
-            // Actualizar los elementos mostrados en la página
-            const businessNameElement = document.querySelector('[data-business-name]');
-            const businessTypeElement = document.querySelector('[data-business-type]');
-            const addressElement = document.querySelector('[data-address]');
-            const phoneElement = document.querySelector('[data-phone]');
-            const emailElement = document.querySelector('[data-email]');
-            const rucElement = document.querySelector('[data-ruc]');
-            
-            if (businessNameElement) businessNameElement.textContent = businessData.business_name;
-            if (businessTypeElement) businessTypeElement.textContent = businessData.business_type;
-            if (addressElement) addressElement.textContent = businessData.address || 'No definida';
-            if (phoneElement) phoneElement.textContent = businessData.phone || 'No definido';
-            if (emailElement) emailElement.textContent = businessData.email || 'No definido';
-            if (rucElement) rucElement.textContent = businessData.ruc || 'No definido';
-        }
-
-        function showNotification(message, type = 'info') {
-            // Crear elemento de notificación
-            const notification = document.createElement('div');
-            notification.className = `alert alert-${type}`;
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                z-index: 9999;
-                max-width: 400px;
-                animation: slideInRight 0.3s ease-out;
-            `;
-            notification.innerHTML = `<span>${message}</span>`;
-            
-            document.body.appendChild(notification);
-            
-            // Auto-remover después de 5 segundos
-            setTimeout(() => {
-                notification.style.animation = 'slideOutRight 0.3s ease-in';
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        notification.parentNode.removeChild(notification);
-                    }
-                }, 300);
-            }, 5000);
-        }
-
-        function editProfile() {
-            alert('Funcionalidad de edición de perfil en desarrollo');
-        }
-
-        function changePassword() {
-            document.getElementById('passwordModal').classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closePasswordModal() {
-            document.getElementById('passwordModal').classList.remove('show');
-            document.body.style.overflow = '';
-            document.getElementById('passwordForm').reset();
-        }
-
-        function saveSettings() {
-            const form = document.getElementById('settingsForm');
-            const formData = new FormData(form);
-            
-            // Convertir a objeto para enviar como JSON
-            const settings = {};
-            for (let [key, value] of formData.entries()) {
-                settings[key] = value;
             }
             
-            // Manejar checkboxes (que no aparecen en FormData si están desmarcados)
-            const checkboxes = form.querySelectorAll('input[type="checkbox"]');
-            checkboxes.forEach(checkbox => {
-                settings[checkbox.name] = checkbox.checked ? '1' : '0';
-            });
-            
-            alert('Configuraciones guardadas:\n' + JSON.stringify(settings, null, 2));
-            // Aquí implementarías el envío real a la API
-        }
+            newPassword.addEventListener('input', validatePasswords);
+            confirmPassword.addEventListener('input', validatePasswords);
+        });
 
+        // Funciones del sistema
         function exportData() {
-            if (confirm('¿Exportar todos los datos del negocio?')) {
-                alert('Iniciando exportación de datos...\n(Funcionalidad en desarrollo)');
+            if (confirm('¿Desea exportar todos los datos del negocio?')) {
+                window.location.href = 'api/export/data.php';
             }
         }
 
-        function createBackup() {
-            if (confirm('¿Crear un backup manual del sistema?')) {
-                alert('Creando backup...\n(Funcionalidad en desarrollo)');
+        function generateReport() {
+            if (confirm('¿Desea generar un reporte completo del negocio?')) {
+                window.open('api/reports/complete.php', '_blank');
             }
         }
 
-        function clearData() {
-            if (confirm('ADVERTENCIA: Esta acción eliminará datos antiguos permanentemente.\n¿Estás seguro?')) {
-                if (confirm('¿Realmente deseas continuar? Esta acción no se puede deshacer.')) {
-                    alert('Limpiando datos antiguos...\n(Funcionalidad en desarrollo)');
+        function clearCache() {
+            if (confirm('¿Desea limpiar la caché del sistema?')) {
+                fetch('api/system/clear-cache.php', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Caché limpiada exitosamente');
+                            location.reload();
+                        } else {
+                            alert('Error al limpiar la caché');
+                        }
+                    });
+            }
+        }
+
+        function confirmDataReset() {
+            const confirmed = confirm('⚠️ ADVERTENCIA: Esta acción eliminará TODOS los datos de prueba.\n\n¿Está absolutamente seguro de continuar?');
+            if (confirmed) {
+                const doubleConfirm = confirm('⚠️ ÚLTIMA CONFIRMACIÓN: Se perderán todos los productos, ventas y clientes de prueba.\n\n¿Proceder con el reseteo?');
+                if (doubleConfirm) {
+                    resetTestData();
                 }
             }
         }
 
-        // Validación de RUC en tiempo real
-        document.getElementById('edit_ruc').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length > 11) {
-                value = value.substring(0, 11);
-            }
-            e.target.value = value;
+        function resetTestData() {
+            fetch('api/system/reset-test-data.php', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Datos de prueba eliminados exitosamente');
+                        location.reload();
+                    } else {
+                        alert('Error al resetear los datos: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    alert('Error de conexión');
+                });
+        }
+
+        // Auto-save para configuraciones
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                // Opcional: auto-guardar configuraciones
+                console.log('Configuración cambiada:', this.name, this.checked);
+            });
         });
-
-        // Formato de teléfono
-        document.getElementById('edit_phone').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length > 9) {
-                value = value.substring(0, 9);
-            }
-            if (value.length > 6) {
-                value = value.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
-            } else if (value.length > 3) {
-                value = value.replace(/(\d{3})(\d{3})/, '$1 $2');
-            }
-            e.target.value = value;
-        });
-
-        // Agregar estilos para las animaciones
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideInRight {
-                from {
-                    transform: translateX(100%);
-                    opacity: 0;
-                }
-                to {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-            }
-            
-            @keyframes slideOutRight {
-                from {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-                to {
-                    transform: translateX(100%);
-                    opacity: 0;
-                }
-            }
-        `;
-        document.head.appendChild(style);
     </script>
+
+    <?php includeJs('assets/js/common.js'); ?>
 </body>
 </html>

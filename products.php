@@ -21,13 +21,145 @@ function formatCurrency($amount) {
     return 'S/ ' . number_format($amount, 2);
 }
 
-// Conexión a BD
-require_once 'backend/config/database.php';
-require_once 'includes/cache_control.php';
+$error_message = null;
+$success_message = null;
 
 try {
     $db = getDB();
     $business_id = $_SESSION['business_id'];
+    
+    // Procesar formulario de nuevo producto
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_product'])) {
+        $name = trim($_POST['name']);
+        $sku = trim($_POST['sku']);
+        $category_id = $_POST['category_id'];
+        $cost_price = floatval($_POST['cost_price']);
+        $sale_price = floatval($_POST['sale_price']);
+        $stock_quantity = intval($_POST['stock_quantity']);
+        $min_stock = intval($_POST['min_stock']);
+        $description = trim($_POST['description']);
+        
+        if (empty($name) || empty($sale_price)) {
+            $error_message = "El nombre y precio de venta son requeridos";
+        } else {
+            // Verificar SKU único
+            if (!empty($sku)) {
+                $existing = $db->single("SELECT id FROM products WHERE sku = ? AND business_id = ? AND status = 1", [$sku, $business_id]);
+                if ($existing) {
+                    $error_message = "El SKU ya existe";
+                }
+            }
+            
+            if (!$error_message) {
+                $product_data = [
+                    'business_id' => $business_id,
+                    'name' => $name,
+                    'sku' => $sku,
+                    'category_id' => $category_id ?: null,
+                    'description' => $description,
+                    'cost_price' => $cost_price,
+                    'sale_price' => $sale_price,
+                    'stock_quantity' => $stock_quantity,
+                    'min_stock' => $min_stock,
+                    'status' => 1,
+                    'created_at' => date('Y-m-d H:i:s')
+                ];
+                
+                $product_id = $db->insert('products', $product_data);
+                
+                if ($product_id) {
+                    // Registrar movimiento de inventario inicial
+                    if ($stock_quantity > 0) {
+                        $db->insert('inventory_movements', [
+                            'business_id' => $business_id,
+                            'product_id' => $product_id,
+                            'movement_type' => 'in',
+                            'quantity' => $stock_quantity,
+                            'unit_cost' => $cost_price,
+                            'total_cost' => $cost_price * $stock_quantity,
+                            'reason' => 'Stock inicial',
+                            'created_by' => $_SESSION['user_id'],
+                            'created_at' => date('Y-m-d H:i:s')
+                        ]);
+                    }
+                    
+                    $success_message = "Producto creado exitosamente";
+                } else {
+                    $error_message = "Error al crear el producto";
+                }
+            }
+        }
+    }
+    
+    // Procesar actualización de producto
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_product'])) {
+        $product_id = intval($_POST['product_id']);
+        $name = trim($_POST['name']);
+        $sku = trim($_POST['sku']);
+        $category_id = $_POST['category_id'];
+        $cost_price = floatval($_POST['cost_price']);
+        $sale_price = floatval($_POST['sale_price']);
+        $min_stock = intval($_POST['min_stock']);
+        $description = trim($_POST['description']);
+        
+        if (empty($name) || empty($sale_price)) {
+            $error_message = "El nombre y precio de venta son requeridos";
+        } else {
+            // Verificar que el producto pertenezca al negocio
+            $product = $db->single("SELECT * FROM products WHERE id = ? AND business_id = ?", [$product_id, $business_id]);
+            if (!$product) {
+                $error_message = "Producto no encontrado";
+            } else {
+                // Verificar SKU único (excluyendo el producto actual)
+                if (!empty($sku)) {
+                    $existing = $db->single("SELECT id FROM products WHERE sku = ? AND business_id = ? AND id != ? AND status = 1", [$sku, $business_id, $product_id]);
+                    if ($existing) {
+                        $error_message = "El SKU ya existe";
+                    }
+                }
+                
+                if (!$error_message) {
+                    $update_data = [
+                        'name' => $name,
+                        'sku' => $sku,
+                        'category_id' => $category_id ?: null,
+                        'description' => $description,
+                        'cost_price' => $cost_price,
+                        'sale_price' => $sale_price,
+                        'min_stock' => $min_stock,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ];
+                    
+                    $result = $db->update('products', $update_data, 'id = ?', [$product_id]);
+                    
+                    if ($result) {
+                        $success_message = "Producto actualizado exitosamente";
+                    } else {
+                        $error_message = "Error al actualizar el producto";
+                    }
+                }
+            }
+        }
+    }
+    
+    // Procesar eliminación de producto
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_product'])) {
+        $product_id = intval($_POST['product_id']);
+        
+        $product = $db->single("SELECT * FROM products WHERE id = ? AND business_id = ?", [$product_id, $business_id]);
+        if ($product) {
+            // Soft delete
+            $result = $db->update('products', ['status' => 0], 'id = ?', [$product_id]);
+            
+            if ($result) {
+                $success_message = "Producto eliminado exitosamente";
+            } else {
+                $error_message = "Error al eliminar el producto";
+            }
+        } else {
+            $error_message = "Producto no encontrado";
+        }
+    }
     
     // Cargar categorías
     $categories = $db->fetchAll("SELECT * FROM categories WHERE business_id = ? AND status = 1 ORDER BY name", [$business_id]);
@@ -36,6 +168,8 @@ try {
     $search = $_GET['search'] ?? '';
     $category_filter = $_GET['category'] ?? '';
     $stock_filter = $_GET['stock'] ?? '';
+    $page = intval($_GET['page'] ?? 1);
+    $per_page = 20;
     
     $where = "p.business_id = ? AND p.status = 1";
     $params = [$business_id];
@@ -59,14 +193,28 @@ try {
         $where .= " AND p.stock_quantity > p.min_stock";
     }
     
-    $products = $db->fetchAll(
-        "SELECT p.*, c.name as category_name, c.color as category_color
-         FROM products p
-         LEFT JOIN categories c ON p.category_id = c.id
-         WHERE $where
-         ORDER BY p.name ASC",
-        $params
-    );
+    // Obtener productos con paginación
+    $offset = ($page - 1) * $per_page;
+    $products_sql = "
+        SELECT p.*, c.name as category_name, c.color as category_color
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.id
+        WHERE $where
+        ORDER BY p.name ASC
+        LIMIT $offset, $per_page
+    ";
+    
+    $products = $db->fetchAll($products_sql, $params);
+    
+    // Contar total para paginación
+    $total_sql = "
+        SELECT COUNT(*) as total
+        FROM products p
+        WHERE $where
+    ";
+    $total_result = $db->single($total_sql, $params);
+    $total_products = $total_result['total'];
+    $total_pages = ceil($total_products / $per_page);
     
     // Estadísticas
     $stats = $db->single("
@@ -81,328 +229,632 @@ try {
     
 } catch (Exception $e) {
     $error_message = "Error de conexión: " . $e->getMessage();
-    $products = [];
-    $categories = [];
-    $stats = ['total_products' => 0, 'inventory_value' => 0, 'low_stock' => 0, 'out_of_stock' => 0];
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Productos - Treinta</title>
-    <?php includeCss('assets/css/style.css'); ?>
+    <?php 
+    forceCssReload();
+    includeCss('assets/css/dashboard.css');
+    includeCss('assets/css/products.css');
+    ?>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="dashboard-page">
-
-    <?php include 'includes/slidebar.php'; ?>
-
-    <main class="main-content">
-        <header class="main-header">
-            <div class="header-left">
-                <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="3" y1="6" x2="21" y2="6"/>
-                        <line x1="3" y1="12" x2="21" y2="12"/>
-                        <line x1="3" y1="18" x2="21" y2="18"/>
-                    </svg>
-                </button>
-                <h1 class="page-title">Productos</h1>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-cash-register"></i>
+                    <span>Treinta</span>
+                </div>
             </div>
-            <div class="header-actions">
-                <button class="btn btn-success" onclick="openProductModal()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="12" y1="5" x2="12" y2="19"/>
-                        <line x1="5" y1="12" x2="19" y2="12"/>
-                    </svg>
-                    Nuevo Producto
-                </button>
+            
+            <nav class="sidebar-nav">
+                <a href="dashboard.php" class="nav-item">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="pos.php" class="nav-item">
+                    <i class="fas fa-cash-register"></i>
+                    <span>Punto de Venta</span>
+                </a>
+                <a href="products.php" class="nav-item active">
+                    <i class="fas fa-box"></i>
+                    <span>Productos</span>
+                </a>
+                <a href="customers.php" class="nav-item">
+                    <i class="fas fa-users"></i>
+                    <span>Clientes</span>
+                </a>
+                <a href="sales.php" class="nav-item">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Ventas</span>
+                </a>
+                <a href="expenses.php" class="nav-item">
+                    <i class="fas fa-receipt"></i>
+                    <span>Gastos</span>
+                </a>
+                <a href="reports.php" class="nav-item">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Reportes</span>
+                </a>
+                <a href="settings.php" class="nav-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Configuración</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="logout.php" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Cerrar Sesión</span>
+                </a>
             </div>
-        </header>
+        </aside>
 
-        <?php if (isset($error_message)): ?>
-        <div class="alert alert-error">
-            <span><?php echo htmlspecialchars($error_message); ?></span>
-        </div>
-        <?php endif; ?>
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-header">
+                <h1><i class="fas fa-box"></i> Gestión de Productos</h1>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="openCreateModal()">
+                        <i class="fas fa-plus"></i> Nuevo Producto
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportProducts()">
+                        <i class="fas fa-download"></i> Exportar
+                    </button>
+                </div>
+            </div>
 
-        <!-- Filtros -->
-        <div class="card filters-card">
-            <div class="card-content">
-                <form method="GET" class="filters-grid">
-                    <div class="filter-group">
-                        <label class="filter-label">Buscar productos</label>
-                        <div class="search-input-group">
-                            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="11" cy="11" r="8"/>
-                                <path d="M21 21l-4.35-4.35"/>
-                            </svg>
-                            <input type="text" name="search" class="search-input" placeholder="Buscar por nombre o SKU..." value="<?php echo htmlspecialchars($search); ?>">
-                        </div>
+            <?php if ($error_message): ?>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <?php echo $error_message; ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($success_message): ?>
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <?php echo $success_message; ?>
+                </div>
+            <?php endif; ?>
+
+            <!-- Estadísticas -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-box"></i>
                     </div>
+                    <div class="stat-content">
+                        <h3><?php echo number_format($stats['total_products']); ?></h3>
+                        <p>Total Productos</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3><?php echo formatCurrency($stats['inventory_value']); ?></h3>
+                        <p>Valor del Inventario</p>
+                    </div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3><?php echo $stats['low_stock']; ?></h3>
+                        <p>Stock Bajo</p>
+                    </div>
+                </div>
+                <div class="stat-card danger">
+                    <div class="stat-icon">
+                        <i class="fas fa-times-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3><?php echo $stats['out_of_stock']; ?></h3>
+                        <p>Sin Stock</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="filters-section">
+                <form method="GET" class="filters-form">
                     <div class="filter-group">
-                        <label class="filter-label">Categoría</label>
-                        <select name="category" class="filter-select">
+                        <label for="search">Buscar:</label>
+                        <input type="text" id="search" name="search" 
+                               value="<?php echo htmlspecialchars($search); ?>" 
+                               placeholder="Nombre o SKU del producto">
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="category">Categoría:</label>
+                        <select id="category" name="category">
                             <option value="">Todas las categorías</option>
                             <?php foreach ($categories as $category): ?>
-                                <option value="<?php echo $category['id']; ?>" <?php echo $category_filter == $category['id'] ? 'selected' : ''; ?>>
+                                <option value="<?php echo $category['id']; ?>" 
+                                        <?php echo $category_filter == $category['id'] ? 'selected' : ''; ?>>
                                     <?php echo htmlspecialchars($category['name']); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
+                    
                     <div class="filter-group">
-                        <label class="filter-label">Estado de stock</label>
-                        <select name="stock" class="filter-select">
+                        <label for="stock">Stock:</label>
+                        <select id="stock" name="stock">
                             <option value="">Todos</option>
-                            <option value="normal" <?php echo $stock_filter === 'normal' ? 'selected' : ''; ?>>Stock normal</option>
-                            <option value="low" <?php echo $stock_filter === 'low' ? 'selected' : ''; ?>>Stock bajo</option>
-                            <option value="out" <?php echo $stock_filter === 'out' ? 'selected' : ''; ?>>Sin stock</option>
+                            <option value="normal" <?php echo $stock_filter === 'normal' ? 'selected' : ''; ?>>Stock Normal</option>
+                            <option value="low" <?php echo $stock_filter === 'low' ? 'selected' : ''; ?>>Stock Bajo</option>
+                            <option value="out" <?php echo $stock_filter === 'out' ? 'selected' : ''; ?>>Sin Stock</option>
                         </select>
                     </div>
-                    <div class="filter-group">
-                        <button type="submit" class="btn btn-primary">Filtrar</button>
-                        <a href="products.php" class="btn btn-gray">Limpiar</a>
+                    
+                    <div class="filter-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i> Filtrar
+                        </button>
+                        <a href="products.php" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Limpiar
+                        </a>
                     </div>
                 </form>
             </div>
-        </div>
 
-        <!-- Estadísticas -->
-        <div class="products-stats">
-            <div class="stat-card small">
-                <div class="stat-info">
-                    <div class="stat-label">Total Productos</div>
-                    <div class="stat-value"><?php echo $stats['total_products']; ?></div>
-                </div>
-                <div class="stat-icon stat-icon-primary">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 7h-9a2 2 0 0 1-2-2V2"/>
-                    </svg>
-                </div>
-            </div>
-            <div class="stat-card small">
-                <div class="stat-info">
-                    <div class="stat-label">Valor Inventario</div>
-                    <div class="stat-value"><?php echo formatCurrency($stats['inventory_value']); ?></div>
-                </div>
-                <div class="stat-icon stat-icon-success">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="12" y1="1" x2="12" y2="23"/>
-                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                    </svg>
-                </div>
-            </div>
-            <div class="stat-card small">
-                <div class="stat-info">
-                    <div class="stat-label">Stock Bajo</div>
-                    <div class="stat-value"><?php echo $stats['low_stock']; ?></div>
-                </div>
-                <div class="stat-icon stat-icon-warning">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                    </svg>
-                </div>
-            </div>
-            <div class="stat-card small">
-                <div class="stat-info">
-                    <div class="stat-label">Sin Stock</div>
-                    <div class="stat-value"><?php echo $stats['out_of_stock']; ?></div>
-                </div>
-                <div class="stat-icon stat-icon-error">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="15" y1="9" x2="9" y2="15"/>
-                    </svg>
-                </div>
-            </div>
-        </div>
-
-        <!-- Lista de Productos -->
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">Lista de Productos</h3>
-                <span class="badge badge-gray"><?php echo count($products); ?> productos</span>
-            </div>
-            <div class="card-content">
-                <?php if (empty($products)): ?>
-                    <div class="empty-state">
-                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                            <circle cx="8.5" cy="8.5" r="1.5"/>
-                            <polyline points="21,15 16,10 5,21"/>
-                        </svg>
-                        <h3>No hay productos</h3>
-                        <p>Comienza agregando tu primer producto</p>
-                        <button class="btn btn-primary" onclick="openProductModal()">Agregar Producto</button>
-                    </div>
-                <?php else: ?>
-                    <div class="table-container">
-                        <table class="table">
-                            <thead>
+            <!-- Tabla de Productos -->
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Imagen</th>
+                            <th>Producto</th>
+                            <th>SKU</th>
+                            <th>Categoría</th>
+                            <th>Precio Costo</th>
+                            <th>Precio Venta</th>
+                            <th>Stock</th>
+                            <th>Estado Stock</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($products)): ?>
+                            <tr>
+                                <td colspan="9" class="no-data">
+                                    <i class="fas fa-box-open"></i>
+                                    <p>No se encontraron productos</p>
+                                </td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($products as $product): ?>
                                 <tr>
-                                    <th>Imagen</th>
-                                    <th>Producto</th>
-                                    <th>SKU</th>
-                                    <th>Categoría</th>
-                                    <th>Precio</th>
-                                    <th>Stock</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($products as $product): ?>
-                                <tr>
-                                    <td>
-                                        <?php if ($product['image']): ?>
-                                            <img src="<?php echo htmlspecialchars($product['image']); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+                                    <td class="product-image">
+                                        <?php if ($product['image_url']): ?>
+                                            <img src="<?php echo $product['image_url']; ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
                                         <?php else: ?>
-                                            <div style="width: 50px; height: 50px; background-color: var(--gray-100); border-radius: 4px; display: flex; align-items: center; justify-content: center;">
-                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                                    <circle cx="8.5" cy="8.5" r="1.5"/>
-                                                    <polyline points="21,15 16,10 5,21"/>
-                                                </svg>
+                                            <div class="no-image">
+                                                <i class="fas fa-box"></i>
                                             </div>
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <div style="font-weight: 600;"><?php echo htmlspecialchars($product['name']); ?></div>
+                                        <strong><?php echo htmlspecialchars($product['name']); ?></strong>
                                         <?php if ($product['description']): ?>
-                                            <div style="font-size: 0.875rem; color: var(--gray-500);"><?php echo htmlspecialchars(substr($product['description'], 0, 50)); ?><?php echo strlen($product['description']) > 50 ? '...' : ''; ?></div>
+                                            <br><small><?php echo htmlspecialchars(substr($product['description'], 0, 50)); ?><?php echo strlen($product['description']) > 50 ? '...' : ''; ?></small>
                                         <?php endif; ?>
                                     </td>
-                                    <td><?php echo htmlspecialchars($product['sku'] ?: '-'); ?></td>
+                                    <td><?php echo htmlspecialchars($product['sku'] ?: 'N/A'); ?></td>
                                     <td>
                                         <?php if ($product['category_name']): ?>
-                                            <span class="badge" style="background-color: <?php echo htmlspecialchars($product['category_color'] ?? '#gray'); ?>20; color: <?php echo htmlspecialchars($product['category_color'] ?? '#gray'); ?>;">
+                                            <span class="category-badge" style="background-color: <?php echo $product['category_color'] ?: '#6c757d'; ?>">
                                                 <?php echo htmlspecialchars($product['category_name']); ?>
                                             </span>
                                         <?php else: ?>
-                                            <span class="badge badge-gray">Sin categoría</span>
+                                            <span class="text-muted">Sin categoría</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td style="font-family: var(--font-mono); font-weight: 600;"><?php echo formatCurrency($product['selling_price']); ?></td>
-                                    <td style="font-family: var(--font-mono);">
-                                        <span class="<?php echo $product['stock_quantity'] == 0 ? 'stock-out' : ($product['stock_quantity'] <= $product['min_stock'] ? 'stock-low' : ''); ?>">
-                                            <?php echo $product['stock_quantity']; ?> <?php echo htmlspecialchars($product['unit']); ?>
+                                    <td><?php echo formatCurrency($product['cost_price']); ?></td>
+                                    <td><strong><?php echo formatCurrency($product['sale_price']); ?></strong></td>
+                                    <td>
+                                        <span class="stock-quantity"><?php echo $product['stock_quantity']; ?></span>
+                                        <small class="text-muted">/ Min: <?php echo $product['min_stock']; ?></small>
+                                    </td>
+                                    <td>
+                                        <?php
+                                        $stock_status = 'normal';
+                                        $stock_text = 'Normal';
+                                        $stock_icon = 'check-circle';
+                                        
+                                        if ($product['stock_quantity'] == 0) {
+                                            $stock_status = 'danger';
+                                            $stock_text = 'Sin Stock';
+                                            $stock_icon = 'times-circle';
+                                        } elseif ($product['stock_quantity'] <= $product['min_stock']) {
+                                            $stock_status = 'warning';
+                                            $stock_text = 'Stock Bajo';
+                                            $stock_icon = 'exclamation-triangle';
+                                        }
+                                        ?>
+                                        <span class="status-badge status-<?php echo $stock_status; ?>">
+                                            <i class="fas fa-<?php echo $stock_icon; ?>"></i>
+                                            <?php echo $stock_text; ?>
                                         </span>
                                     </td>
-                                    <td>
-                                        <?php if ($product['stock_quantity'] == 0): ?>
-                                            <span class="badge badge-error">Sin Stock</span>
-                                        <?php elseif ($product['stock_quantity'] <= $product['min_stock']): ?>
-                                            <span class="badge badge-warning">Stock Bajo</span>
-                                        <?php else: ?>
-                                            <span class="badge badge-success">En Stock</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <div style="display: flex; gap: 0.5rem;">
-                                            <button class="btn-icon edit" onclick="editProduct(<?php echo $product['id']; ?>)" title="Editar">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                                </svg>
-                                            </button>
-                                            <button class="btn-icon stock" onclick="adjustStock(<?php echo $product['id']; ?>)" title="Ajustar Stock">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                    <path d="M20 7h-9a2 2 0 0 1-2-2V2"/>
-                                                    <path d="M9 2v5a2 2 0 0 0 2 2h9"/>
-                                                </svg>
-                                            </button>
-                                            <button class="btn-icon delete" onclick="deleteProduct(<?php echo $product['id']; ?>)" title="Eliminar">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                    <polyline points="3,6 5,6 21,6"/>
-                                                    <path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2V6"/>
-                                                </svg>
-                                            </button>
-                                        </div>
+                                    <td class="actions">
+                                        <button class="btn btn-sm btn-primary" onclick="openEditModal(<?php echo htmlspecialchars(json_encode($product)); ?>)">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-info" onclick="openStockModal(<?php echo $product['id']; ?>)">
+                                            <i class="fas fa-boxes"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" onclick="confirmDelete(<?php echo $product['id']; ?>, '<?php echo htmlspecialchars($product['name']); ?>')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
                                     </td>
                                 </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                <?php endif; ?>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
-        </div>
-    </main>
 
-    <!-- Modal de Producto (Simple) -->
-    <div class="modal-overlay" id="productModal">
-        <div class="modal modal-large">
+            <!-- Paginación -->
+            <?php if ($total_pages > 1): ?>
+                <div class="pagination">
+                    <?php
+                    $query_params = $_GET;
+                    unset($query_params['page']);
+                    $base_url = 'products.php?' . http_build_query($query_params);
+                    ?>
+                    
+                    <?php if ($page > 1): ?>
+                        <a href="<?php echo $base_url; ?>&page=<?php echo $page - 1; ?>" class="pagination-btn">
+                            <i class="fas fa-chevron-left"></i> Anterior
+                        </a>
+                    <?php endif; ?>
+                    
+                    <span class="pagination-info">
+                        Página <?php echo $page; ?> de <?php echo $total_pages; ?>
+                        (<?php echo $total_products; ?> productos)
+                    </span>
+                    
+                    <?php if ($page < $total_pages): ?>
+                        <a href="<?php echo $base_url; ?>&page=<?php echo $page + 1; ?>" class="pagination-btn">
+                            Siguiente <i class="fas fa-chevron-right"></i>
+                        </a>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+        </main>
+    </div>
+
+    <!-- Modal Crear/Editar Producto -->
+    <div id="product-modal" class="modal">
+        <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title" id="productModalTitle">Nuevo Producto</h3>
-                <button class="modal-close" onclick="closeProductModal()">&times;</button>
+                <h3 id="modal-title">
+                    <i class="fas fa-plus"></i> Nuevo Producto
+                </h3>
+                <span class="close" onclick="closeModal('product-modal')">&times;</span>
             </div>
-            <div class="modal-body">
-                <form id="productForm" method="POST" action="backend/api/products.php">
+            
+            <form id="product-form" method="POST" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <input type="hidden" id="product_id" name="product_id">
+                    
                     <div class="form-grid">
                         <div class="form-group">
-                            <label class="form-label">Nombre del Producto</label>
-                            <input type="text" name="name" class="form-input" required placeholder="Ej: Coca Cola 500ml">
+                            <label for="product_name">Nombre del Producto *</label>
+                            <input type="text" id="product_name" name="name" required>
                         </div>
+                        
                         <div class="form-group">
-                            <label class="form-label">SKU</label>
-                            <input type="text" name="sku" class="form-input" placeholder="COC-500-001">
+                            <label for="product_sku">SKU (Código)</label>
+                            <input type="text" id="product_sku" name="sku" placeholder="Opcional">
                         </div>
+                        
                         <div class="form-group">
-                            <label class="form-label">Precio de Venta</label>
-                            <input type="number" name="selling_price" class="form-input" step="0.01" min="0" required placeholder="0.00">
+                            <label for="product_category">Categoría</label>
+                            <select id="product_category" name="category_id">
+                                <option value="">Sin categoría</option>
+                                <?php foreach ($categories as $category): ?>
+                                    <option value="<?php echo $category['id']; ?>">
+                                        <?php echo htmlspecialchars($category['name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
+                        
                         <div class="form-group">
-                            <label class="form-label">Stock Inicial</label>
-                            <input type="number" name="stock_quantity" class="form-input" min="0" placeholder="0">
+                            <label for="product_cost_price">Precio de Costo</label>
+                            <input type="number" id="product_cost_price" name="cost_price" step="0.01" min="0">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="product_sale_price">Precio de Venta *</label>
+                            <input type="number" id="product_sale_price" name="sale_price" step="0.01" min="0" required>
+                        </div>
+                        
+                        <div class="form-group" id="stock_group">
+                            <label for="product_stock">Stock Inicial</label>
+                            <input type="number" id="product_stock" name="stock_quantity" min="0" value="0">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="product_min_stock">Stock Mínimo</label>
+                            <input type="number" id="product_min_stock" name="min_stock" min="0" value="5">
+                        </div>
+                        
+                        <div class="form-group full-width">
+                            <label for="product_description">Descripción</label>
+                            <textarea id="product_description" name="description" rows="3" placeholder="Descripción del producto (opcional)"></textarea>
+                        </div>
+                        
+                        <div class="form-group full-width">
+                            <label for="product_image">Imagen del Producto</label>
+                            <input type="file" id="product_image" name="image" accept="image/*">
+                            <small>Formatos permitidos: JPG, PNG, GIF. Máximo 5MB.</small>
                         </div>
                     </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-gray" onclick="closeProductModal()">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Guardar Producto</button>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('product-modal')">
+                        Cancelar
+                    </button>
+                    <button type="submit" id="submit-btn" name="create_product" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Guardar Producto
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Gestión de Stock -->
+    <div id="stock-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-boxes"></i> Gestión de Stock</h3>
+                <span class="close" onclick="closeModal('stock-modal')">&times;</span>
+            </div>
+            
+            <div class="modal-body">
+                <div id="stock-product-info"></div>
+                
+                <form id="stock-form" method="POST">
+                    <input type="hidden" id="stock_product_id" name="product_id">
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="movement_type">Tipo de Movimiento</label>
+                            <select id="movement_type" name="movement_type" required>
+                                <option value="in">Entrada (Agregar Stock)</option>
+                                <option value="out">Salida (Quitar Stock)</option>
+                                <option value="adjustment">Ajuste de Inventario</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="quantity">Cantidad</label>
+                            <input type="number" id="quantity" name="quantity" min="1" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="unit_cost">Costo Unitario</label>
+                            <input type="number" id="unit_cost" name="unit_cost" step="0.01" min="0">
+                        </div>
+                        
+                        <div class="form-group full-width">
+                            <label for="reason">Motivo</label>
+                            <input type="text" id="reason" name="reason" placeholder="Motivo del movimiento" required>
+                        </div>
                     </div>
                 </form>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('stock-modal')">
+                    Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="processStockMovement()">
+                    <i class="fas fa-save"></i> Procesar Movimiento
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmación de Eliminación -->
+    <div id="delete-modal" class="modal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h3><i class="fas fa-exclamation-triangle"></i> Confirmar Eliminación</h3>
+                <span class="close" onclick="closeModal('delete-modal')">&times;</span>
+            </div>
+            
+            <div class="modal-body">
+                <p>¿Está seguro de que desea eliminar el producto <strong id="delete-product-name"></strong>?</p>
+                <p class="text-muted">Esta acción no se puede deshacer.</p>
+                
+                <form id="delete-form" method="POST">
+                    <input type="hidden" id="delete_product_id" name="product_id">
+                    <input type="hidden" name="delete_product" value="1">
+                </form>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('delete-modal')">
+                    Cancelar
+                </button>
+                <button type="button" class="btn btn-danger" onclick="document.getElementById('delete-form').submit()">
+                    <i class="fas fa-trash"></i> Eliminar
+                </button>
             </div>
         </div>
     </div>
 
     <script>
-        function openProductModal() {
-            document.getElementById('productModal').classList.add('show');
-            document.body.style.overflow = 'hidden';
+        // Variables globales
+        let currentProductId = null;
+        
+        // Abrir modal de creación
+        function openCreateModal() {
+            document.getElementById('modal-title').innerHTML = '<i class="fas fa-plus"></i> Nuevo Producto';
+            document.getElementById('product-form').reset();
+            document.getElementById('product_id').value = '';
+            document.getElementById('submit-btn').name = 'create_product';
+            document.getElementById('submit-btn').innerHTML = '<i class="fas fa-save"></i> Guardar Producto';
+            document.getElementById('stock_group').style.display = 'block';
+            document.getElementById('product-modal').style.display = 'block';
         }
-
-        function closeProductModal() {
-            document.getElementById('productModal').classList.remove('show');
-            document.body.style.overflow = '';
-            document.getElementById('productForm').reset();
+        
+        // Abrir modal de edición
+        function openEditModal(product) {
+            document.getElementById('modal-title').innerHTML = '<i class="fas fa-edit"></i> Editar Producto';
+            document.getElementById('product_id').value = product.id;
+            document.getElementById('product_name').value = product.name;
+            document.getElementById('product_sku').value = product.sku || '';
+            document.getElementById('product_category').value = product.category_id || '';
+            document.getElementById('product_cost_price').value = product.cost_price;
+            document.getElementById('product_sale_price').value = product.sale_price;
+            document.getElementById('product_min_stock').value = product.min_stock;
+            document.getElementById('product_description').value = product.description || '';
+            document.getElementById('submit-btn').name = 'update_product';
+            document.getElementById('submit-btn').innerHTML = '<i class="fas fa-save"></i> Actualizar Producto';
+            document.getElementById('stock_group').style.display = 'none';
+            document.getElementById('product-modal').style.display = 'block';
         }
-
-        function editProduct(id) {
-            alert('Editar producto ID: ' + id + ' (funcionalidad en desarrollo)');
+        
+        // Abrir modal de stock
+        function openStockModal(productId) {
+            currentProductId = productId;
+            
+            // Cargar información del producto
+            fetch(`api/products/get.php?id=${productId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const product = data.product;
+                        document.getElementById('stock-product-info').innerHTML = `
+                            <div class="product-info">
+                                <h4>${product.name}</h4>
+                                <p>Stock actual: <strong>${product.stock_quantity}</strong> unidades</p>
+                                <p>Stock mínimo: ${product.min_stock} unidades</p>
+                            </div>
+                        `;
+                        document.getElementById('stock_product_id').value = productId;
+                        document.getElementById('unit_cost').value = product.cost_price;
+                        document.getElementById('stock-modal').style.display = 'block';
+                    }
+                });
         }
-
-        function adjustStock(id) {
-            const newStock = prompt('Nuevo stock:');
-            if (newStock !== null && !isNaN(newStock)) {
-                alert('Ajustar stock a ' + newStock + ' para producto ID: ' + id + ' (funcionalidad en desarrollo)');
+        
+        // Procesar movimiento de stock
+        function processStockMovement() {
+            const form = document.getElementById('stock-form');
+            const formData = new FormData(form);
+            
+            fetch('api/inventory/movement.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Movimiento de stock procesado exitosamente');
+                    closeModal('stock-modal');
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error de conexión');
+            });
+        }
+        
+        // Confirmar eliminación
+        function confirmDelete(productId, productName) {
+            document.getElementById('delete-product-name').textContent = productName;
+            document.getElementById('delete_product_id').value = productId;
+            document.getElementById('delete-modal').style.display = 'block';
+        }
+        
+        // Cerrar modal
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        
+        // Exportar productos
+        function exportProducts() {
+            const params = new URLSearchParams(window.location.search);
+            const exportUrl = 'api/products/export.php?' + params.toString();
+            window.open(exportUrl, '_blank');
+        }
+        
+        // Cerrar modales al hacer clic fuera
+        window.onclick = function(event) {
+            const modals = ['product-modal', 'stock-modal', 'delete-modal'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (event.target === modal) {
+                    closeModal(modalId);
+                }
+            });
+        }
+        
+        // Auto-submit en filtros
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('search');
+            const categorySelect = document.getElementById('category');
+            const stockSelect = document.getElementById('stock');
+            
+            let searchTimeout;
+            
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    this.form.submit();
+                }, 500);
+            });
+            
+            categorySelect.addEventListener('change', function() {
+                this.form.submit();
+            });
+            
+            stockSelect.addEventListener('change', function() {
+                this.form.submit();
+            });
+        });
+        
+        // Validación de formulario
+        document.getElementById('product-form').addEventListener('submit', function(e) {
+            const name = document.getElementById('product_name').value.trim();
+            const salePrice = parseFloat(document.getElementById('product_sale_price').value);
+            
+            if (!name) {
+                e.preventDefault();
+                alert('El nombre del producto es requerido');
+                return;
             }
-        }
-
-        function deleteProduct(id) {
-            if (confirm('¿Estás seguro de eliminar este producto?')) {
-                alert('Eliminar producto ID: ' + id + ' (funcionalidad en desarrollo)');
-            }
-        }
-
-        // Cerrar modal al hacer clic fuera
-        document.getElementById('productModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeProductModal();
+            
+            if (!salePrice || salePrice <= 0) {
+                e.preventDefault();
+                alert('El precio de venta debe ser mayor a 0');
+                return;
             }
         });
     </script>
 
+    <?php includeJs('assets/js/common.js'); ?>
 </body>
 </html>

@@ -1,21 +1,26 @@
 <?php
 /**
- * Configuración General - Treinta App
- * Archivo: config/config.php
+ * CONFIGURACIÓN PRINCIPAL - TREINTA APP
+ * Archivo: backend/config/config.php
  */
 
-// Configuración del error reporting
+// Prevenir acceso directo
+if (!defined('APP_INIT')) {
+    define('APP_INIT', true);
+}
+
+// Configuración de error reporting para desarrollo
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 // Configuración de la aplicación
-define('APP_NAME', 'Treinta - Gestión de Negocios');
+define('APP_NAME', 'Treinta App');
 define('APP_VERSION', '1.0.0');
-define('APP_URL', 'https://tu-dominio.com'); // Cambiar por tu dominio real
+define('APP_URL', 'https://tu-dominio.com');
 
 // Configuración de rutas
-define('ROOT_PATH', dirname(__DIR__));
-define('CONFIG_PATH', ROOT_PATH . '/config');
+define('ROOT_PATH', dirname(dirname(__DIR__)));
+define('CONFIG_PATH', ROOT_PATH . '/backend/config');
 define('INCLUDES_PATH', ROOT_PATH . '/includes');
 define('ASSETS_PATH', ROOT_PATH . '/assets');
 define('UPLOADS_PATH', ROOT_PATH . '/uploads');
@@ -30,7 +35,9 @@ define('API_URL', APP_URL . '/api');
 // Configuración de sesión
 ini_set('session.cookie_lifetime', 86400); // 24 horas
 ini_set('session.gc_maxlifetime', 86400);
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Configuración de zona horaria
 date_default_timezone_set('America/Lima'); // Perú
@@ -118,77 +125,9 @@ function getConfig($key, $default = null) {
 }
 
 /**
- * Función para formatear moneda
- */
-function formatCurrency($amount, $includeSymbol = true) {
-    $formatted = number_format($amount, DECIMAL_PLACES, '.', ',');
-    return $includeSymbol ? CURRENCY_SYMBOL . ' ' . $formatted : $formatted;
-}
-
-/**
- * Función para formatear fecha
- */
-function formatDate($date, $format = 'd/m/Y') {
-    if (empty($date)) return '';
-    return date($format, strtotime($date));
-}
-
-/**
- * Función para formatear fecha y hora
- */
-function formatDateTime($datetime, $format = 'd/m/Y H:i') {
-    if (empty($datetime)) return '';
-    return date($format, strtotime($datetime));
-}
-
-/**
- * Función para limpiar y validar datos
- */
-function cleanInput($data) {
-    if (is_array($data)) {
-        return array_map('cleanInput', $data);
-    }
-    
-    $data = trim($data);
-    $data = stripslashes($data);
-    $data = htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
-    return $data;
-}
-
-/**
- * Función para generar token CSRF
- */
-function generateCSRFToken() {
-    if (!isset($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    }
-    return $_SESSION['csrf_token'];
-}
-
-/**
- * Función para validar token CSRF
- */
-function validateCSRFToken($token) {
-    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
-}
-
-/**
- * Función para redirigir
- */
-function redirect($url) {
-    if (!headers_sent()) {
-        header("Location: $url");
-        exit();
-    } else {
-        echo "<script>window.location.href='$url';</script>";
-        exit();
-    }
-}
-
-/**
  * Función para incluir archivos de forma segura
  */
-function includeFile($file) {
+function safeInclude($file) {
     $path = INCLUDES_PATH . '/' . $file . '.php';
     if (file_exists($path)) {
         include $path;
@@ -236,6 +175,67 @@ function hasPermission($permission) {
 }
 
 /**
+ * Función para formatear moneda
+ */
+function formatCurrency($amount) {
+    return CURRENCY_SYMBOL . ' ' . number_format($amount, DECIMAL_PLACES);
+}
+
+/**
+ * Función para formatear fecha
+ */
+function formatDate($date, $format = 'd/m/Y') {
+    return date($format, strtotime($date));
+}
+
+/**
+ * Función para formatear fecha y hora
+ */
+function formatDateTime($datetime, $format = 'd/m/Y H:i') {
+    return date($format, strtotime($datetime));
+}
+
+/**
+ * Función para limpiar input
+ */
+function cleanInput($data) {
+    $data = trim($data);
+    $data = stripslashes($data);
+    $data = htmlspecialchars($data);
+    return $data;
+}
+
+/**
+ * Función para generar token seguro
+ */
+function generateToken($length = 32) {
+    return bin2hex(random_bytes($length / 2));
+}
+
+/**
+ * Función para redirect con mensaje
+ */
+function redirectWithMessage($url, $message, $type = 'info') {
+    $_SESSION['flash_message'] = $message;
+    $_SESSION['flash_type'] = $type;
+    header("Location: $url");
+    exit();
+}
+
+/**
+ * Función para mostrar mensajes flash
+ */
+function showFlashMessage() {
+    if (isset($_SESSION['flash_message'])) {
+        $message = $_SESSION['flash_message'];
+        $type = $_SESSION['flash_type'] ?? 'info';
+        unset($_SESSION['flash_message'], $_SESSION['flash_type']);
+        return ['message' => $message, 'type' => $type];
+    }
+    return null;
+}
+
+/**
  * Autoloader simple para clases
  */
 spl_autoload_register(function ($className) {
@@ -264,6 +264,6 @@ foreach ($directories as $dir) {
 
 // Log de inicialización
 if (getConfig('enable_logging', true)) {
-    error_log('[' . date('Y-m-d H:i:s') . '] Aplicación inicializada - IP: ' . $_SERVER['REMOTE_ADDR'] ?? 'unknown');
+    error_log('[' . date('Y-m-d H:i:s') . '] Aplicación inicializada - IP: ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
 }
 ?>
