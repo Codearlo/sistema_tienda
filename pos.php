@@ -68,7 +68,7 @@ function formatCurrency($amount) {
     <?php 
     forceCssReload();
     includeCss('assets/css/dashboard.css');
-    includeCss('assets/css/pos.css');
+    includeCss('assets/css/layouts/pos.css');
     ?>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
