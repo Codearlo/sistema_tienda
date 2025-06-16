@@ -102,6 +102,7 @@ $business_info = array_merge([
     <title>Configuración - Treinta</title>
     <link href="assets/css/style.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="assets/js/notifications.js"></script>
 </head>
 <body class="dashboard-page">
     <?php include 'includes/slidebar.php'; ?>
