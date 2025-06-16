@@ -180,7 +180,6 @@ $flash = showFlashMessage();
                             </svg>
                         </button>
                     </div>
-                    <small>Mínimo 6 caracteres</small>
                 </div>
 
                 <div class="form-group">
