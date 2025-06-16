@@ -474,8 +474,7 @@ $business_info = array_merge([
         function showAlert(message, type) {
             // Crear elemento de alerta
             const alert = document.createElement('div');
-            alert.className = `alert alert-${type}`;
-            alert.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 1000; max-width: 400px;';
+            alert.className = `alert alert-${type} fixed-alert`;
             alert.innerHTML = `
                 <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i>
                 ${message}
@@ -486,7 +485,12 @@ $business_info = array_merge([
             // Remover después de 5 segundos
             setTimeout(() => {
                 if (alert.parentNode) {
-                    alert.parentNode.removeChild(alert);
+                    alert.style.animation = 'slideOut 0.3s ease forwards';
+                    setTimeout(() => {
+                        if (alert.parentNode) {
+                            alert.parentNode.removeChild(alert);
+                        }
+                    }, 300);
                 }
             }, 5000);
         }
