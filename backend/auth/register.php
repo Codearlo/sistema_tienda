@@ -52,10 +52,17 @@ try {
     // Crear el usuario
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
     
-    $user_id = $db->insert(
-        "INSERT INTO users (first_name, last_name, email, password, user_type, status, email_verified) VALUES (?, ?, ?, ?, 'admin', 1, 1)",
-        [$first_name, $last_name, $email, $hashed_password]
-    );
+    // CORRECCIÓN: Usar la sintaxis correcta del método insert()
+    $user_id = $db->insert('users', [
+        'first_name' => $first_name,
+        'last_name' => $last_name,
+        'email' => $email,
+        'password' => $hashed_password,
+        'user_type' => 'admin',
+        'status' => 1,
+        'email_verified' => 1,
+        'created_at' => date('Y-m-d H:i:s')
+    ]);
     
     if (!$user_id) {
         throw new Exception('Error al crear la cuenta');
@@ -66,6 +73,7 @@ try {
     $_SESSION['email'] = $email;
     $_SESSION['first_name'] = $first_name;
     $_SESSION['last_name'] = $last_name;
+    $_SESSION['user_type'] = 'admin';
     // NO establecemos business_id ni onboarding_completed para forzar el onboarding
     
     echo json_encode([

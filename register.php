@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $db->beginTransaction();
                 
-                // Crear usuario
+                // CORRECCIÓN: Crear usuario con la sintaxis correcta
                 $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
                 $userId = $db->insert("users", [
                     'email' => $email,
@@ -69,272 +69,106 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$flash = showFlashMessage();
+$page_title = 'Registro';
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crear Cuenta - Treinta</title>
-    <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title><?= $page_title ?> - <?= APP_NAME ?></title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="login-page">
-    <div class="login-container">
-        <div class="login-card">
-            <div class="login-header">
-                <div class="logo">
-                    <svg class="logo-img" viewBox="0 0 100 100" width="60" height="60">
-                        <circle cx="50" cy="50" r="45" fill="#2563eb" stroke="#1d4ed8" stroke-width="2"/>
-                        <text x="50" y="58" text-anchor="middle" fill="white" font-size="24" font-weight="bold">30</text>
-                    </svg>
-                </div>
-                <h2 class="login-title">Crear cuenta</h2>
-                <p class="login-subtitle">Comienza a gestionar tu negocio hoy</p>
-            </div>
-            
-            <?php if ($flash): ?>
-                <div class="alert alert-<?= $flash['type'] ?>">
-                    <svg class="alert-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <?php if ($flash['type'] === 'error'): ?>
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="15" y1="9" x2="9" y2="15"></line>
-                            <line x1="9" y1="9" x2="15" y2="15"></line>
-                        <?php elseif ($flash['type'] === 'success'): ?>
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                            <polyline points="22,4 12,14.01 9,11.01"></polyline>
-                        <?php else: ?>
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="16" x2="12" y2="12"></line>
-                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                        <?php endif; ?>
-                    </svg>
-                    <?= $flash['message'] ?>
-                </div>
-            <?php endif; ?>
-            
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="max-w-md w-full space-y-8 p-8">
+        <div class="text-center">
+            <h2 class="mt-6 text-3xl font-extrabold text-gray-900">
+                Crear cuenta
+            </h2>
+            <p class="mt-2 text-sm text-gray-600">
+                ¿Ya tienes cuenta? 
+                <a href="login.php" class="font-medium text-blue-600 hover:text-blue-500">
+                    Inicia sesión aquí
+                </a>
+            </p>
+        </div>
+        
+        <div class="bg-white shadow-xl rounded-lg p-8">
             <?php if ($error): ?>
-                <div class="alert alert-error">
-                    <svg class="alert-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="15" y1="9" x2="9" y2="15"></line>
-                        <line x1="9" y1="9" x2="15" y2="15"></line>
-                    </svg>
-                    <?= $error ?>
+                <div class="mb-6 p-4 border border-red-300 text-red-700 bg-red-50 rounded-md">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    <?= htmlspecialchars($error) ?>
                 </div>
             <?php endif; ?>
             
-            <form method="POST" class="login-form" id="registerForm">
-                <div class="form-group">
-                    <label for="first_name" class="form-label">Nombres *</label>
-                    <div class="input-group">
-                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                        </svg>
-                        <input type="text" id="first_name" name="first_name" class="form-input" 
-                               placeholder="Tu nombre" value="<?= $_POST['first_name'] ?? '' ?>" required>
-                    </div>
+            <?php if ($success): ?>
+                <div class="mb-6 p-4 border border-green-300 text-green-700 bg-green-50 rounded-md">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <?= htmlspecialchars($success) ?>
                 </div>
-
-                <div class="form-group">
-                    <label for="last_name" class="form-label">Apellidos *</label>
-                    <div class="input-group">
-                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                        </svg>
-                        <input type="text" id="last_name" name="last_name" class="form-input" 
-                               placeholder="Tus apellidos" value="<?= $_POST['last_name'] ?? '' ?>" required>
+            <?php endif; ?>
+            
+            <form method="POST" action="" class="space-y-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="first_name" class="block text-sm font-medium text-gray-700 mb-2">
+                            Nombre
+                        </label>
+                        <input type="text" id="first_name" name="first_name" required
+                               value="<?= htmlspecialchars($_POST['first_name'] ?? '') ?>"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="email" class="form-label">Email *</label>
-                    <div class="input-group">
-                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                            <polyline points="22,6 12,13 2,6"></polyline>
-                        </svg>
-                        <input type="email" id="email" name="email" class="form-input" 
-                               placeholder="tu@email.com" value="<?= $_POST['email'] ?? '' ?>" required>
+                    <div>
+                        <label for="last_name" class="block text-sm font-medium text-gray-700 mb-2">
+                            Apellido
+                        </label>
+                        <input type="text" id="last_name" name="last_name" required
+                               value="<?= htmlspecialchars($_POST['last_name'] ?? '') ?>"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     </div>
                 </div>
                 
-                <div class="form-group">
-                    <label for="password" class="form-label">Contraseña *</label>
-                    <div class="input-group">
-                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                            <circle cx="12" cy="16" r="1"></circle>
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                        </svg>
-                        <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required>
-                        <button type="button" class="toggle-password" onclick="togglePassword('password')">
-                            <svg class="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
-                            </svg>
-                        </button>
-                    </div>
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                        Email
+                    </label>
+                    <input type="email" id="email" name="email" required
+                           value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
-
-                <div class="form-group">
-                    <label for="confirm_password" class="form-label">Confirmar contraseña *</label>
-                    <div class="input-group">
-                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                            <circle cx="12" cy="16" r="1"></circle>
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                        </svg>
-                        <input type="password" id="confirm_password" name="confirm_password" class="form-input" placeholder="••••••••" required>
-                        <button type="button" class="toggle-password" onclick="togglePassword('confirm_password')">
-                            <svg class="eye-icon-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
-                            </svg>
-                        </button>
-                    </div>
+                
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                        Contraseña
+                    </label>
+                    <input type="password" id="password" name="password" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <p class="mt-1 text-xs text-gray-500">Mínimo 6 caracteres</p>
                 </div>
-
-                <button type="submit" class="btn btn-primary btn-block">
+                
+                <div>
+                    <label for="confirm_password" class="block text-sm font-medium text-gray-700 mb-2">
+                        Confirmar contraseña
+                    </label>
+                    <input type="password" id="confirm_password" name="confirm_password" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                
+                <button type="submit" 
+                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i class="fas fa-user-plus mr-2"></i>
                     Crear cuenta
                 </button>
+                
+                <div class="text-center">
+                    <a href="index.php" class="text-sm text-gray-600 hover:text-gray-900">
+                        <i class="fas fa-arrow-left mr-1"></i>
+                        Volver al inicio
+                    </a>
+                </div>
             </form>
-            
-            <div class="login-footer">
-                <p>¿Ya tienes cuenta? <a href="login.php" class="register-link">Iniciar sesión</a></p>
-            </div>
-        </div>
-        
-        <div class="info-section">
-            <h2>Únete a miles de negocios</h2>
-            <div class="features-grid">
-                <div class="feature-item">
-                    <svg class="feature-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="3"></circle>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                    </svg>
-                    <div>
-                        <h3>Configuración fácil</h3>
-                        <p>Tu negocio listo en menos de 5 minutos</p>
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <svg class="feature-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="8.5" cy="7" r="4"></circle>
-                        <path d="M20 8v6"></path>
-                        <path d="M23 11h-6"></path>
-                    </svg>
-                    <div>
-                        <h3>Soporte incluido</h3>
-                        <p>Te ayudamos a configurar todo paso a paso</p>
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <svg class="feature-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
-                    </svg>
-                    <div>
-                        <h3>Gratis para empezar</h3>
-                        <p>Sin costos ocultos, sin compromisos a largo plazo</p>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
-    
-    <script src="assets/js/app.js"></script>
-    <script>
-        // Toggle password visibility
-        function togglePassword(fieldId) {
-            const passwordInput = document.getElementById(fieldId);
-            const eyeIcon = passwordInput.parentElement.querySelector('.eye-icon, .eye-icon-2');
-            
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                eyeIcon.innerHTML = `
-                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94L17.94 17.94z"></path>
-                    <line x1="1" y1="1" x2="23" y2="23"></line>
-                    <path d="M10.65 10.65a3 3 0 1 1 4.24 4.24"></path>
-                `;
-            } else {
-                passwordInput.type = 'password';
-                eyeIcon.innerHTML = `
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                `;
-            }
-        }
-        
-        // Form validation
-        document.getElementById('registerForm').addEventListener('submit', function(e) {
-            const firstName = document.getElementById('first_name').value.trim();
-            const lastName = document.getElementById('last_name').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirm_password').value;
-            
-            if (!firstName || !lastName || !email || !password || !confirmPassword) {
-                e.preventDefault();
-                alert('Por favor completa todos los campos');
-                return;
-            }
-            
-            if (!email.includes('@')) {
-                e.preventDefault();
-                alert('Por favor ingresa un email válido');
-                return;
-            }
-            
-            if (password.length < 6) {
-                e.preventDefault();
-                alert('La contraseña debe tener al menos 6 caracteres');
-                return;
-            }
-            
-            if (password !== confirmPassword) {
-                e.preventDefault();
-                alert('Las contraseñas no coinciden');
-                return;
-            }
-            
-            // Show loading state
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalText = submitBtn.textContent;
-            
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Creando cuenta...';
-            
-            // Reset button after form submission
-            setTimeout(() => {
-                submitBtn.disabled = false;
-                submitBtn.textContent = originalText;
-            }, 3000);
-        });
-        
-        // Validación en tiempo real de contraseñas
-        document.getElementById('confirm_password').addEventListener('input', function() {
-            const password = document.getElementById('password').value;
-            const confirmPassword = this.value;
-            
-            if (confirmPassword && password !== confirmPassword) {
-                this.setCustomValidity('Las contraseñas no coinciden');
-                this.style.borderColor = '#ef4444';
-            } else {
-                this.setCustomValidity('');
-                this.style.borderColor = '';
-            }
-        });
-        
-        // Auto-focus on first field
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('first_name').focus();
-        });
-    </script>
 </body>
 </html>
