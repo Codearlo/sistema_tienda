@@ -1,6 +1,7 @@
 <?php
 /**
  * Verificador de Autenticación Simple
+ * Archivo: includes/auth.php
  */
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -31,18 +32,18 @@ if (isset($_SESSION['logged_in_at'])) {
 $_SESSION['logged_in_at'] = time();
 
 // Incluir configuración básica
-require_once __DIR__ . 'backend/config/database.php';
+require_once __DIR__ . '/../backend/config/database.php';
 
 // Definir constantes básicas si no están definidas
 if (!defined('STATUS_ACTIVE')) {
     define('STATUS_ACTIVE', 1);
 }
 
-// Función para formatear moneda
-if (!function_exists('formatCurrency')) {
-    function formatCurrency($amount, $includeSymbol = true) {
-        $formatted = number_format($amount, 2, '.', ',');
-        return $includeSymbol ? 'S/ ' . $formatted : $formatted;
-    }
+if (!defined('STATUS_INACTIVE')) {
+    define('STATUS_INACTIVE', 0);
+}
+
+if (!defined('STATUS_DELETED')) {
+    define('STATUS_DELETED', -1);
 }
 ?>
