@@ -240,7 +240,7 @@ try {
     <title>Productos - Treinta</title>
     <?php 
     forceCssReload();
-    includeCss('assets/css/dashboard.css');
+    includeCss('assets/css/layouts/dashboard.css');
     includeCss('assets/css/layouts/products.css');
     ?>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
