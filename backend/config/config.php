@@ -32,10 +32,10 @@ if (!defined('ASSETS_URL')) define('ASSETS_URL', APP_URL . '/assets');
 if (!defined('UPLOADS_URL')) define('UPLOADS_URL', APP_URL . '/uploads');
 if (!defined('API_URL')) define('API_URL', APP_URL . '/api');
 
-// Configuración de sesión
-ini_set('session.cookie_lifetime', 86400); // 24 horas
-ini_set('session.gc_maxlifetime', 86400);
+// Configuración de sesión (debe ir antes de session_start)
 if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.cookie_lifetime', 86400); // 24 horas
+    ini_set('session.gc_maxlifetime', 86400);
     session_start();
 }
 
