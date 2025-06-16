@@ -326,8 +326,23 @@ $business_info = array_merge([
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize settings page
-            console.log('Settings page loaded');
+            // Manejar formulario de perfil
+            document.getElementById('profileForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveProfile();
+            });
+            
+            // Manejar formulario de negocio
+            document.getElementById('businessForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveBusiness();
+            });
+            
+            // Manejar formulario de notificaciones
+            document.getElementById('notificationForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveNotifications();
+            });
             
             // Handle delete confirmation input
             const confirmInput = document.getElementById('confirmDelete');
@@ -340,6 +355,151 @@ $business_info = array_merge([
             }
         });
 
+        async function saveProfile() {
+            const form = document.getElementById('profileForm');
+            const button = form.querySelector('button[type="submit"]');
+            const originalText = button.innerHTML;
+            
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+            button.disabled = true;
+            
+            try {
+                const data = {
+                    first_name: document.getElementById('firstName').value,
+                    last_name: document.getElementById('lastName').value,
+                    email: document.getElementById('email').value,
+                    phone: document.getElementById('phone').value
+                };
+                
+                const response = await fetch('backend/settings/save_profile.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('Perfil guardado exitosamente', 'success');
+                } else {
+                    showAlert(result.message || 'Error al guardar el perfil', 'error');
+                }
+            } catch (error) {
+                showAlert('Error de conexión al guardar el perfil', 'error');
+            } finally {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
+        async function saveBusiness() {
+            const form = document.getElementById('businessForm');
+            const button = form.querySelector('button[type="submit"]');
+            const originalText = button.innerHTML;
+            
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+            button.disabled = true;
+            
+            try {
+                const data = {
+                    business_name: document.getElementById('businessName').value,
+                    business_phone: document.getElementById('businessPhone').value,
+                    business_email: document.getElementById('businessEmail').value,
+                    business_address: document.getElementById('businessAddress').value
+                };
+                
+                const response = await fetch('backend/settings/save_business.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('Información del negocio guardada exitosamente', 'success');
+                } else {
+                    showAlert(result.message || 'Error al guardar la información del negocio', 'error');
+                }
+            } catch (error) {
+                showAlert('Error de conexión al guardar la información del negocio', 'error');
+            } finally {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
+        async function saveNotifications() {
+            const form = document.getElementById('notificationForm');
+            const button = form.querySelector('button[type="submit"]');
+            const originalText = button.innerHTML;
+            
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+            button.disabled = true;
+            
+            try {
+                const data = {
+                    email_sales_report: document.getElementById('emailSalesReport').checked,
+                    email_low_stock: document.getElementById('emailLowStock').checked,
+                    low_stock_threshold: document.getElementById('lowStockThreshold').value
+                };
+                
+                const response = await fetch('backend/settings/save_notifications.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('Configuraciones de notificaciones guardadas exitosamente', 'success');
+                } else {
+                    showAlert(result.message || 'Error al guardar las configuraciones', 'error');
+                }
+            } catch (error) {
+                showAlert('Error de conexión al guardar las configuraciones', 'error');
+            } finally {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
+        function showAlert(message, type) {
+            // Crear elemento de alerta
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 1000; max-width: 400px;';
+            alert.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i>
+                ${message}
+            `;
+            
+            document.body.appendChild(alert);
+            
+            // Remover después de 5 segundos
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.parentNode.removeChild(alert);
+                }
+            }, 5000);
+        }
+
+        function saveAllSettings() {
+            // Mostrar mensaje de confirmación real
+            if (confirm('¿Guardar todos los cambios?')) {
+                saveProfile();
+                setTimeout(() => saveBusiness(), 500);
+                setTimeout(() => saveNotifications(), 1000);
+            }
+        }
+
         function confirmDeleteAccount() {
             document.getElementById('deleteAccountModal').style.display = 'flex';
         }
@@ -348,15 +508,6 @@ $business_info = array_merge([
             document.getElementById('deleteAccountModal').style.display = 'none';
             document.getElementById('confirmDelete').value = '';
             document.getElementById('confirmDeleteBtn').disabled = true;
-        }
-
-        function saveAllSettings() {
-            // Mostrar mensaje de confirmación real
-            if (confirm('¿Guardar todos los cambios?')) {
-                alert('Configuraciones guardadas exitosamente');
-                // Aquí iría la lógica real de guardado
-                // Por ahora solo mostramos el mensaje
-            }
         }
 
         function exportData() {
