@@ -1,9 +1,4 @@
 <?php
-/**
- * PUNTO DE VENTA - TREINTA APP
- * Sistema completo de ventas con carrito
- */
-
 session_start();
 
 require_once 'includes/onboarding_middleware.php';
