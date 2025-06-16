@@ -1,44 +1,66 @@
 <?php
 session_start();
-require_once 'backend/config/database.php';
-require_once 'backend/notifications/NotificationHelper.php';
+
+// Configurar reporte de errores para debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+try {
+    require_once 'backend/config/config.php';
+    require_once 'backend/config/database.php';
+    require_once 'backend/notifications/NotificationHelper.php';
+} catch (Exception $e) {
+    die('Error cargando archivos: ' . $e->getMessage());
+}
 
 if (!isset($_SESSION['business_id'])) {
-    die('Debes estar logueado para probar notificaciones');
+    die('Debes estar logueado para probar notificaciones. <a href="login.php">Ir al login</a>');
 }
 
 $business_id = $_SESSION['business_id'];
-$helper = new NotificationHelper();
+
+try {
+    $helper = new NotificationHelper();
+} catch (Exception $e) {
+    die('Error inicializando NotificationHelper: ' . $e->getMessage());
+}
 
 echo "<h1>Test de Notificaciones en Tiempo Real</h1>";
 echo "<p>Business ID: $business_id</p>";
 
-if ($_POST['action'] ?? '') {
-    switch ($_POST['action']) {
-        case 'sale':
-            $helper->saleCompleted($business_id, 150.50, 'Juan Pérez');
-            echo "✅ Notificación de venta enviada<br>";
-            break;
-            
-        case 'stock':
-            $helper->lowStock($business_id, 'Coca Cola 500ml', 3, 10);
-            echo "⚠️ Notificación de stock bajo enviada<br>";
-            break;
-            
-        case 'payment':
-            $helper->paymentReceived($business_id, 75.00, 'María García');
-            echo "💰 Notificación de pago enviada<br>";
-            break;
-            
-        case 'product':
-            $helper->productAdded($business_id, 'Nuevo Producto Test', $_SESSION['user_name'] ?? 'Usuario');
-            echo "📦 Notificación de producto enviada<br>";
-            break;
-            
-        case 'error':
-            $helper->systemError($business_id, 'Error de prueba del sistema');
-            echo "❌ Notificación de error enviada<br>";
-            break;
+if (isset($_POST['action']) && $_POST['action']) {
+    try {
+        switch ($_POST['action']) {
+            case 'sale':
+                $helper->saleCompleted($business_id, 150.50, 'Juan Pérez');
+                echo "✅ Notificación de venta enviada<br>";
+                break;
+                
+            case 'stock':
+                $helper->lowStock($business_id, 'Coca Cola 500ml', 3, 10);
+                echo "⚠️ Notificación de stock bajo enviada<br>";
+                break;
+                
+            case 'payment':
+                $helper->paymentReceived($business_id, 75.00, 'María García');
+                echo "💰 Notificación de pago enviada<br>";
+                break;
+                
+            case 'product':
+                $helper->productAdded($business_id, 'Nuevo Producto Test', $_SESSION['user_name'] ?? 'Usuario');
+                echo "📦 Notificación de producto enviada<br>";
+                break;
+                
+            case 'error':
+                $helper->systemError($business_id, 'Error de prueba del sistema');
+                echo "❌ Notificación de error enviada<br>";
+                break;
+                
+            default:
+                echo "❌ Acción no válida<br>";
+        }
+    } catch (Exception $e) {
+        echo "❌ Error enviando notificación: " . $e->getMessage() . "<br>";
     }
 }
 ?>
