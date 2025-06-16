@@ -73,9 +73,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'owner_id' => $user['id'],
             'business_name' => $business_name,
             'business_type' => $business_type,
-            'ruc' => $ruc,
-            'address' => $address,
-            'phone' => $phone,
+            'ruc' => $ruc ?: null,
+            'address' => $address ?: null,
+            'phone' => $phone ?: null,
             'email' => $user['email'],
             'status' => STATUS_ACTIVE,
             'created_at' => date('Y-m-d H:i:s')
