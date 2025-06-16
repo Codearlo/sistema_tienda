@@ -149,8 +149,11 @@ class Database {
     public function update($table, $data, $whereCondition, $whereParams = []) {
         try {
             $set = [];
+            $setParams = [];
+            
             foreach ($data as $key => $value) {
-                $set[] = "{$key} = :{$key}";
+                $set[] = "{$key} = ?";
+                $setParams[] = $value;
             }
             $setClause = implode(', ', $set);
             
@@ -164,14 +167,16 @@ class Database {
             }
             
             $sql = "UPDATE {$table} SET {$setClause} WHERE {$whereClause}";
-            $params = array_merge($data, $whereParams);
+            
+            // Combinar parámetros: primero los de SET, luego los de WHERE
+            $finalParams = array_merge($setParams, $whereParams);
             
             $stmt = $this->pdo->prepare($sql);
-            return $stmt->execute($params);
+            return $stmt->execute($finalParams);
             
         } catch (PDOException $e) {
-            error_log("Update error: " . $e->getMessage() . " Table: " . $table);
-            throw new Exception("Error al actualizar registro");
+            error_log("Update error: " . $e->getMessage() . " Table: " . $table . " SQL: " . $sql . " Params: " . json_encode($finalParams ?? []));
+            throw new Exception("Error al actualizar registro: " . $e->getMessage());
         }
     }
 
