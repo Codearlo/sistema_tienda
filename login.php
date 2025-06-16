@@ -49,6 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['email'] = $user['email'];
                 $_SESSION['first_name'] = $user['first_name'];
                 $_SESSION['last_name'] = $user['last_name'];
+                $_SESSION['user_name'] = trim($user['first_name'] . ' ' . $user['last_name']); // AGREGADO
                 $_SESSION['user_type'] = $user['user_type'];
                 $_SESSION['logged_in_at'] = time();
                 

@@ -15,7 +15,7 @@ if (!isset($_SESSION['user_id'])) {
 $error_message = null;
 $success_message = null;
 $config = [];
-$user = null;
+$user = [];
 
 $user_id = $_SESSION['user_id'];
 $business_id = $_SESSION['business_id'];
@@ -23,8 +23,9 @@ $business_id = $_SESSION['business_id'];
 try {
     $db = getDB();
     
+    // Corregir: usar la tabla 'settings' en lugar de 'business_settings'
     $settings = $db->fetchAll(
-        "SELECT * FROM business_settings WHERE business_id = ?",
+        "SELECT * FROM settings WHERE business_id = ?",
         [$business_id]
     );
     
@@ -33,21 +34,49 @@ try {
         $config[$setting['setting_key']] = $setting['setting_value'];
     }
     
+    // Obtener datos del usuario
     $user = $db->single(
         "SELECT * FROM users WHERE id = ?",
         [$user_id]
     );
     
+    // Si no se pudo obtener el usuario, usar datos de sesión
+    if (!$user) {
+        $user = [
+            'first_name' => $_SESSION['first_name'] ?? '',
+            'last_name' => $_SESSION['last_name'] ?? '',
+            'email' => $_SESSION['email'] ?? '',
+            'phone' => '',
+            'user_type' => $_SESSION['user_type'] ?? 'admin'
+        ];
+    }
+    
+    // Asegurar que user_name esté disponible en la sesión
+    if (!isset($_SESSION['user_name']) && $user) {
+        $_SESSION['user_name'] = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+    }
+    
 } catch (Exception $e) {
     $error_message = "Error: " . $e->getMessage();
+    // Usar datos de sesión como fallback
+    $user = [
+        'first_name' => $_SESSION['first_name'] ?? '',
+        'last_name' => $_SESSION['last_name'] ?? '',
+        'email' => $_SESSION['email'] ?? '',
+        'phone' => '',
+        'user_type' => $_SESSION['user_type'] ?? 'admin'
+    ];
 }
 
+// Configuraciones por defecto
 $config = array_merge([
     'email_sales_report' => 0,
     'email_low_stock' => 0,
     'whatsapp_receipts' => 0,
     'whatsapp_reminders' => 0,
-    'low_stock_threshold' => 10
+    'low_stock_threshold' => 10,
+    'business_phone' => '',
+    'business_email' => ''
 ], $config);
 ?>
 
@@ -58,9 +87,11 @@ $config = array_merge([
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configuración - Treinta</title>
     <?php 
-    forceCssReload();
-    includeCss('assets/css/style.css');
-    includeCss('assets/css/layouts/settings.css');
+    if (function_exists('forceCssReload')) forceCssReload();
+    if (function_exists('includeCss')) {
+        includeCss('assets/css/style.css');
+        includeCss('assets/css/layouts/settings.css');
+    }
     ?>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -83,14 +114,14 @@ $config = array_merge([
             </div>
         </header>
 
-        <?php if (isset($error_message)): ?>
+        <?php if (isset($error_message) && $error_message): ?>
             <div class="alert alert-error">
                 <i class="fas fa-exclamation-triangle"></i>
                 <?php echo htmlspecialchars($error_message); ?>
             </div>
         <?php endif; ?>
 
-        <?php if (isset($success_message)): ?>
+        <?php if (isset($success_message) && $success_message): ?>
             <div class="alert alert-success">
                 <i class="fas fa-check-circle"></i>
                 <?php echo htmlspecialchars($success_message); ?>
@@ -159,291 +190,167 @@ $config = array_merge([
                            <label for="businessPhone">Teléfono del negocio:</label>
                            <input type="tel" id="businessPhone" class="form-input" 
                                   value="<?php echo htmlspecialchars($config['business_phone'] ?? ''); ?>">
-                       </div>
-                       
-                       <div class="form-group">
+                        </div>
+                        
+                        <div class="form-group">
                            <label for="businessEmail">Email del negocio:</label>
                            <input type="email" id="businessEmail" class="form-input" 
                                   value="<?php echo htmlspecialchars($config['business_email'] ?? ''); ?>">
-                       </div>
-                       
-                       <div class="form-group">
-                           <label for="businessAddress">Dirección:</label>
-                           <textarea id="businessAddress" class="form-textarea" rows="3"><?php echo htmlspecialchars($config['business_address'] ?? ''); ?></textarea>
-                       </div>
-                   </div>
-                   
-                   <div class="form-actions">
-                       <button type="submit" class="btn btn-primary">
-                           <i class="fas fa-save"></i> Guardar Configuración
-                       </button>
-                   </div>
-               </form>
-           </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <label for="businessAddress">Dirección:</label>
+                        <textarea id="businessAddress" class="form-input" rows="3"><?php echo htmlspecialchars($config['business_address'] ?? ''); ?></textarea>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Guardar Configuración
+                        </button>
+                    </div>
+                </form>
+            </div>
 
-           <!-- Notification Settings -->
-           <div class="settings-section">
-               <div class="section-header">
-                   <h2><i class="fas fa-bell"></i> Notificaciones</h2>
-                   <p>Configura cómo y cuándo recibir notificaciones</p>
-               </div>
-               
-               <form id="notificationForm" class="settings-form">
-                   <div class="settings-grid">
-                       <div class="setting-item">
-                           <div class="setting-info">
-                               <h4>Reportes de ventas por email</h4>
-                               <p>Recibe un resumen diario de ventas en tu email</p>
-                           </div>
-                           <div class="setting-control">
-                               <label class="switch">
-                                   <input type="checkbox" id="emailSalesReport" 
-                                          <?php echo $config['email_sales_report'] ? 'checked' : ''; ?>>
-                                   <span class="slider"></span>
-                               </label>
-                           </div>
-                       </div>
-                       
-                       <div class="setting-item">
-                           <div class="setting-info">
-                               <h4>Alertas de stock bajo</h4>
-                               <p>Notificaciones cuando los productos tengan poco stock</p>
-                           </div>
-                           <div class="setting-control">
-                               <label class="switch">
-                                   <input type="checkbox" id="emailLowStock" 
-                                          <?php echo $config['email_low_stock'] ? 'checked' : ''; ?>>
-                                   <span class="slider"></span>
-                               </label>
-                           </div>
-                       </div>
-                       
-                       <div class="setting-item">
-                           <div class="setting-info">
-                               <h4>Recibos por WhatsApp</h4>
-                               <p>Envía recibos de venta automáticamente por WhatsApp</p>
-                           </div>
-                           <div class="setting-control">
-                               <label class="switch">
-                                   <input type="checkbox" id="whatsappReceipts" 
-                                          <?php echo $config['whatsapp_receipts'] ? 'checked' : ''; ?>>
-                                   <span class="slider"></span>
-                               </label>
-                           </div>
-                       </div>
-                       
-                       <div class="setting-item">
-                           <div class="setting-info">
-                               <h4>Recordatorios de deudas</h4>
-                               <p>Envía recordatorios automáticos a clientes con deudas pendientes</p>
-                           </div>
-                           <div class="setting-control">
-                               <label class="switch">
-                                   <input type="checkbox" id="whatsappReminders" 
-                                          <?php echo $config['whatsapp_reminders'] ? 'checked' : ''; ?>>
-                                   <span class="slider"></span>
-                               </label>
-                           </div>
-                       </div>
-                   </div>
-                   
-                   <div class="form-group">
-                       <label for="lowStockThreshold">Umbral de stock bajo:</label>
-                       <input type="number" id="lowStockThreshold" class="form-input" 
-                              value="<?php echo $config['low_stock_threshold']; ?>" min="1" max="100">
-                       <small class="form-help">Cantidad mínima antes de considerar el stock como bajo</small>
-                   </div>
-                   
-                   <div class="form-actions">
-                       <button type="submit" class="btn btn-primary">
-                           <i class="fas fa-save"></i> Guardar Notificaciones
-                       </button>
-                   </div>
-               </form>
-           </div>
+            <!-- Notifications -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-bell"></i> Notificaciones</h2>
+                    <p>Configura cómo y cuándo recibir notificaciones</p>
+                </div>
+                
+                <form id="notificationForm" class="settings-form">
+                    <div class="notification-group">
+                        <h3>Reportes de ventas por email</h3>
+                        <p>Recibe reportes automáticos de tus ventas diarias</p>
+                        <label class="switch">
+                            <input type="checkbox" id="emailSalesReport" <?php echo $config['email_sales_report'] ? 'checked' : ''; ?>>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="notification-group">
+                        <h3>Alertas de stock bajo</h3>
+                        <p>Notificaciones cuando los productos tengan poco stock</p>
+                        <label class="switch">
+                            <input type="checkbox" id="emailLowStock" <?php echo $config['email_low_stock'] ? 'checked' : ''; ?>>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="lowStockThreshold">Umbral de stock bajo:</label>
+                        <input type="number" id="lowStockThreshold" class="form-input" 
+                               value="<?php echo htmlspecialchars($config['low_stock_threshold'] ?? 10); ?>" min="1">
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Guardar Notificaciones
+                        </button>
+                    </div>
+                </form>
+            </div>
 
-           <!-- Security Settings -->
-           <div class="settings-section">
-               <div class="section-header">
-                   <h2><i class="fas fa-shield-alt"></i> Seguridad</h2>
-                   <p>Gestiona la seguridad de tu cuenta</p>
-               </div>
-               
-               <form id="securityForm" class="settings-form">
-                   <div class="form-group">
-                       <label for="currentPassword" class="required">Contraseña actual:</label>
-                       <input type="password" id="currentPassword" class="form-input" required>
-                   </div>
-                   
-                   <div class="form-grid">
-                       <div class="form-group">
-                           <label for="newPassword" class="required">Nueva contraseña:</label>
-                           <input type="password" id="newPassword" class="form-input" required>
-                           <small class="form-help">Mínimo 8 caracteres</small>
-                       </div>
-                       
-                       <div class="form-group">
-                           <label for="confirmPassword" class="required">Confirmar contraseña:</label>
-                           <input type="password" id="confirmPassword" class="form-input" required>
-                       </div>
-                   </div>
-                   
-                   <div class="form-actions">
-                       <button type="submit" class="btn btn-primary">
-                           <i class="fas fa-key"></i> Cambiar Contraseña
-                       </button>
-                   </div>
-               </form>
-           </div>
+            <!-- Account Management -->
+            <div class="settings-section danger-zone">
+                <div class="section-header">
+                    <h2><i class="fas fa-exclamation-triangle"></i> Gestión de Cuenta</h2>
+                    <p>Opciones avanzadas para tu cuenta</p>
+                </div>
+                
+                <div class="danger-actions">
+                    <button class="btn btn-outline" onclick="exportData()">
+                        <i class="fas fa-download"></i> Exportar Datos
+                    </button>
+                    
+                    <button class="btn btn-outline" onclick="backupDatabase()">
+                        <i class="fas fa-shield-alt"></i> Respaldar Datos
+                    </button>
+                    
+                    <button class="btn btn-danger" onclick="confirmDeleteAccount()">
+                        <i class="fas fa-trash"></i> Eliminar Cuenta
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
 
-           <!-- System Settings -->
-           <div class="settings-section">
-               <div class="section-header">
-                   <h2><i class="fas fa-cog"></i> Sistema</h2>
-                   <p>Configuraciones del sistema y datos</p>
-               </div>
-               
-               <div class="system-actions">
-                   <div class="action-item">
-                       <div class="action-info">
-                           <h4>Exportar datos</h4>
-                           <p>Descarga todos tus datos en formato Excel</p>
-                       </div>
-                       <button class="btn btn-outline" onclick="exportData()">
-                           <i class="fas fa-download"></i> Exportar
-                       </button>
-                   </div>
-                   
-                   <div class="action-item">
-                       <div class="action-info">
-                           <h4>Respaldar base de datos</h4>
-                           <p>Crea una copia de seguridad de toda tu información</p>
-                       </div>
-                       <button class="btn btn-outline" onclick="backupDatabase()">
-                           <i class="fas fa-database"></i> Respaldar
-                       </button>
-                   </div>
-                   
-                   <div class="action-item danger">
-                       <div class="action-info">
-                           <h4>Eliminar cuenta</h4>
-                           <p>Elimina permanentemente tu cuenta y todos los datos</p>
-                       </div>
-                       <button class="btn btn-error" onclick="confirmDeleteAccount()">
-                           <i class="fas fa-trash"></i> Eliminar
-                       </button>
-                   </div>
-               </div>
-           </div>
-       </div>
-   </main>
+    <!-- Delete Account Modal -->
+    <div id="deleteAccountModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Confirmar eliminación de cuenta</h3>
+                <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="warning-message">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Advertencia:</strong> Esta acción es irreversible.
+                </div>
+                
+                <p>Se eliminarán permanentemente:</p>
+                <ul>
+                    <li>Todos los productos y categorías</li>
+                    <li>Historial de ventas y transacciones</li>
+                    <li>Datos de clientes</li>
+                    <li>Configuraciones del negocio</li>
+                    <li>Tu cuenta de usuario</li>
+                </ul>
+                
+                <p>Para confirmar, escribe <strong>"ELIMINAR"</strong>:</p>
+                <input type="text" id="confirmDelete" class="form-input" placeholder="ELIMINAR">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeDeleteModal()">Cancelar</button>
+                <button id="confirmDeleteBtn" class="btn btn-danger" onclick="deleteAccount()" disabled>
+                    Eliminar Cuenta
+                </button>
+            </div>
+        </div>
+    </div>
 
-   <!-- Delete Account Modal -->
-   <div class="modal" id="deleteAccountModal">
-       <div class="modal-content">
-           <div class="modal-header">
-               <h3>Confirmar eliminación de cuenta</h3>
-               <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
-           </div>
-           <div class="modal-body">
-               <div class="alert alert-error">
-                   <i class="fas fa-exclamation-triangle"></i>
-                   <strong>¡Advertencia!</strong> Esta acción es irreversible.
-               </div>
-               <p>Se eliminarán permanentemente:</p>
-               <ul>
-                   <li>Todos los productos y categorías</li>
-                   <li>Historial de ventas y transacciones</li>
-                   <li>Datos de clientes</li>
-                   <li>Configuraciones del negocio</li>
-                   <li>Tu cuenta de usuario</li>
-               </ul>
-               
-               <div class="form-group">
-                   <label for="confirmDelete">Para confirmar, escribe "ELIMINAR":</label>
-                   <input type="text" id="confirmDelete" class="form-input" placeholder="Escribe ELIMINAR">
-               </div>
-           </div>
-           <div class="modal-footer">
-               <button class="btn btn-outline" onclick="closeDeleteModal()">Cancelar</button>
-               <button class="btn btn-error" onclick="deleteAccount()" id="confirmDeleteBtn" disabled>
-                   <i class="fas fa-trash"></i> Eliminar Cuenta
-               </button>
-           </div>
-       </div>
-   </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize settings page
+            console.log('Settings page loaded');
+            
+            // Handle delete confirmation input
+            const confirmInput = document.getElementById('confirmDelete');
+            const deleteBtn = document.getElementById('confirmDeleteBtn');
+            
+            if (confirmInput && deleteBtn) {
+                confirmInput.addEventListener('input', function() {
+                    deleteBtn.disabled = this.value !== 'ELIMINAR';
+                });
+            }
+        });
 
-   <!-- Scripts -->
-   <script src="assets/js/notifications.js"></script>
-   <script src="assets/js/api.js"></script>
-   <script src="assets/js/settings.js"></script>
-   
-   <script>
-       document.addEventListener('DOMContentLoaded', function() {
-           // Initialize settings page
-           initializeSettings();
-           
-           // Handle delete confirmation input
-           const confirmInput = document.getElementById('confirmDelete');
-           const deleteBtn = document.getElementById('confirmDeleteBtn');
-           
-           if (confirmInput && deleteBtn) {
-               confirmInput.addEventListener('input', function() {
-                   deleteBtn.disabled = this.value !== 'ELIMINAR';
-               });
-           }
-       });
+        function confirmDeleteAccount() {
+            document.getElementById('deleteAccountModal').style.display = 'flex';
+        }
 
-       function confirmDeleteAccount() {
-           document.getElementById('deleteAccountModal').style.display = 'flex';
-       }
+        function closeDeleteModal() {
+            document.getElementById('deleteAccountModal').style.display = 'none';
+            document.getElementById('confirmDelete').value = '';
+            document.getElementById('confirmDeleteBtn').disabled = true;
+        }
 
-       function closeDeleteModal() {
-           document.getElementById('deleteAccountModal').style.display = 'none';
-           document.getElementById('confirmDelete').value = '';
-           document.getElementById('confirmDeleteBtn').disabled = true;
-       }
+        function saveAllSettings() {
+            alert('Guardando configuraciones...');
+        }
 
-       function saveAllSettings() {
-           Notifications.success('Guardando todas las configuraciones...');
-           
-           // Save profile
-           document.getElementById('profileForm').dispatchEvent(new Event('submit'));
-           
-           // Save business settings
-           setTimeout(() => {
-               document.getElementById('businessForm').dispatchEvent(new Event('submit'));
-           }, 500);
-           
-           // Save notifications
-           setTimeout(() => {
-               document.getElementById('notificationForm').dispatchEvent(new Event('submit'));
-           }, 1000);
-       }
+        function exportData() {
+            alert('Exportando datos...');
+        }
 
-       function exportData() {
-           Notifications.info('Preparando exportación de datos...');
-           // Implementation for data export
-           setTimeout(() => {
-               Notifications.success('Datos exportados exitosamente');
-           }, 2000);
-       }
+        function backupDatabase() {
+            alert('Creando respaldo...');
+        }
 
-       function backupDatabase() {
-           Notifications.info('Creando respaldo de la base de datos...');
-           // Implementation for database backup
-           setTimeout(() => {
-               Notifications.success('Respaldo creado exitosamente');
-           }, 3000);
-       }
-
-       function deleteAccount() {
-           Notifications.warning('Eliminando cuenta...');
-           // Implementation for account deletion
-           setTimeout(() => {
-               window.location.href = 'login.php';
-           }, 2000);
-       }
-   </script>
+        function deleteAccount() {
+            alert('Eliminando cuenta...');
+        }
+    </script>
 </body>
 </html>
