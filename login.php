@@ -235,13 +235,6 @@ $flash = showFlashMessage();
             <div class="login-footer">
                 <p>¿No tienes cuenta? <a href="register.php" class="register-link">Crear cuenta gratis</a></p>
             </div>
-            
-            <!-- Demo credentials -->
-            <div class="demo-credentials">
-                <div class="demo-title">🎯 Cuenta Demo</div>
-                <div class="demo-info">Email: <strong>admin@treinta.local</strong></div>
-                <div class="demo-info">Password: <strong>password</strong></div>
-            </div>
         </div>
         
         <div class="info-section">
