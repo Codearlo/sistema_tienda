@@ -9,7 +9,7 @@ echo "<h1>Test de Conexión a Base de Datos</h1>";
 $host = 'localhost';
 $dbname = 'u347334547_invapp';
 $username = 'u347334547_invapp';
-$password = 'Futuro123';
+$password = 'CH7322a#';
 
 echo "<h2>Configuración:</h2>";
 echo "Host: $host<br>";
