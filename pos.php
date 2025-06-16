@@ -67,7 +67,7 @@ function formatCurrency($amount) {
     <title>Punto de Venta - Treinta</title>
     <?php 
     forceCssReload();
-    includeCss('assets/css/layouts/dashboard.css');
+    includeCss('assets/css/style.css');
     includeCss('assets/css/layouts/pos.css');
     ?>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
