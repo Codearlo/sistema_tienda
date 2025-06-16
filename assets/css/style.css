@@ -1,9 +1,3 @@
-/* =====================================================
-   TREINTA APP - ESTILOS PRINCIPALES
-   Versión: 1.0.0
-   Arquitectura CSS organizada y escalable
-   ===================================================== */
-
 /* ===== BASE ===== */
 @import url('base/variables.css');
 @import url('base/reset.css');
@@ -27,6 +21,7 @@
 @import url('layouts/login.css');
 @import url('layouts/pos.css');
 @import url('layouts/products.css');
+@import url('layouts/settings.css');
 
 /* ===== PRINT STYLES ===== */
 @media print {
