@@ -14,11 +14,11 @@
 @import url('components/pagination.css');
 @import url('components/slidebar.css');
 @import url('components/tables.css');
+@import url('components/auth.css');
 
 /* ===== LAYOUTS ===== */
 @import url('layouts/grid.css');
 @import url('layouts/dashboard.css');
-@import url('layouts/login.css');
 @import url('layouts/pos.css');
 @import url('layouts/products.css');
 @import url('layouts/settings.css');
