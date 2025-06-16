@@ -11,10 +11,17 @@ if (!isset($_SESSION['user_id']) || isset($_SESSION['business_id'])) {
 $error = '';
 $success = '';
 $db = null;
+$user = [];
 
 // Obtener datos del usuario
 try {
     $db = getDB();
+    
+    // Verificar conexión
+    if (!$db->isConnected()) {
+        throw new Exception("No se pudo conectar a la base de datos");
+    }
+    
     $user = $db->single(
         "SELECT * FROM users WHERE id = ?",
         [$_SESSION['user_id']]
@@ -27,6 +34,11 @@ try {
     
 } catch (Exception $e) {
     $error = "Error al cargar datos del usuario: " . $e->getMessage();
+    $user = [
+        'first_name' => $_SESSION['first_name'] ?? '',
+        'last_name' => $_SESSION['last_name'] ?? '',
+        'email' => $_SESSION['email'] ?? ''
+    ];
 }
 
 // Procesar el formulario
@@ -233,7 +245,7 @@ $page_title = 'Configurar Negocio';
                                 <i class="fas fa-user mr-2"></i>Persona de contacto
                             </label>
                             <input type="text" id="contact_person" name="contact_person"
-                                   value="<?= htmlspecialchars($_POST['contact_person'] ?? $user['first_name'] . ' ' . $user['last_name']) ?>"
+                                   value="<?= htmlspecialchars($_POST['contact_person'] ?? (($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''))) ?>"
                                    placeholder="Nombre del responsable"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         </div>

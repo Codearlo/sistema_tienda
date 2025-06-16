@@ -42,14 +42,37 @@ class Database {
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
-                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci",
+                PDO::ATTR_TIMEOUT => 30,
+                PDO::ATTR_PERSISTENT => false
             ];
             
+            // Intentar conexión
             $this->pdo = new PDO($dsn, $this->username, $this->password, $options);
+            
+            // Verificar que la conexión funciona
+            $this->pdo->query('SELECT 1');
             
         } catch (PDOException $e) {
             error_log("Database connection error: " . $e->getMessage());
-            throw new Exception("No se pudo conectar a la base de datos");
+            
+            // Intentar sin charset específico como fallback
+            try {
+                $dsn_fallback = "mysql:host={$this->host};dbname={$this->db_name}";
+                $options_fallback = [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES => false,
+                    PDO::ATTR_TIMEOUT => 30
+                ];
+                
+                $this->pdo = new PDO($dsn_fallback, $this->username, $this->password, $options_fallback);
+                $this->pdo->exec("SET NAMES utf8mb4");
+                
+            } catch (PDOException $e2) {
+                error_log("Fallback connection also failed: " . $e2->getMessage());
+                throw new Exception("No se pudo conectar a la base de datos. Verifique las credenciales.");
+            }
         }
     }
 
@@ -183,70 +206,6 @@ class Database {
     }
 
     /**
-     * Obtener registros con paginación
-     */
-    public function paginate($table, $where = '1=1', $params = [], $page = 1, $perPage = 20, $orderBy = 'id DESC') {
-        try {
-            $offset = ($page - 1) * $perPage;
-            
-            // Contar total de registros
-            $totalSql = "SELECT COUNT(*) as total FROM {$table} WHERE {$where}";
-            $totalStmt = $this->pdo->prepare($totalSql);
-            $totalStmt->execute($params);
-            $total = $totalStmt->fetch()['total'];
-            
-            // Obtener registros paginados
-            $sql = "SELECT * FROM {$table} WHERE {$where} ORDER BY {$orderBy} LIMIT {$offset}, {$perPage}";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute($params);
-            $data = $stmt->fetchAll();
-            
-            return [
-                'data' => $data,
-                'total' => $total,
-                'page' => $page,
-                'per_page' => $perPage,
-                'total_pages' => ceil($total / $perPage),
-                'has_next' => $page < ceil($total / $perPage),
-                'has_prev' => $page > 1
-            ];
-            
-        } catch (PDOException $e) {
-            error_log("Paginate error: " . $e->getMessage() . " Table: " . $table);
-            throw new Exception("Error en paginación");
-        }
-    }
-
-    /**
-     * Buscar registros
-     */
-    public function search($table, $searchFields, $searchTerm, $where = '1=1', $params = [], $orderBy = 'id DESC') {
-        try {
-            $searchConditions = [];
-            $searchParams = [];
-            
-            foreach ($searchFields as $field) {
-                $searchConditions[] = "{$field} LIKE ?";
-                $searchParams[] = "%{$searchTerm}%";
-            }
-            
-            $searchClause = '(' . implode(' OR ', $searchConditions) . ')';
-            $finalWhere = $where . ' AND ' . $searchClause;
-            $finalParams = array_merge($params, $searchParams);
-            
-            $sql = "SELECT * FROM {$table} WHERE {$finalWhere} ORDER BY {$orderBy}";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute($finalParams);
-            
-            return $stmt->fetchAll();
-            
-        } catch (PDOException $e) {
-            error_log("Search error: " . $e->getMessage() . " Table: " . $table);
-            throw new Exception("Error en búsqueda");
-        }
-    }
-
-    /**
      * Verificar si existe un registro
      */
     public function exists($table, $where, $params = []) {
@@ -305,37 +264,13 @@ class Database {
     }
 
     /**
-     * Ejecutar múltiples consultas en transacción
-     */
-    public function transaction($queries) {
-        try {
-            $this->beginTransaction();
-            
-            $results = [];
-            foreach ($queries as $query) {
-                $sql = $query['sql'];
-                $params = $query['params'] ?? [];
-                
-                $stmt = $this->pdo->prepare($sql);
-                $result = $stmt->execute($params);
-                $results[] = $result;
-            }
-            
-            $this->commit();
-            return $results;
-            
-        } catch (Exception $e) {
-            $this->rollback();
-            error_log("Transaction error: " . $e->getMessage());
-            throw new Exception("Error en transacción múltiple");
-        }
-    }
-
-    /**
      * Verificar conexión
      */
     public function isConnected() {
         try {
+            if (!$this->pdo) {
+                return false;
+            }
             $this->pdo->query('SELECT 1');
             return true;
         } catch (PDOException $e) {
@@ -365,16 +300,6 @@ class Database {
     }
 
     /**
-     * Limpiar datos (sanitizar)
-     */
-    public function sanitize($data) {
-        if (is_array($data)) {
-            return array_map([$this, 'sanitize'], $data);
-        }
-        return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
-    }
-
-    /**
      * Cerrar conexión
      */
     public function close() {
@@ -391,7 +316,12 @@ class Database {
 
 // Función global para obtener la instancia de la base de datos
 function getDB() {
-    return Database::getInstance();
+    try {
+        return Database::getInstance();
+    } catch (Exception $e) {
+        error_log("Error getting database instance: " . $e->getMessage());
+        throw $e;
+    }
 }
 
 // Función para probar la conexión
