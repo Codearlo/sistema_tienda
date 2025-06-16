@@ -100,13 +100,7 @@ $business_info = array_merge([
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configuración - Treinta</title>
-    <?php 
-    if (function_exists('forceCssReload')) forceCssReload();
-    if (function_exists('includeCss')) {
-        includeCss('assets/css/style.css');
-        includeCss('assets/css/layouts/settings.css');
-    }
-    ?>
+    <link href="assets/css/style.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="dashboard-page">
@@ -115,7 +109,7 @@ $business_info = array_merge([
     <main class="main-content">
         <header class="main-header">
             <div class="header-left">
-                <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">
+                <button class="btn-icon mobile-menu-btn" onclick="toggleMobileSidebar()">
                     <i class="fas fa-bars"></i>
                 </button>
                 <h1 class="page-title">Configuración</h1>
@@ -144,147 +138,159 @@ $business_info = array_merge([
 
         <div class="settings-container">
             <!-- Profile Settings -->
-            <div class="settings-section">
-                <div class="section-header">
+            <div class="card">
+                <div class="card-header">
                     <h2><i class="fas fa-user"></i> Perfil del Usuario</h2>
                     <p>Gestiona tu información personal y de acceso</p>
                 </div>
                 
-                <form id="profileForm" class="settings-form">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="firstName" class="required">Nombre:</label>
-                            <input type="text" id="firstName" class="form-input" 
-                                   value="<?php echo htmlspecialchars($user['first_name'] ?? ''); ?>" required>
+                <div class="card-body">
+                    <form id="profileForm" class="form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="firstName" class="form-label required">Nombre</label>
+                                <input type="text" id="firstName" class="form-input" 
+                                       value="<?php echo htmlspecialchars($user['first_name'] ?? ''); ?>" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="lastName" class="form-label required">Apellido</label>
+                                <input type="text" id="lastName" class="form-input" 
+                                       value="<?php echo htmlspecialchars($user['last_name'] ?? ''); ?>" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="email" class="form-label required">Email</label>
+                                <input type="email" id="email" class="form-input" 
+                                       value="<?php echo htmlspecialchars($user['email'] ?? ''); ?>" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="phone" class="form-label">Teléfono</label>
+                                <input type="tel" id="phone" class="form-input" 
+                                       value="<?php echo htmlspecialchars($user['phone'] ?? ''); ?>">
+                            </div>
                         </div>
                         
-                        <div class="form-group">
-                            <label for="lastName" class="required">Apellido:</label>
-                            <input type="text" id="lastName" class="form-input" 
-                                   value="<?php echo htmlspecialchars($user['last_name'] ?? ''); ?>" required>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Guardar Perfil
+                            </button>
                         </div>
-                        
-                        <div class="form-group">
-                            <label for="email" class="required">Email:</label>
-                            <input type="email" id="email" class="form-input" 
-                                   value="<?php echo htmlspecialchars($user['email'] ?? ''); ?>" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="phone">Teléfono:</label>
-                            <input type="tel" id="phone" class="form-input" 
-                                   value="<?php echo htmlspecialchars($user['phone'] ?? ''); ?>">
-                        </div>
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Guardar Perfil
-                        </button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
 
             <!-- Business Settings -->
-            <div class="settings-section">
-                <div class="section-header">
+            <div class="card">
+                <div class="card-header">
                     <h2><i class="fas fa-store"></i> Configuración del Negocio</h2>
                     <p>Administra la configuración general de tu negocio</p>
                 </div>
                 
-                <form id="businessForm" class="settings-form">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="businessName" class="required">Nombre del negocio:</label>
-                            <input type="text" id="businessName" class="form-input" 
-                                   value="<?php echo htmlspecialchars($business_info['business_name'] ?? ''); ?>" required>
+                <div class="card-body">
+                    <form id="businessForm" class="form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="businessName" class="form-label required">Nombre del negocio</label>
+                                <input type="text" id="businessName" class="form-input" 
+                                       value="<?php echo htmlspecialchars($business_info['business_name'] ?? ''); ?>" required>
+                            </div>
+                            
+                            <div class="form-group">
+                               <label for="businessPhone" class="form-label">Teléfono del negocio</label>
+                               <input type="tel" id="businessPhone" class="form-input" 
+                                      value="<?php echo htmlspecialchars($business_info['phone'] ?? ''); ?>">
+                            </div>
+                            
+                            <div class="form-group">
+                               <label for="businessEmail" class="form-label">Email del negocio</label>
+                               <input type="email" id="businessEmail" class="form-input" 
+                                      value="<?php echo htmlspecialchars($business_info['email'] ?? ''); ?>">
+                            </div>
                         </div>
                         
                         <div class="form-group">
-                           <label for="businessPhone">Teléfono del negocio:</label>
-                           <input type="tel" id="businessPhone" class="form-input" 
-                                  value="<?php echo htmlspecialchars($business_info['phone'] ?? ''); ?>">
+                            <label for="businessAddress" class="form-label">Dirección</label>
+                            <textarea id="businessAddress" class="form-input" rows="3"><?php echo htmlspecialchars($business_info['address'] ?? ''); ?></textarea>
                         </div>
                         
-                        <div class="form-group">
-                           <label for="businessEmail">Email del negocio:</label>
-                           <input type="email" id="businessEmail" class="form-input" 
-                                  value="<?php echo htmlspecialchars($business_info['email'] ?? ''); ?>">
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Guardar Negocio
+                            </button>
                         </div>
-                    </div>
-                    
-                    <div class="form-group full-width">
-                        <label for="businessAddress">Dirección:</label>
-                        <textarea id="businessAddress" class="form-input" rows="3"><?php echo htmlspecialchars($business_info['address'] ?? ''); ?></textarea>
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Guardar Negocio
-                        </button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
 
             <!-- Notifications -->
-            <div class="settings-section">
-                <div class="section-header">
+            <div class="card">
+                <div class="card-header">
                     <h2><i class="fas fa-bell"></i> Notificaciones</h2>
                     <p>Configura cómo y cuándo recibir notificaciones</p>
                 </div>
                 
-                <form id="notificationForm" class="settings-form">
-                    <div class="notification-group">
-                        <h3>Reportes de ventas por email</h3>
-                        <p>Recibe reportes automáticos de tus ventas diarias</p>
-                        <label class="switch">
-                            <input type="checkbox" id="emailSalesReport" <?php echo $config['email_sales_report'] ? 'checked' : ''; ?>>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    
-                    <div class="notification-group">
-                        <h3>Alertas de stock bajo</h3>
-                        <p>Notificaciones cuando los productos tengan poco stock</p>
-                        <label class="switch">
-                            <input type="checkbox" id="emailLowStock" <?php echo $config['email_low_stock'] ? 'checked' : ''; ?>>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="lowStockThreshold">Umbral de stock bajo:</label>
-                        <input type="number" id="lowStockThreshold" class="form-input" 
-                               value="<?php echo htmlspecialchars($config['low_stock_threshold'] ?? 10); ?>" min="1">
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Guardar Notificaciones
-                        </button>
-                    </div>
-                </form>
+                <div class="card-body">
+                    <form id="notificationForm" class="form">
+                        <div class="notification-group">
+                            <div>
+                                <h3>Reportes de ventas por email</h3>
+                                <p>Recibe reportes automáticos de tus ventas diarias</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="emailSalesReport" <?php echo $config['email_sales_report'] ? 'checked' : ''; ?>>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="notification-group">
+                            <div>
+                                <h3>Alertas de stock bajo</h3>
+                                <p>Notificaciones cuando los productos tengan poco stock</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="emailLowStock" <?php echo $config['email_low_stock'] ? 'checked' : ''; ?>>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="lowStockThreshold" class="form-label">Umbral de stock bajo</label>
+                            <input type="number" id="lowStockThreshold" class="form-input" 
+                                   value="<?php echo htmlspecialchars($config['low_stock_threshold'] ?? 10); ?>" min="1">
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Guardar Notificaciones
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
 
             <!-- Account Management -->
-            <div class="settings-section danger-zone">
-                <div class="section-header">
+            <div class="card danger-zone">
+                <div class="card-header">
                     <h2><i class="fas fa-exclamation-triangle"></i> Gestión de Cuenta</h2>
                     <p>Opciones avanzadas para tu cuenta</p>
                 </div>
                 
-                <div class="danger-actions">
-                    <button class="btn btn-outline" onclick="exportData()">
-                        <i class="fas fa-download"></i> Exportar Datos
-                    </button>
-                    
-                    <button class="btn btn-outline" onclick="backupDatabase()">
-                        <i class="fas fa-shield-alt"></i> Respaldar Datos
-                    </button>
-                    
-                    <button class="btn btn-danger" onclick="confirmDeleteAccount()">
-                        <i class="fas fa-trash"></i> Eliminar Cuenta
-                    </button>
+                <div class="card-body">
+                    <div class="danger-actions">
+                        <button class="btn btn-gray" onclick="exportData()">
+                            <i class="fas fa-download"></i> Exportar Datos
+                        </button>
+                        
+                        <button class="btn btn-warning" onclick="backupDatabase()">
+                            <i class="fas fa-shield-alt"></i> Respaldar Datos
+                        </button>
+                        
+                        <button class="btn btn-error" onclick="confirmDeleteAccount()">
+                            <i class="fas fa-trash"></i> Eliminar Cuenta
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
