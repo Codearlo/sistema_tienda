@@ -1,6 +1,15 @@
 <?php
 session_start();
 
+// Incluir middleware de onboarding
+require_once 'includes/onboarding_middleware.php';
+
+// Verificar que el usuario haya completado el onboarding
+requireOnboarding();
+
+require_once 'backend/config/database.php';
+require_once 'includes/cache_control.php';
+
 // Verificar autenticación
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');

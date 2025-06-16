@@ -1,77 +1,101 @@
 <?php
 session_start();
 
+require_once '../config/database.php';
+
+header('Content-Type: application/json');
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ../../login.php');
-    exit();
-}
-
-$email = trim($_POST['email'] ?? '');
-$password = $_POST['password'] ?? '';
-
-if (empty($email) || empty($password)) {
-    $_SESSION['error_message'] = 'Email y contraseña son requeridos.';
-    header('Location: ../../login.php');
+    http_response_code(405);
+    echo json_encode(['success' => false, 'message' => 'Método no permitido']);
     exit();
 }
 
 try {
-    // Conexión directa
-    $host = 'localhost';
-    $db_name = 'u347334547_inv_db';
-    $username = 'u347334547_inv_user';
-    $db_password = 'CH7322a#';
+    $input = json_decode(file_get_contents('php://input'), true);
     
-    $dsn = "mysql:host={$host};dbname={$db_name};charset=utf8mb4";
-    $pdo = new PDO($dsn, $username, $db_password, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
+    $email = trim($input['email'] ?? '');
+    $password = $input['password'] ?? '';
     
-    $stmt = $pdo->prepare(
-        "SELECT u.*, b.business_name 
+    if (empty($email) || empty($password)) {
+        throw new Exception('Email y contraseña son requeridos');
+    }
+    
+    $db = getDB();
+    
+    // Buscar usuario
+    $user = $db->single(
+        "SELECT u.*, b.id as business_id 
          FROM users u 
          LEFT JOIN businesses b ON u.business_id = b.id 
-         WHERE u.email = ? AND u.status = 1"
+         WHERE u.email = ? AND u.status = 1",
+        [$email]
     );
-    $stmt->execute([$email]);
-    $user = $stmt->fetch();
     
     if (!$user || !password_verify($password, $user['password'])) {
-        $_SESSION['error_message'] = 'Credenciales incorrectas.';
-        header('Location: ../../login.php');
-        exit();
+        // Registrar intento de login fallido
+        if ($user) {
+            $db->query(
+                "UPDATE users SET login_attempts = login_attempts + 1, 
+                 locked_until = CASE 
+                     WHEN login_attempts >= 4 THEN DATE_ADD(NOW(), INTERVAL 15 MINUTE)
+                     ELSE locked_until 
+                 END 
+                 WHERE id = ?",
+                [$user['id']]
+            );
+        }
+        
+        throw new Exception('Email o contraseña incorrectos');
     }
     
-    // Verificar si está bloqueado
-    if (!empty($user['locked_until']) && strtotime($user['locked_until']) > time()) {
-        $_SESSION['error_message'] = 'Cuenta bloqueada. Intente más tarde.';
-        header('Location: ../../login.php');
-        exit();
+    // Verificar si la cuenta está bloqueada
+    if ($user['locked_until'] && strtotime($user['locked_until']) > time()) {
+        throw new Exception('Cuenta bloqueada temporalmente. Intenta nuevamente más tarde.');
     }
     
-    // Login exitoso - actualizar usuario
-    $update_stmt = $pdo->prepare(
-        "UPDATE users SET login_attempts = 0, locked_until = NULL, last_login = ? WHERE id = ?"
+    // Resetear intentos de login
+    $db->query(
+        "UPDATE users SET login_attempts = 0, locked_until = NULL, last_login = NOW() WHERE id = ?",
+        [$user['id']]
     );
-    $update_stmt->execute([date('Y-m-d H:i:s'), $user['id']]);
     
-    // Establecer sesión
+    // Crear sesión
     $_SESSION['user_id'] = $user['id'];
-    $_SESSION['user_name'] = $user['first_name'] . ' ' . $user['last_name'];
+    $_SESSION['email'] = $user['email'];
+    $_SESSION['first_name'] = $user['first_name'];
+    $_SESSION['last_name'] = $user['last_name'];
     $_SESSION['user_type'] = $user['user_type'];
-    $_SESSION['business_id'] = $user['business_id'];
-    $_SESSION['business_name'] = $user['business_name'] ?? 'Mi Negocio';
-    $_SESSION['logged_in_at'] = time();
     
-    // Redirigir al dashboard
-    header('Location: ../../dashboard.php');
-    exit();
+    // Verificar si tiene negocio configurado
+    $redirect_url = '/dashboard.php';
+    
+    if ($user['business_id']) {
+        $_SESSION['business_id'] = $user['business_id'];
+        $_SESSION['onboarding_completed'] = true;
+    } else {
+        // Usuario sin negocio configurado, debe completar onboarding
+        $redirect_url = '/onboarding.php';
+    }
+    
+    echo json_encode([
+        'success' => true,
+        'message' => 'Inicio de sesión exitoso',
+        'redirect' => $redirect_url,
+        'user' => [
+            'id' => $user['id'],
+            'email' => $user['email'],
+            'first_name' => $user['first_name'],
+            'last_name' => $user['last_name'],
+            'has_business' => !empty($user['business_id'])
+        ]
+    ]);
     
 } catch (Exception $e) {
-    error_log('Error en login: ' . $e->getMessage());
-    $_SESSION['error_message'] = 'Error al procesar el login. Intente nuevamente.';
-    header('Location: ../../login.php');
-    exit();
+    http_response_code(400);
+    echo json_encode([
+        'success' => false,
+        'message' => $e->getMessage()
+    ]);
 }
 ?>

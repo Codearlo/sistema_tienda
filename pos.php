@@ -6,6 +6,14 @@
 
 session_start();
 
+require_once 'includes/onboarding_middleware.php';
+
+// Verificar que el usuario haya completado el onboarding
+requireOnboarding();
+
+require_once 'backend/config/database.php';
+require_once 'includes/cache_control.php';
+
 // ===== VERIFICACIÓN DE AUTENTICACIÓN =====
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
