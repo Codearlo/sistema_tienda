@@ -6,8 +6,8 @@
 
 // Configuración de la base de datos
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'u347334547_invapp');
-define('DB_USER', 'u347334547_invapp');
+define('DB_NAME', 'u347334547_inv_db');
+define('DB_USER', 'u347334547_inv_user');
 define('DB_PASS', 'CH7322a#');
 
 class Database {

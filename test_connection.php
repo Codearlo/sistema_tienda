@@ -7,8 +7,8 @@ echo "<h1>Test de Conexión a Base de Datos</h1>";
 
 // Configuración de la base de datos
 $host = 'localhost';
-$dbname = 'u347334547_invapp';
-$username = 'u347334547_invapp';
+$dbname = 'u347334547_inv_db';
+$username = 'u347334547_inv_user';
 $password = 'CH7322a#';
 
 echo "<h2>Configuración:</h2>";
