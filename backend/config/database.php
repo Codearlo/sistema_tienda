@@ -8,7 +8,7 @@
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'u347334547_invapp');
 define('DB_USER', 'u347334547_invapp');
-define('DB_PASS', 'CH7322a#');
+define('DB_PASS', 'CH7322A#');
 
 class Database {
     private $host = DB_HOST;
