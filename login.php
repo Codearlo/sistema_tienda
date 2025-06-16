@@ -138,20 +138,22 @@ $flash = showFlashMessage();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iniciar Sesión - Treinta</title>
     <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/auth.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body class="auth-page">
-    <div class="auth-container">
-        <div class="auth-card">
-            <div class="auth-header">
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
                 <div class="logo">
-                    <h1>Treinta</h1>
+                    <svg class="logo-img" viewBox="0 0 100 100" width="60" height="60">
+                        <circle cx="50" cy="50" r="45" fill="#2563eb" stroke="#1d4ed8" stroke-width="2"/>
+                        <text x="50" y="58" text-anchor="middle" fill="white" font-size="24" font-weight="bold">30</text>
+                    </svg>
                 </div>
-                <h2>Iniciar Sesión</h2>
-                <p>Gestiona tu negocio de manera simple y eficiente</p>
+                <h2 class="login-title">Iniciar Sesión</h2>
+                <p class="login-subtitle">Gestiona tu negocio de manera simple y eficiente</p>
             </div>
             
             <?php if ($flash): ?>
@@ -185,7 +187,7 @@ $flash = showFlashMessage();
                 </div>
             <?php endif; ?>
             
-            <form method="POST" class="auth-form" id="loginForm">
+            <form method="POST" class="login-form" id="loginForm">
                 <div class="form-group">
                     <label for="email" class="form-label">Email</label>
                     <div class="input-group">
@@ -222,49 +224,51 @@ $flash = showFlashMessage();
                         <span class="checkmark"></span>
                         Recordarme
                     </label>
-                    <a href="forgot-password.php" class="forgot-link">¿Olvidaste tu contraseña?</a>
+                    <a href="forgot-password.php" class="forgot-password">¿Olvidaste tu contraseña?</a>
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-block">
-                    <span class="btn-text">Iniciar Sesión</span>
-                    <svg class="btn-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-                        <polyline points="10,17 15,12 10,7"></polyline>
-                        <line x1="15" y1="12" x2="3" y2="12"></line>
-                    </svg>
+                    Iniciar Sesión
                 </button>
             </form>
             
-            <div class="auth-footer">
+            <div class="login-footer">
                 <p>¿No tienes cuenta? <a href="register.php" class="register-link">Crear cuenta gratis</a></p>
+            </div>
+            
+            <!-- Demo credentials -->
+            <div class="demo-credentials">
+                <div class="demo-title">🎯 Cuenta Demo</div>
+                <div class="demo-info">Email: <strong>admin@treinta.local</strong></div>
+                <div class="demo-info">Password: <strong>password</strong></div>
             </div>
         </div>
         
-        <div class="auth-features">
-            <h3>¿Por qué elegir Treinta?</h3>
+        <div class="info-section">
+            <h2>¿Por qué elegir Treinta?</h2>
             <div class="features-grid">
-                <div class="feature">
-                    <svg class="feature-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <div class="feature-item">
+                    <svg class="feature-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
                     </svg>
                     <div>
-                        <h4>Fácil de usar</h4>
+                        <h3>Fácil de usar</h3>
                         <p>Interfaz intuitiva diseñada para dueños de negocio</p>
                     </div>
                 </div>
-                <div class="feature">
-                    <svg class="feature-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <div class="feature-item">
+                    <svg class="feature-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
                         <line x1="8" y1="21" x2="16" y2="21"></line>
                         <line x1="12" y1="17" x2="12" y2="21"></line>
                     </svg>
                     <div>
-                        <h4>Control total</h4>
+                        <h3>Control total</h3>
                         <p>Gestiona ventas, inventario y finanzas en un solo lugar</p>
                     </div>
                 </div>
-                <div class="feature">
-                    <svg class="feature-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <div class="feature-item">
+                    <svg class="feature-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M9 12l2 2 4-4"></path>
                         <path d="M21 12c-1 0-3-1-3-3s2-3 3-3 3 1 3 3-2 3-3 3"></path>
                         <path d="M3 12c1 0 3-1 3-3s-2-3-3-3-3 1-3 3 2 3 3 3"></path>
@@ -272,7 +276,7 @@ $flash = showFlashMessage();
                         <path d="M9 21c-1 0-3-1-3-3s2-3 3-3 3 1 3 3-2 3-3 3"></path>
                     </svg>
                     <div>
-                        <h4>Datos seguros</h4>
+                        <h3>Datos seguros</h3>
                         <p>Tu información protegida con tecnología de punta</p>
                     </div>
                 </div>
@@ -310,27 +314,28 @@ $flash = showFlashMessage();
             
             if (!email || !password) {
                 e.preventDefault();
-                Utils.showAlert('Por favor completa todos los campos', 'error');
+                alert('Por favor completa todos los campos');
                 return;
             }
             
             if (!email.includes('@')) {
                 e.preventDefault();
-                Utils.showAlert('Por favor ingresa un email válido', 'error');
+                alert('Por favor ingresa un email válido');
                 return;
             }
             
             // Show loading state
             const submitBtn = this.querySelector('button[type="submit"]');
-            const btnText = submitBtn.querySelector('.btn-text');
-            const btnIcon = submitBtn.querySelector('.btn-icon');
+            const originalText = submitBtn.textContent;
             
             submitBtn.disabled = true;
-            btnText.textContent = 'Iniciando sesión...';
-            btnIcon.innerHTML = `
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M16 12l-4-4v8l4-4z"></path>
-            `;
+            submitBtn.textContent = 'Iniciando sesión...';
+            
+            // Reset button after form submission
+            setTimeout(() => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }, 3000);
         });
         
         // Auto-focus on email field
