@@ -1,24 +1,29 @@
 <?php
 /**
- * Configuración de Base de Datos - Treinta App
+ * CONFIGURACIÓN Y CLASE DE BASE DE DATOS
  * Archivo: backend/config/database.php
  */
 
+// Configuración de la base de datos
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'u347334547_invapp');
+define('DB_USER', 'u347334547_invapp');
+define('DB_PASS', 'Futuro123');
+
 class Database {
-    private $host = 'localhost';
-    private $db_name = 'u347334547_inv_db';
-    private $username = 'u347334547_inv_user';
-    private $password = 'CH7322a#';
-    private $charset = 'utf8mb4';
+    private $host = DB_HOST;
+    private $db_name = DB_NAME;
+    private $username = DB_USER;
+    private $password = DB_PASS;
     private $pdo;
     private static $instance = null;
 
-    public function __construct() {
+    private function __construct() {
         $this->connect();
     }
 
     /**
-     * Singleton pattern para una sola instancia de conexión
+     * Singleton pattern
      */
     public static function getInstance() {
         if (self::$instance === null) {
@@ -28,52 +33,28 @@ class Database {
     }
 
     /**
-     * Establecer conexión a la base de datos
+     * Conectar a la base de datos
      */
     private function connect() {
-        $dsn = "mysql:host={$this->host};dbname={$this->db_name};charset={$this->charset}";
-        
-        $options = [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES   => false,
-            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4",
-            PDO::ATTR_PERSISTENT         => true
-        ];
-
         try {
-            $this->pdo = new PDO($dsn, $this->username, $this->password, $options);
+            $dsn = "mysql:host={$this->host};dbname={$this->db_name};charset=utf8mb4";
+            $options = [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false,
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
+            ];
             
-            // Configurar zona horaria
-            $this->pdo->exec("SET time_zone = '-05:00'");
+            $this->pdo = new PDO($dsn, $this->username, $this->password, $options);
             
         } catch (PDOException $e) {
             error_log("Database connection error: " . $e->getMessage());
-            throw new Exception("Error de conexión a la base de datos. Por favor, inténtelo más tarde.");
+            throw new Exception("No se pudo conectar a la base de datos");
         }
     }
 
     /**
-     * Obtener instancia PDO
-     */
-    public function getPDO() {
-        return $this->pdo;
-    }
-
-    /**
-     * Preparar consulta
-     */
-    public function prepare($sql) {
-        try {
-            return $this->pdo->prepare($sql);
-        } catch (PDOException $e) {
-            error_log("Prepare error: " . $e->getMessage());
-            throw new Exception("Error en preparación de consulta");
-        }
-    }
-
-    /**
-     * Ejecutar consulta y obtener un solo resultado
+     * Obtener un solo registro
      */
     public function single($sql, $params = []) {
         try {
@@ -82,6 +63,20 @@ class Database {
             return $stmt->fetch();
         } catch (PDOException $e) {
             error_log("Single query error: " . $e->getMessage() . " SQL: " . $sql);
+            throw new Exception("Error en consulta a la base de datos");
+        }
+    }
+
+    /**
+     * Ejecutar consulta SQL simple
+     */
+    public function query($sql, $params = []) {
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            return $stmt;
+        } catch (PDOException $e) {
+            error_log("Query error: " . $e->getMessage() . " SQL: " . $sql);
             throw new Exception("Error en consulta a la base de datos");
         }
     }
@@ -101,7 +96,7 @@ class Database {
     }
 
     /**
-     * Insertar registro
+     * Insertar registro - MÉTODO CORREGIDO
      */
     public function insert($table, $data) {
         try {
@@ -120,15 +115,15 @@ class Database {
             return false;
             
         } catch (PDOException $e) {
-            error_log("Insert error: " . $e->getMessage() . " Table: " . $table);
-            throw new Exception("Error al insertar registro");
+            error_log("Insert error: " . $e->getMessage() . " Table: " . $table . " Data: " . json_encode($data));
+            throw new Exception("Error al insertar registro: " . $e->getMessage());
         }
     }
 
     /**
      * Actualizar registro
      */
-    public function update($table, $data, $where, $whereParams = []) {
+    public function update($table, $data, $whereCondition, $whereParams = []) {
         try {
             $set = [];
             foreach ($data as $key => $value) {
@@ -136,7 +131,16 @@ class Database {
             }
             $setClause = implode(', ', $set);
             
-            $sql = "UPDATE {$table} SET {$setClause} WHERE {$where}";
+            // Si whereCondition es un array asociativo (para compatibilidad)
+            if (is_array($whereCondition)) {
+                $whereKeys = array_keys($whereCondition);
+                $whereClause = implode(' = ? AND ', $whereKeys) . ' = ?';
+                $whereParams = array_values($whereCondition);
+            } else {
+                $whereClause = $whereCondition;
+            }
+            
+            $sql = "UPDATE {$table} SET {$setClause} WHERE {$whereClause}";
             $params = array_merge($data, $whereParams);
             
             $stmt = $this->pdo->prepare($sql);
@@ -175,20 +179,6 @@ class Database {
         } catch (PDOException $e) {
             error_log("Count error: " . $e->getMessage() . " Table: " . $table);
             throw new Exception("Error al contar registros");
-        }
-    }
-
-    /**
-     * Ejecutar consulta personalizada
-     */
-    public function query($sql, $params = []) {
-        try {
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute($params);
-            return $stmt;
-        } catch (PDOException $e) {
-            error_log("Custom query error: " . $e->getMessage() . " SQL: " . $sql);
-            throw new Exception("Error en consulta personalizada");
         }
     }
 
@@ -315,6 +305,33 @@ class Database {
     }
 
     /**
+     * Ejecutar múltiples consultas en transacción
+     */
+    public function transaction($queries) {
+        try {
+            $this->beginTransaction();
+            
+            $results = [];
+            foreach ($queries as $query) {
+                $sql = $query['sql'];
+                $params = $query['params'] ?? [];
+                
+                $stmt = $this->pdo->prepare($sql);
+                $result = $stmt->execute($params);
+                $results[] = $result;
+            }
+            
+            $this->commit();
+            return $results;
+            
+        } catch (Exception $e) {
+            $this->rollback();
+            error_log("Transaction error: " . $e->getMessage());
+            throw new Exception("Error en transacción múltiple");
+        }
+    }
+
+    /**
      * Verificar conexión
      */
     public function isConnected() {
@@ -355,66 +372,6 @@ class Database {
             return array_map([$this, 'sanitize'], $data);
         }
         return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
-    }
-
-    /**
-     * Ejecutar múltiples consultas en transacción
-     */
-    public function transaction($queries) {
-        try {
-            $this->beginTransaction();
-            
-            $results = [];
-            foreach ($queries as $query) {
-                $sql = $query['sql'];
-                $params = $query['params'] ?? [];
-                
-                $stmt = $this->pdo->prepare($sql);
-                $result = $stmt->execute($params);
-                $results[] = $result;
-            }
-            
-            $this->commit();
-            return $results;
-            
-        } catch (Exception $e) {
-            $this->rollback();
-            error_log("Transaction error: " . $e->getMessage());
-            throw new Exception("Error en transacción múltiple");
-        }
-    }
-
-    /**
-     * Backup de tabla
-     */
-    public function backupTable($table, $filename = null) {
-        try {
-            if (!$filename) {
-                $filename = $table . '_backup_' . date('Y-m-d_H-i-s') . '.sql';
-            }
-            
-            $sql = "SELECT * FROM {$table}";
-            $stmt = $this->pdo->query($sql);
-            $data = $stmt->fetchAll();
-            
-            $backup = "-- Backup de tabla {$table}\n";
-            $backup .= "-- Creado el: " . date('Y-m-d H:i:s') . "\n\n";
-            
-            foreach ($data as $row) {
-                $fields = implode(',', array_keys($row));
-                $values = implode(',', array_map(function($v) {
-                    return "'" . addslashes($v) . "'";
-                }, array_values($row)));
-                
-                $backup .= "INSERT INTO {$table} ({$fields}) VALUES ({$values});\n";
-            }
-            
-            return $backup;
-            
-        } catch (PDOException $e) {
-            error_log("Backup error: " . $e->getMessage() . " Table: " . $table);
-            throw new Exception("Error al crear backup");
-        }
     }
 
     /**
