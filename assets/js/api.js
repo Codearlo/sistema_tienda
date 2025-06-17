@@ -68,7 +68,9 @@ class APIClient {
         } catch (error) {
             console.error(`❌ API Error (${config.method} ${url}):`, error);
             
-            // No mostrar alert automáticamente, dejar que el código que llama maneje el error
+            // Mostrar error básico al usuario
+            alert(`Error de conexión: ${error.message}`);
+            
             throw error;
         }
     }
@@ -78,14 +80,15 @@ class APIClient {
     async get(endpoint, params = {}) {
         // Agregar parámetros de query si existen
         const url = new URL(endpoint.startsWith('http') ? endpoint : this.baseURL + endpoint);
-        
         Object.keys(params).forEach(key => {
             if (params[key] !== null && params[key] !== undefined) {
                 url.searchParams.append(key, params[key]);
             }
         });
         
-        return await this.request(url.toString());
+        return await this.request(url.toString(), {
+            method: 'GET'
+        });
     }
     
     async post(endpoint, data = {}) {
@@ -102,102 +105,94 @@ class APIClient {
         });
     }
     
+    async patch(endpoint, data = {}) {
+        return await this.request(endpoint, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    }
+    
     async delete(endpoint) {
         return await this.request(endpoint, {
             method: 'DELETE'
         });
     }
     
-    // ===== MÉTODOS ESPECÍFICOS DE LA APLICACIÓN =====
+    // ===== MÉTODOS DE ARCHIVO =====
     
-    // Dashboard
-    async getDashboardData() {
-        return await this.get('?endpoint=dashboard');
+    async uploadFile(endpoint, file, additionalData = {}) {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        // Agregar datos adicionales
+        Object.keys(additionalData).forEach(key => {
+            formData.append(key, additionalData[key]);
+        });
+        
+        // Headers especiales para archivos (sin Content-Type)
+        const headers = { ...this.defaultHeaders };
+        delete headers['Content-Type']; // Dejar que el navegador establezca el boundary
+        
+        return await this.request(endpoint, {
+            method: 'POST',
+            body: formData,
+            headers
+        });
     }
+    
+    // ===== MÉTODOS ESPECÍFICOS DE LA APLICACIÓN =====
     
     // Productos
     async getProducts(filters = {}) {
-        return await this.get('?endpoint=products', filters);
+        return await this.get('/productos.php', filters);
     }
     
     async getProduct(id) {
-        return await this.get(`?endpoint=products&id=${id}`);
+        return await this.get(`/productos.php?id=${id}`);
     }
     
     async createProduct(data) {
-        return await this.post('?endpoint=products', data);
+        return await this.post('/productos.php', data);
     }
     
     async updateProduct(id, data) {
-        return await this.put(`?endpoint=products&id=${id}`, data);
+        return await this.put(`/productos.php?id=${id}`, data);
     }
     
     async deleteProduct(id) {
-        return await this.delete(`?endpoint=products&id=${id}`);
-    }
-    
-    // Categorías
-    async getCategories() {
-        return await this.get('?endpoint=categories');
-    }
-    
-    async getCategory(id) {
-        return await this.get(`?endpoint=categories&id=${id}`);
-    }
-    
-    async createCategory(data) {
-        return await this.post('?endpoint=categories', data);
-    }
-    
-    async updateCategory(id, data) {
-        return await this.put(`?endpoint=categories&id=${id}`, data);
-    }
-    
-    async deleteCategory(id) {
-        return await this.delete(`?endpoint=categories&id=${id}`);
+        return await this.delete(`/productos.php?id=${id}`);
     }
     
     // Ventas
     async getSales(filters = {}) {
-        return await this.get('?endpoint=sales', filters);
-    }
-    
-    async getSale(id) {
-        return await this.get(`?endpoint=sales&id=${id}`);
+        return await this.get('/ventas.php', filters);
     }
     
     async createSale(data) {
-        return await this.post('?endpoint=sales', data);
+        return await this.post('/ventas.php', data);
+    }
+    
+    // Categorías
+    async getCategories() {
+        return await this.get('/categorias.php');
+    }
+    
+    async createCategory(data) {
+        return await this.post('/categorias.php', data);
     }
     
     // Clientes
     async getCustomers(filters = {}) {
-        return await this.get('?endpoint=customers', filters);
-    }
-    
-    async getCustomer(id) {
-        return await this.get(`?endpoint=customers&id=${id}`);
+        return await this.get('/clientes.php', filters);
     }
     
     async createCustomer(data) {
-        return await this.post('?endpoint=customers', data);
+        return await this.post('/clientes.php', data);
     }
     
-    async updateCustomer(id, data) {
-        return await this.put(`?endpoint=customers&id=${id}`, data);
-    }
-    
-    async deleteCustomer(id) {
-        return await this.delete(`?endpoint=customers&id=${id}`);
-    }
-    
-    // Stock
-    async getStockMovements(filters = {}) {
-        return await this.get('?endpoint=stock', filters);
-    }
-    
-    async addStockMovement(data) {
-        return await this.post('?endpoint=stock', data);
+    // Dashboard
+    async getDashboardData() {
+        return await this.get('/dashboard.php');
     }
     
     // ===== UTILIDADES =====
@@ -250,13 +245,6 @@ class APIClient {
             throw error;
         }
     }
-    
-    // ===== COMPATIBILIDAD CON CÓDIGO LEGACY =====
-    
-    // Para mantener compatibilidad con el código existente
-    async getDashboard() {
-        return await this.getDashboardData();
-    }
 }
 
 // ===== INSTANCIA GLOBAL =====
@@ -273,117 +261,4 @@ window.apiPost = (endpoint, data) => API.post(endpoint, data);
 window.apiPut = (endpoint, data) => API.put(endpoint, data);
 window.apiDelete = (endpoint) => API.delete(endpoint);
 
-// ===== SISTEMA DE NOTIFICACIONES =====
-const Notifications = {
-    container: null,
-    
-    init() {
-        if (!this.container) {
-            this.container = document.createElement('div');
-            this.container.id = 'notifications-container';
-            this.container.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                z-index: 10000;
-                max-width: 400px;
-                pointer-events: none;
-            `;
-            document.body.appendChild(this.container);
-        }
-    },
-    
-    show(message, type = 'info', duration = 5000) {
-        this.init();
-        
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.style.cssText = `
-            background: ${this.getBackgroundColor(type)};
-            color: white;
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
-            pointer-events: auto;
-            cursor: pointer;
-            max-width: 100%;
-            word-wrap: break-word;
-        `;
-        
-        notification.innerHTML = `
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-                <span style="flex: 1; margin-right: 10px;">${message}</span>
-                <button onclick="this.parentElement.parentElement.remove()" 
-                        style="background: none; border: none; color: white; font-size: 1.2em; cursor: pointer; padding: 0; margin: 0;">×</button>
-            </div>
-        `;
-        
-        this.container.appendChild(notification);
-        
-        // Animación de entrada
-        setTimeout(() => {
-            notification.style.transform = 'translateX(0)';
-        }, 10);
-        
-        // Auto-remove después del tiempo especificado
-        if (duration > 0) {
-            setTimeout(() => {
-                if (notification.parentElement) {
-                    notification.style.transform = 'translateX(100%)';
-                    setTimeout(() => notification.remove(), 300);
-                }
-            }, duration);
-        }
-        
-        // Remove al hacer click
-        notification.addEventListener('click', () => {
-            notification.style.transform = 'translateX(100%)';
-            setTimeout(() => notification.remove(), 300);
-        });
-    },
-    
-    success(message, duration = 5000) {
-        this.show(message, 'success', duration);
-    },
-    
-    error(message, duration = 8000) {
-        this.show(message, 'error', duration);
-    },
-    
-    warning(message, duration = 6000) {
-        this.show(message, 'warning', duration);
-    },
-    
-    info(message, duration = 5000) {
-        this.show(message, 'info', duration);
-    },
-    
-    getBackgroundColor(type) {
-        const colors = {
-            success: '#10B981',
-            error: '#EF4444',
-            warning: '#F59E0B',
-            info: '#3B82F6'
-        };
-        return colors[type] || colors.info;
-    }
-};
-
-// Hacer Notifications global
-window.Notifications = Notifications;
-
-// Inicializar notificaciones
-Notifications.init();
-
 console.log('🔌 API Client inicializado correctamente');
-
-// ===== MANEJO GLOBAL DE ERRORES DE API =====
-window.addEventListener('unhandledrejection', event => {
-    console.error('Unhandled promise rejection:', event.reason);
-    if (event.reason && event.reason.message && event.reason.message.includes('API')) {
-        Notifications.error('Error de conexión con el servidor');
-    }
-});
