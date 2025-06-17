@@ -1,63 +1,50 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 session_start();
-require_once 'backend/config/config.php';
-require_once 'backend/config/database.php';
-require_once 'includes/cache_control.php';
 
-// Funciones auxiliares (solo si no existen)
-if (!function_exists('cleanInput')) {
-    function cleanInput($data) {
-        return htmlspecialchars(strip_tags(trim($data)));
-    }
+// Funciones básicas
+function cleanInput($data) {
+    return htmlspecialchars(strip_tags(trim($data)));
 }
 
-if (!function_exists('isLoggedIn')) {
-    function isLoggedIn() {
-        return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
-    }
+function isLoggedIn() {
+    return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
 }
 
-// Si ya está logueado, redirigir al dashboard
+// Si ya está logueado, redirigir
 if (isLoggedIn()) {
-    if (isset($_SESSION['business_id']) && !empty($_SESSION['business_id'])) {
-        header('Location: dashboard.php');
-    } else {
-        header('Location: onboarding.php');
-    }
+    header('Location: dashboard.php');
     exit();
 }
 
 $error = '';
 $success = '';
 
-// Procesar formulario de login
+// Procesar login
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = cleanInput($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
-    $remember = isset($_POST['remember']);
     
-    // Validaciones básicas
     if (empty($email) || empty($password)) {
         $error = 'Email y contraseña son obligatorios.';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = 'El email no tiene un formato válido.';
     } else {
         try {
-            $db = getDB();
+            // Conexión directa
+            $pdo = new PDO("mysql:host=localhost;dbname=u347334547_inv_db;charset=utf8mb4", 
+                          "u347334547_inv_user", "CH7322a#", [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+            ]);
             
-            // Verificar conexión
-            if (!$db) {
-                throw new Exception("Error del servidor. Por favor intenta nuevamente.");
-            }
-            
-            // Buscar usuario por email
-            $user = $db->single(
-                "SELECT u.*, b.id as business_id, b.name as business_name 
-                 FROM users u 
-                 LEFT JOIN businesses b ON u.business_id = b.id 
-                 WHERE u.email = ? AND u.status = 1", 
-                [$email]
-            );
+            // Buscar usuario
+            $stmt = $pdo->prepare("SELECT u.*, b.id as business_id, b.name as business_name 
+                                   FROM users u 
+                                   LEFT JOIN businesses b ON u.business_id = b.id 
+                                   WHERE u.email = ? AND u.status = 1");
+            $stmt->execute([$email]);
+            $user = $stmt->fetch();
             
             if ($user && password_verify($password, $user['password'])) {
                 // Login exitoso
@@ -69,45 +56,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['user_type'] = $user['user_type'];
                 $_SESSION['logged_in_at'] = time();
                 
-                // Si tiene negocio configurado
                 if ($user['business_id']) {
                     $_SESSION['business_id'] = $user['business_id'];
                     $_SESSION['business_name'] = $user['business_name'];
                 }
                 
                 // Actualizar último login
-                try {
-                    $db->query("UPDATE users SET last_login = ? WHERE id = ?", [date('Y-m-d H:i:s'), $user['id']]);
-                } catch (Exception $updateError) {
-                    error_log('Error updating last login: ' . $updateError->getMessage());
-                }
+                $stmt = $pdo->prepare("UPDATE users SET last_login = ? WHERE id = ?");
+                $stmt->execute([date('Y-m-d H:i:s'), $user['id']]);
                 
-                // Configurar cookie si marcó "recordarme"
-                if ($remember) {
-                    setcookie('remember_user', $user['email'], time() + (86400 * 30), '/'); // 30 días
-                }
-                
-                // Redirigir según si tiene negocio configurado
-                if ($user['business_id']) {
-                    $redirect = $_GET['redirect'] ?? 'dashboard.php';
-                    header('Location: ' . $redirect);
-                } else {
-                    header('Location: onboarding.php');
-                }
+                // Redirigir
+                header('Location: dashboard.php');
                 exit();
                 
             } else {
                 $error = 'Email o contraseña incorrectos.';
             }
             
-        } catch (Exception $e) {
-            error_log('Error en login: ' . $e->getMessage());
-            $error = 'Error del servidor. Por favor intenta nuevamente.';
+        } catch (PDOException $e) {
+            $error = 'Error del servidor: ' . $e->getMessage();
         }
     }
 }
 
-// Verificar si hay mensajes en la sesión
+// Obtener mensajes de sesión
 if (isset($_SESSION['error_message'])) {
     $error = $_SESSION['error_message'];
     unset($_SESSION['error_message']);
@@ -117,9 +89,6 @@ if (isset($_SESSION['success_message'])) {
     $success = $_SESSION['success_message'];
     unset($_SESSION['success_message']);
 }
-
-// Obtener email recordado
-$remembered_email = $_COOKIE['remember_user'] ?? '';
 ?>
 
 <!DOCTYPE html>
@@ -128,30 +97,215 @@ $remembered_email = $_COOKIE['remember_user'] ?? '';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iniciar Sesión - Treinta</title>
-    <?php 
-    forceCssReload();
-    includeCss('assets/css/style.css');
-    includeCss('assets/css/pages/auth.css');
-    ?>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .login-header {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .login-header i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+        
+        .login-header h1 {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+        
+        .login-header p {
+            opacity: 0.9;
+            font-size: 1rem;
+        }
+        
+        .login-form {
+            padding: 40px 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #374151;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s;
+            background: #f9fafb;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .form-input.error {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .alert-error {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+        
+        .alert-success {
+            background: #f0fdf4;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+        }
+        
+        .demo-section {
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .demo-section h4 {
+            color: #6b7280;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .demo-users {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .demo-btn {
+            padding: 10px;
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            font-size: 0.85rem;
+            color: #374151;
+        }
+        
+        .demo-btn:hover {
+            background: #e5e7eb;
+            border-color: #9ca3af;
+        }
+        
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 4px;
+        }
+        
+        .password-input-wrapper {
+            position: relative;
+        }
+        
+        @media (max-width: 480px) {
+            .login-container {
+                margin: 10px;
+            }
+            
+            .login-header, .login-form {
+                padding: 30px 20px;
+            }
+        }
+    </style>
 </head>
-<body class="auth-page">
-    <div class="auth-container">
-        <!-- Background Pattern -->
-        <div class="auth-background">
-            <div class="auth-pattern"></div>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <i class="fas fa-store"></i>
+            <h1>Treinta</h1>
+            <p>Inicia sesión en tu cuenta</p>
         </div>
 
-        <!-- Login Form -->
-        <div class="auth-card">
-            <div class="auth-header">
-                <div class="auth-logo">
-                    <i class="fas fa-store"></i>
-                </div>
-                <h1>Treinta</h1>
-                <p>Inicia sesión en tu cuenta</p>
-            </div>
-
+        <form method="POST" class="login-form">
             <?php if ($error): ?>
                 <div class="alert alert-error">
                     <i class="fas fa-exclamation-circle"></i>
@@ -166,198 +320,60 @@ $remembered_email = $_COOKIE['remember_user'] ?? '';
                 </div>
             <?php endif; ?>
 
-            <form method="POST" class="auth-form" id="loginForm" novalidate>
-                <div class="form-group">
-                    <label class="form-label" for="email">
-                        <i class="fas fa-envelope"></i>
-                        Email
-                    </label>
-                    <input 
-                        type="email" 
-                        id="email" 
-                        name="email" 
-                        class="form-input <?php echo $error && strpos($error, 'email') !== false ? 'error' : ''; ?>" 
-                        placeholder="tu@email.com"
-                        value="<?php echo htmlspecialchars($remembered_email); ?>"
-                        required
-                        autocomplete="email"
-                        autofocus
-                    >
-                    <div class="form-error" id="emailError"></div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="password">
-                        <i class="fas fa-lock"></i>
-                        Contraseña
-                    </label>
-                    <div class="password-input-group">
-                        <input 
-                            type="password" 
-                            id="password" 
-                            name="password" 
-                            class="form-input <?php echo $error && strpos($error, 'contraseña') !== false ? 'error' : ''; ?>" 
-                            placeholder="Tu contraseña"
-                            required
-                            autocomplete="current-password"
-                        >
-                        <button type="button" class="password-toggle" onclick="togglePassword('password')">
-                            <i class="fas fa-eye" id="passwordToggleIcon"></i>
-                        </button>
-                    </div>
-                    <div class="form-error" id="passwordError"></div>
-                </div>
-
-                <div class="form-options">
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="remember" <?php echo $remembered_email ? 'checked' : ''; ?>>
-                        <span class="checkbox-custom"></span>
-                        Recordarme
-                    </label>
-                    <a href="forgot-password.php" class="link-secondary">
-                        ¿Olvidaste tu contraseña?
-                    </a>
-                </div>
-
-                <button type="submit" class="btn btn-primary btn-block" id="loginButton">
-                    <span class="btn-text">Iniciar Sesión</span>
-                    <span class="btn-loading" style="display: none;">
-                        <i class="fas fa-spinner fa-spin"></i>
-                        Iniciando...
-                    </span>
-                </button>
-            </form>
-
-            <div class="auth-footer">
-                <p>¿No tienes una cuenta? <a href="register.php" class="link-primary">Regístrate aquí</a></p>
+            <div class="form-group">
+                <label class="form-label" for="email">Email</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    class="form-input" 
+                    placeholder="tu@email.com"
+                    required
+                    autofocus
+                >
             </div>
 
-            <!-- Demo Users -->
+            <div class="form-group">
+                <label class="form-label" for="password">Contraseña</label>
+                <div class="password-input-wrapper">
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        class="form-input" 
+                        placeholder="Tu contraseña"
+                        required
+                    >
+                    <button type="button" class="password-toggle" onclick="togglePassword()">
+                        <i class="fas fa-eye" id="passwordIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn">
+                Iniciar Sesión
+            </button>
+
             <div class="demo-section">
                 <h4>Usuarios de Prueba</h4>
                 <div class="demo-users">
-                    <button type="button" class="demo-user-btn" onclick="fillDemoUser('admin@treinta.com', 'admin123')">
-                        <i class="fas fa-user-shield"></i>
-                        <span>Admin</span>
+                    <button type="button" class="demo-btn" onclick="fillDemo('admin@treinta.local', 'admin123')">
+                        <i class="fas fa-user-shield"></i><br>
+                        Administrador
                     </button>
-                    <button type="button" class="demo-user-btn" onclick="fillDemoUser('vendedor@treinta.com', 'vendedor123')">
-                        <i class="fas fa-user"></i>
-                        <span>Vendedor</span>
-                    </button>
-                    <button type="button" class="demo-user-btn" onclick="fillDemoUser('gerente@treinta.com', 'gerente123')">
-                        <i class="fas fa-user-tie"></i>
-                        <span>Gerente</span>
+                    <button type="button" class="demo-btn" onclick="fillDemo('alejandro.cabanah@gmail.com', 'password123')">
+                        <i class="fas fa-user"></i><br>
+                        Usuario
                     </button>
                 </div>
             </div>
-        </div>
-
-        <!-- App Info -->
-        <div class="app-info">
-            <div class="app-features">
-                <div class="feature">
-                    <i class="fas fa-cash-register"></i>
-                    <h3>Punto de Venta</h3>
-                    <p>Sistema completo para ventas</p>
-                </div>
-                <div class="feature">
-                    <i class="fas fa-chart-line"></i>
-                    <h3>Reportes</h3>
-                    <p>Analiza tu negocio en tiempo real</p>
-                </div>
-                <div class="feature">
-                    <i class="fas fa-mobile-alt"></i>
-                    <h3>Multiplataforma</h3>
-                    <p>Accede desde cualquier dispositivo</p>
-                </div>
-            </div>
-        </div>
+        </form>
     </div>
 
-    <!-- Scripts -->
-    <?php includeJs('assets/js/app.js'); ?>
-    
     <script>
-        // Validación del formulario
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            let hasErrors = false;
-
-            // Limpiar errores previos
-            clearFormErrors();
-
-            // Validar email
-            if (!email) {
-                showFieldError('email', 'El email es obligatorio');
-                hasErrors = true;
-            } else if (!isValidEmail(email)) {
-                showFieldError('email', 'El formato del email no es válido');
-                hasErrors = true;
-            }
-
-            // Validar contraseña
-            if (!password) {
-                showFieldError('password', 'La contraseña es obligatoria');
-                hasErrors = true;
-            } else if (password.length < 6) {
-                showFieldError('password', 'La contraseña debe tener al menos 6 caracteres');
-                hasErrors = true;
-            }
-
-            if (hasErrors) {
-                e.preventDefault();
-                return false;
-            }
-
-            // Mostrar loading
-            showLoading();
-        });
-
-        function clearFormErrors() {
-            document.querySelectorAll('.form-error').forEach(el => el.textContent = '');
-            document.querySelectorAll('.form-input').forEach(el => el.classList.remove('error'));
-        }
-
-        function showFieldError(fieldName, message) {
-            const field = document.getElementById(fieldName);
-            const errorEl = document.getElementById(fieldName + 'Error');
-            
-            field.classList.add('error');
-            if (errorEl) {
-                errorEl.textContent = message;
-            }
-        }
-
-        function isValidEmail(email) {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return emailRegex.test(email);
-        }
-
-        function showLoading() {
-            const button = document.getElementById('loginButton');
-            const btnText = button.querySelector('.btn-text');
-            const btnLoading = button.querySelector('.btn-loading');
-            
-            button.disabled = true;
-            btnText.style.display = 'none';
-            btnLoading.style.display = 'inline-flex';
-        }
-
-        function hideLoading() {
-            const button = document.getElementById('loginButton');
-            const btnText = button.querySelector('.btn-text');
-            const btnLoading = button.querySelector('.btn-loading');
-            
-            button.disabled = false;
-            btnText.style.display = 'inline';
-            btnLoading.style.display = 'none';
-        }
-
-        // Mostrar/ocultar contraseña
-        function togglePassword(inputId) {
-            const input = document.getElementById(inputId);
-            const icon = document.getElementById(inputId + 'ToggleIcon');
+        function togglePassword() {
+            const input = document.getElementById('password');
+            const icon = document.getElementById('passwordIcon');
             
             if (input.type === 'password') {
                 input.type = 'text';
@@ -370,39 +386,10 @@ $remembered_email = $_COOKIE['remember_user'] ?? '';
             }
         }
 
-        // Usuarios demo
-        function fillDemoUser(email, password) {
+        function fillDemo(email, password) {
             document.getElementById('email').value = email;
             document.getElementById('password').value = password;
-            
-            // Opcional: enviar automáticamente
-            // document.getElementById('loginForm').submit();
         }
-
-        // Auto-focus en el primer campo vacío
-        document.addEventListener('DOMContentLoaded', function() {
-            const emailInput = document.getElementById('email');
-            const passwordInput = document.getElementById('password');
-            
-            if (!emailInput.value) {
-                emailInput.focus();
-            } else {
-                passwordInput.focus();
-            }
-
-            // Ocultar loading si la página se recarga
-            hideLoading();
-        });
-
-        // Manejar Enter en los campos
-        document.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                const form = document.getElementById('loginForm');
-                if (form.checkValidity()) {
-                    form.submit();
-                }
-            }
-        });
     </script>
 </body>
 </html>
