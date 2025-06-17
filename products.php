@@ -21,7 +21,11 @@ try {
     $business_id = $_SESSION['business_id'];
     
     $products = $db->fetchAll("
-        SELECT p.*, c.name as category_name 
+        SELECT p.*, c.name as category_name,
+               CASE 
+                   WHEN p.stock_quantity <= p.min_stock THEN 1 
+                   ELSE 0 
+               END as low_stock
         FROM products p 
         LEFT JOIN categories c ON p.category_id = c.id 
         WHERE p.business_id = ? AND p.status = 1 
@@ -36,6 +40,10 @@ try {
     
 } catch (Exception $e) {
     $error_message = "Error de conexión: " . $e->getMessage();
+}
+
+function formatCurrency($amount) {
+    return 'S/ ' . number_format($amount, 2);
 }
 ?>
 
@@ -68,6 +76,10 @@ try {
                     <i class="fas fa-plus"></i>
                     Nuevo Producto
                 </button>
+                <button class="btn btn-outline" onclick="openCategoryModal()">
+                    <i class="fas fa-tags"></i>
+                    Categorías
+                </button>
                 <button class="btn btn-outline" onclick="toggleView()">
                     <i class="fas fa-th" id="viewToggleIcon"></i>
                 </button>
@@ -84,19 +96,23 @@ try {
         <!-- Filters Card -->
         <div class="card filters-card">
             <div class="filters-header">
-                <h3><i class="fas fa-filter"></i> Filtros</h3>
-                <button class="btn btn-sm btn-outline" onclick="clearFilters()">
-                    <i class="fas fa-times"></i> Limpiar
+                <h3>
+                    <i class="fas fa-filter"></i>
+                    Filtros
+                </h3>
+                <button class="btn btn-ghost btn-sm" onclick="clearFilters()">
+                    <i class="fas fa-times"></i>
+                    Limpiar
                 </button>
             </div>
-            
             <div class="filters-grid">
                 <div class="filter-group">
                     <label for="searchInput">Buscar:</label>
-                    <input type="text" id="searchInput" class="form-input" 
+                    <input type="text" 
+                           id="searchInput" 
+                           class="form-input" 
                            placeholder="Nombre o código del producto...">
                 </div>
-                
                 <div class="filter-group">
                     <label for="categoryFilter">Categoría:</label>
                     <select id="categoryFilter" class="form-select">
@@ -108,11 +124,11 @@ try {
                         <?php endforeach; ?>
                     </select>
                 </div>
-                
                 <div class="filter-group">
                     <label for="stockFilter">Stock:</label>
                     <select id="stockFilter" class="form-select">
                         <option value="">Todos</option>
+                        <option value="available">Con stock</option>
                         <option value="low">Stock bajo</option>
                         <option value="out">Sin stock</option>
                     </select>
@@ -123,10 +139,9 @@ try {
         <!-- Products Container -->
         <div class="products-container">
             <div class="products-header">
-                <div class="products-stats">
-                    <span>Total: <strong id="totalProducts"><?php echo count($products); ?></strong> productos</span>
+                <div class="products-count">
+                    <span id="productsCount">Total: <?php echo count($products); ?> productos</span>
                 </div>
-                
                 <div class="view-controls">
                     <button class="view-btn active" data-view="grid" onclick="setView('grid')">
                         <i class="fas fa-th"></i>
@@ -141,9 +156,9 @@ try {
             <div class="products-grid" id="productsGrid">
                 <?php if (empty($products)): ?>
                     <div class="empty-state">
-                        <i class="fas fa-box-open fa-4x"></i>
+                        <i class="fas fa-box-open"></i>
                         <h3>No hay productos</h3>
-                        <p>Comience agregando su primer producto al inventario.</p>
+                        <p>Comienza agregando tu primer producto</p>
                         <button class="btn btn-primary" onclick="openProductModal()">
                             <i class="fas fa-plus"></i>
                             Agregar Producto
@@ -157,19 +172,12 @@ try {
                                     <img src="<?php echo htmlspecialchars($product['image']); ?>" 
                                          alt="<?php echo htmlspecialchars($product['name']); ?>">
                                 <?php else: ?>
-                                    <div class="product-placeholder">
-                                        <i class="fas fa-box"></i>
-                                    </div>
+                                    <i class="fas fa-box"></i>
                                 <?php endif; ?>
                                 
-                                <div class="product-actions">
-                                    <button class="action-btn edit" onclick="editProduct(<?php echo $product['id']; ?>)">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="action-btn delete" onclick="deleteProduct(<?php echo $product['id']; ?>)">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
+                                <?php if ($product['low_stock']): ?>
+                                    <span class="stock-badge low-stock">Stock Bajo</span>
+                                <?php endif; ?>
                             </div>
                             
                             <div class="product-info">
@@ -177,13 +185,25 @@ try {
                                 <p class="product-category"><?php echo htmlspecialchars($product['category_name'] ?? 'Sin categoría'); ?></p>
                                 
                                 <div class="product-price">
-                                    S/ <?php echo number_format($product['selling_price'], 2); ?>
+                                    <?php echo formatCurrency($product['selling_price']); ?>
                                 </div>
                                 
-                                <div class="product-stock <?php echo $product['stock'] <= 5 ? 'low-stock' : ''; ?>">
+                                <div class="product-stock <?php echo $product['stock_quantity'] <= 5 ? 'low-stock' : ''; ?>">
                                     <i class="fas fa-cube"></i>
-                                    Stock: <?php echo $product['stock']; ?>
+                                    Stock: <?php echo $product['stock_quantity']; ?>
                                 </div>
+                            </div>
+                            
+                            <div class="product-actions">
+                                <button class="btn btn-sm btn-primary" onclick="editProduct(<?php echo $product['id']; ?>)">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-warning" onclick="adjustStock(<?php echo $product['id']; ?>)">
+                                    <i class="fas fa-boxes"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteProduct(<?php echo $product['id']; ?>)">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -219,28 +239,29 @@ try {
                                             </div>
                                             <div>
                                                 <div class="product-name"><?php echo htmlspecialchars($product['name']); ?></div>
-                                                <div class="product-code"><?php echo htmlspecialchars($product['barcode'] ?? 'N/A'); ?></div>
+                                                <div class="product-code"><?php echo htmlspecialchars($product['sku'] ?? 'N/A'); ?></div>
                                             </div>
                                         </div>
                                     </td>
                                     <td><?php echo htmlspecialchars($product['category_name'] ?? 'Sin categoría'); ?></td>
-                                    <td>S/ <?php echo number_format($product['selling_price'], 2); ?></td>
+                                    <td><?php echo formatCurrency($product['selling_price']); ?></td>
                                     <td>
-                                        <span class="stock-badge <?php echo $product['stock'] <= 5 ? 'low' : 'normal'; ?>">
-                                            <?php echo $product['stock']; ?>
+                                        <span class="stock-display <?php echo $product['stock_quantity'] <= 5 ? 'low-stock' : ''; ?>">
+                                            <?php echo $product['stock_quantity']; ?>
                                         </span>
                                     </td>
                                     <td>
-                                        <span class="status-badge <?php echo $product['stock'] > 0 ? 'active' : 'inactive'; ?>">
-                                            <?php echo $product['stock'] > 0 ? 'Disponible' : 'Agotado'; ?>
-                                        </span>
+                                        <span class="status-badge status-active">Activo</span>
                                     </td>
                                     <td>
-                                        <div class="action-buttons">
-                                            <button class="btn btn-sm btn-outline" onclick="editProduct(<?php echo $product['id']; ?>)">
+                                        <div class="table-actions">
+                                            <button class="btn btn-sm btn-primary" onclick="editProduct(<?php echo $product['id']; ?>)" title="Editar">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-error" onclick="deleteProduct(<?php echo $product['id']; ?>)">
+                                            <button class="btn btn-sm btn-warning" onclick="adjustStock(<?php echo $product['id']; ?>)" title="Ajustar Stock">
+                                                <i class="fas fa-boxes"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" onclick="deleteProduct(<?php echo $product['id']; ?>)" title="Eliminar">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
@@ -255,71 +276,170 @@ try {
     </main>
 
     <!-- Product Modal -->
-    <div class="modal" id="productModal">
+    <div id="productModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="modalTitle">Nuevo Producto</h3>
-                <button class="modal-close" onclick="closeProductModal()">&times;</button>
+                <button class="modal-close" onclick="closeProductModal()">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-            <form id="productForm">
-                <div class="modal-body">
-                    <input type="hidden" id="productId">
-                    
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="productName" class="required">Nombre del producto:</label>
-                            <input type="text" id="productName" class="form-input" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="productCategory">Categoría:</label>
-                            <select id="productCategory" class="form-select">
-                                <option value="">Seleccionar categoría</option>
-                                <?php foreach ($categories as $category): ?>
-                                    <option value="<?php echo $category['id']; ?>">
-                                        <?php echo htmlspecialchars($category['name']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="productBarcode">Código de barras:</label>
-                            <input type="text" id="productBarcode" class="form-input">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="productCost" class="required">Precio de costo:</label>
-                            <input type="number" id="productCost" class="form-input" step="0.01" min="0" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="productPrice" class="required">Precio de venta:</label>
-                            <input type="number" id="productPrice" class="form-input" step="0.01" min="0" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="productStock" class="required">Stock inicial:</label>
-                            <input type="number" id="productStock" class="form-input" min="0" required>
-                        </div>
-                    </div>
-                    
+            <form id="productForm" onsubmit="saveProduct(event)">
+                <input type="hidden" id="productId" name="id">
+                <div class="form-grid">
                     <div class="form-group">
-                        <label for="productDescription">Descripción:</label>
-                        <textarea id="productDescription" class="form-textarea" rows="3"></textarea>
+                        <label for="productName">Nombre del Producto *</label>
+                        <input type="text" id="productName" name="name" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productCategory">Categoría</label>
+                        <select id="productCategory" name="category_id" class="form-select">
+                            <option value="">Sin categoría</option>
+                            <?php foreach ($categories as $category): ?>
+                                <option value="<?php echo $category['id']; ?>">
+                                    <?php echo htmlspecialchars($category['name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="productSku">SKU</label>
+                        <input type="text" id="productSku" name="sku" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="productBarcode">Código de Barras</label>
+                        <input type="text" id="productBarcode" name="barcode" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="productCost">Precio de Costo</label>
+                        <input type="number" id="productCost" name="cost_price" class="form-input" step="0.01" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="productPrice">Precio de Venta *</label>
+                        <input type="number" id="productPrice" name="selling_price" class="form-input" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productStock">Stock Inicial</label>
+                        <input type="number" id="productStock" name="stock_quantity" class="form-input" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="productMinStock">Stock Mínimo</label>
+                        <input type="number" id="productMinStock" name="min_stock" class="form-input" min="0">
                     </div>
                 </div>
+                <div class="form-group">
+                    <label for="productDescription">Descripción</label>
+                    <textarea id="productDescription" name="description" class="form-input" rows="3"></textarea>
+                </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline" onclick="closeProductModal()">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Guardar Producto</button>
+                    <button type="button" class="btn btn-ghost" onclick="closeProductModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Category Modal -->
+    <div id="categoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Gestionar Categorías</h3>
+                <button class="modal-close" onclick="closeCategoryModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="categoryForm" onsubmit="saveCategory(event)">
+                    <div class="form-group">
+                        <label for="categoryName">Nombre de la Categoría</label>
+                        <input type="text" id="categoryName" name="name" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="categoryDescription">Descripción</label>
+                        <textarea id="categoryDescription" name="description" class="form-input" rows="2"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus"></i>
+                        Agregar Categoría
+                    </button>
+                </form>
+                
+                <div class="categories-list">
+                    <h4>Categorías Existentes</h4>
+                    <div id="categoriesList">
+                        <?php foreach ($categories as $category): ?>
+                            <div class="category-item" data-category-id="<?php echo $category['id']; ?>">
+                                <span><?php echo htmlspecialchars($category['name']); ?></span>
+                                <button class="btn btn-sm btn-danger" onclick="deleteCategory(<?php echo $category['id']; ?>)">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Adjustment Modal -->
+    <div id="stockModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Ajustar Stock</h3>
+                <button class="modal-close" onclick="closeStockModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="stockForm" onsubmit="adjustStockSubmit(event)">
+                <input type="hidden" id="stockProductId" name="product_id">
+                <div class="stock-info">
+                    <h4 id="stockProductName"></h4>
+                    <p>Stock actual: <span id="currentStock"></span></p>
+                </div>
+                <div class="form-group">
+                    <label for="stockAdjustment">Tipo de Ajuste</label>
+                    <select id="adjustmentType" name="type" class="form-select" required onchange="updateAdjustmentType()">
+                        <option value="add">Agregar Stock</option>
+                        <option value="remove">Reducir Stock</option>
+                        <option value="set">Establecer Stock</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="stockQuantity" id="quantityLabel">Cantidad</label>
+                    <input type="number" id="stockQuantity" name="quantity" class="form-input" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="adjustmentReason">Motivo</label>
+                    <textarea id="adjustmentReason" name="reason" class="form-input" rows="2" placeholder="Motivo del ajuste..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost" onclick="closeStockModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Ajustar Stock
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Scripts -->
-    <script src="assets/js/notifications.js"></script>
-    <script src="assets/js/api.js"></script>
-    <script src="assets/js/products.js"></script>
+    <script>
+        // Pasar datos PHP a JavaScript
+        const products = <?php echo json_encode($products); ?>;
+        const categories = <?php echo json_encode($categories); ?>;
+    </script>
+    <?php includeJs('assets/js/products.js'); ?>
+    <?php includeJs('assets/js/modals.js'); ?>
+    
+    <script>
+        // Inicializar productos al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeProducts();
+        });
+    </script>
 </body>
 </html>
