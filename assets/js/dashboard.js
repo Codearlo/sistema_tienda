@@ -4,156 +4,224 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-    loadSidebar().then(() => {
-        initializeDashboard();
-    });
+    initializeDashboard();
 });
 
-async function loadSidebar() {
-    try {
-        const response = await fetch('includes/slidebar.php');
-        if (!response.ok) throw new Error('Network response was not ok.');
-        
-        const sidebarHtml = await response.text();
-        const sidebarContainer = document.getElementById('sidebar-container');
-        
-        if (sidebarContainer) {
-            sidebarContainer.innerHTML = sidebarHtml;
-            setActiveSidebarLink();
-        }
-    } catch (error) {
-        console.error('Error al cargar el sidebar:', error);
-        const sidebarContainer = document.getElementById('sidebar-container');
-        if(sidebarContainer) sidebarContainer.innerHTML = '<p>Error al cargar el menú.</p>';
-    }
-}
-
-function setActiveSidebarLink() {
-    const currentPageFile = window.location.pathname.split('/').pop() || 'dashboard.html';
-    const pageName = currentPageFile.replace('.html', '').replace('.php', '');
-
-    const targetLink = document.querySelector(`.sidebar-nav-link[data-page='${pageName}']`);
-    if (targetLink) {
-        // Quitar la clase 'active' de cualquier otro enlace
-        document.querySelectorAll('.sidebar-nav-link.active').forEach(link => link.classList.remove('active'));
-        targetLink.classList.add('active');
-    }
-}
-
 function initializeDashboard() {
+    // Inicializar controles móviles
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-    const sidebar = document.getElementById('sidebar');
-    const mobileOverlay = document.getElementById('mobileOverlay');
+    const sidebar = document.querySelector('.sidebar');
+    const mobileOverlay = document.querySelector('.mobile-overlay');
 
     if (mobileMenuBtn && sidebar && mobileOverlay) {
         mobileMenuBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('open');
+            sidebar.classList.toggle('mobile-open');
             mobileOverlay.classList.toggle('show');
         });
 
         mobileOverlay.addEventListener('click', () => {
-            sidebar.classList.remove('open');
+            sidebar.classList.remove('mobile-open');
             mobileOverlay.classList.remove('show');
         });
     }
 
+    // Cargar datos del dashboard
     loadDashboardData();
-    setInterval(loadDashboardData, 30000); // Actualizar cada 30 segundos
+    
+    // Actualizar cada 30 segundos
+    setInterval(loadDashboardData, 30000);
 }
 
 async function loadDashboardData() {
     try {
-        const response = await API.get('dashboard');
-        if (response && response.success) {
-            updateDashboardUI(response.data);
+        const response = await fetch('backend/api/dashboard.php', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.success) {
+            updateDashboardUI(result.data);
         } else {
-            Notifications.error(response.message || 'No se pudieron cargar los datos del dashboard.');
+            console.error('Error:', result.message);
+            showNotification(result.message || 'No se pudieron cargar los datos del dashboard.', 'error');
         }
     } catch (error) {
         console.error('Error cargando datos del dashboard:', error);
-        Notifications.error('Error de conexión al cargar datos del dashboard.');
+        showNotification('Error de conexión al cargar datos del dashboard.', 'error');
     }
 }
 
 function updateDashboardUI(data) {
     // 1. Actualizar Tarjetas de Estadísticas
-    document.getElementById('salesTodayValue').textContent = Utils.formatCurrency(data.stats.sales_today.total);
-    document.getElementById('productsSoldValue').textContent = data.stats.products_sold_today.total;
-    document.getElementById('lowStockValue').textContent = data.stats.low_stock_products.length;
-    document.getElementById('pendingDebtsValue').textContent = Utils.formatCurrency(data.stats.pending_debts.total);
-
-    // 2. Renderizar Ventas Recientes
-    const recentSalesTable = document.getElementById('recentSalesTable');
-    if(recentSalesTable) {
-        recentSalesTable.innerHTML = data.recent_sales.map(sale => `
-            <tr>
-                <td>${Utils.formatDate(sale.sale_date, 'DD/MM/YY HH:mm')}</td>
-                <td>${Utils.cleanInput(sale.customer_name)}</td>
-                <td>${sale.item_count}</td>
-                <td>${Utils.formatCurrency(sale.total_amount)}</td>
-                <td><span class="badge badge-${sale.payment_status === 'paid' ? 'success' : 'warning'}">${sale.payment_status}</span></td>
-            </tr>
-        `).join('');
+    const salesTodayValue = document.querySelector('.stats-grid .stat-card:nth-child(1) .stat-value');
+    const salesMonthValue = document.querySelector('.stats-grid .stat-card:nth-child(2) .stat-value');
+    const productsValue = document.querySelector('.stats-grid .stat-card:nth-child(3) .stat-value');
+    const clientsValue = document.querySelector('.stats-grid .stat-card:nth-child(4) .stat-value');
+    
+    if (salesTodayValue) {
+        salesTodayValue.textContent = formatCurrency(data.stats.sales_today.total);
+        // Actualizar contador de ventas
+        const salesCount = document.querySelector('.stats-grid .stat-card:nth-child(1) .stat-description');
+        if (salesCount) {
+            salesCount.textContent = `${data.stats.sales_today.count} ventas realizadas`;
+        }
     }
-
-    // 3. Renderizar Productos con Stock Bajo
-    const stockAlertsContainer = document.getElementById('stockAlerts');
-    if(stockAlertsContainer) {
+    
+    if (productsValue) {
+        // Actualizar contador de productos con stock bajo
+        const lowStockBadge = document.querySelector('.stats-grid .stat-card:nth-child(3) .stat-change.negative');
+        if (lowStockBadge && data.stats.low_stock_products.length > 0) {
+            lowStockBadge.innerHTML = `<i class="fas fa-exclamation-triangle"></i> <span>${data.stats.low_stock_products.length} con stock bajo</span>`;
+            lowStockBadge.style.display = 'flex';
+        }
+    }
+    
+    // 2. Actualizar Alertas de Stock
+    const stockAlertsContainer = document.querySelector('.stock-alerts');
+    if (stockAlertsContainer) {
         if (data.stats.low_stock_products.length > 0) {
             stockAlertsContainer.innerHTML = data.stats.low_stock_products.map(product => {
                 const isOutOfStock = product.stock_quantity <= 0;
+                const stockClass = isOutOfStock ? 'stock-item-out' : 
+                                  (product.stock_quantity <= product.min_stock / 2 ? 'stock-item-critical' : 'stock-item-low');
+                
                 return `
-                <div class="stock-item ${isOutOfStock ? 'stock-item-critical' : 'stock-item-low'}">
-                    <div class="stock-info">
-                        <div class="stock-name">${Utils.cleanInput(product.name)}</div>
-                        <div class="stock-quantity">Stock: ${product.stock_quantity} ${product.unit}</div>
+                    <div class="stock-item ${stockClass}">
+                        <div class="stock-info">
+                            <div class="stock-name">${escapeHtml(product.name)}</div>
+                            <div class="stock-quantity ${isOutOfStock ? 'stock-out' : 'stock-low'}">
+                                Stock: ${product.stock_quantity} ${product.unit || 'unidades'}
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-primary" onclick="window.location.href='products.php?action=edit&id=${product.id}'">
+                            <i class="fas fa-plus"></i>
+                            Reabastecer
+                        </button>
                     </div>
-                    <span class="badge ${isOutOfStock ? 'badge-error' : 'badge-warning'}">${isOutOfStock ? 'Agotado' : 'Bajo'}</span>
-                </div>
-            `}).join('');
+                `;
+            }).join('');
         } else {
-            stockAlertsContainer.innerHTML = '<p>No hay productos con stock bajo.</p>';
+            stockAlertsContainer.innerHTML = `
+                <div class="empty-state" style="text-align: center; padding: 2rem;">
+                    <div class="empty-icon">✓</div>
+                    <p style="color: var(--gray-600);">¡Excelente! No hay productos con stock bajo.</p>
+                </div>
+            `;
         }
     }
-
-    // 4. Renderizar Deudas por Cobrar
-    const debtsListContainer = document.getElementById('debtsList');
-    if(debtsListContainer) {
-        if (data.upcoming_debts.length > 0) {
-            debtsListContainer.innerHTML = data.upcoming_debts.map(debt => {
-                const dueDate = new Date(debt.due_date);
-                const today = new Date();
-                const isOverdue = dueDate < today;
-                return `
-                <div class="debt-item ${isOverdue ? 'debt-item-overdue' : 'debt-item-due-soon'}">
-                    <div class="debt-info">
-                        <div class="debt-customer">${Utils.cleanInput(debt.customer_name)}</div>
-                        <div class="debt-date">${isOverdue ? 'Venció' : 'Vence'}: ${Utils.formatDate(debt.due_date)}</div>
-                    </div>
-                    <div class="debt-amount-info">
-                        <div class="debt-amount">${Utils.formatCurrency(debt.remaining_amount)}</div>
-                        <span class="badge ${isOverdue ? 'badge-error' : 'badge-warning'}">${debt.status}</span>
-                    </div>
-                </div>
-            `}).join('');
+    
+    // 3. Actualizar Productos Populares
+    const popularProductsContainer = document.querySelector('.popular-products');
+    if (popularProductsContainer && data.recent_sales.length > 0) {
+        // Aquí podrías mostrar productos más vendidos si tienes esa data
+        popularProductsContainer.innerHTML = `
+            <div class="empty-state" style="text-align: center; padding: 2rem;">
+                <p style="color: var(--gray-600);">No hay datos de ventas aún. ¡Realiza tu primera venta!</p>
+                <button class="btn btn-primary btn-sm" style="margin-top: 1rem;" onclick="window.location.href='pos.php'">
+                    <i class="fas fa-cash-register"></i> Ir al POS
+                </button>
+            </div>
+        `;
+    }
+    
+    // 4. Actualizar Deudas por Cobrar
+    const debtsContainer = document.querySelector('.pending-debts');
+    if (debtsContainer) {
+        if (data.stats.pending_debts.count > 0) {
+            debtsContainer.style.display = 'block';
+            const debtAmount = debtsContainer.querySelector('.debt-amount');
+            const debtCount = debtsContainer.querySelector('.debt-count');
+            
+            if (debtAmount) debtAmount.textContent = formatCurrency(data.stats.pending_debts.total);
+            if (debtCount) debtCount.textContent = `${data.stats.pending_debts.count} deudas pendientes`;
         } else {
-            debtsListContainer.innerHTML = '<p>No hay deudas pendientes por cobrar.</p>';
+            debtsContainer.style.display = 'none';
         }
+    }
+    
+    // 5. Actualizar gráfico si existe
+    if (window.salesChart && data.sales_chart) {
+        updateSalesChart(data.sales_chart);
     }
 }
 
+function updateSalesChart(salesData) {
+    const labels = salesData.map(item => {
+        const date = new Date(item.date);
+        return date.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' });
+    });
+    
+    const values = salesData.map(item => parseFloat(item.total));
+    
+    if (window.salesChart) {
+        window.salesChart.data.labels = labels;
+        window.salesChart.data.datasets[0].data = values;
+        window.salesChart.update();
+    }
+}
 
-// Funciones de acciones rápidas (accesibles globalmente)
-window.newSale = () => window.location.href = 'pos.html';
-window.addProduct = () => window.location.href = 'products.html?action=add';
-window.addExpense = () => window.location.href = 'expenses.html?action=add';
-window.viewReports = () => window.location.href = 'reports.html';
-window.logout = () => {
-    Modal.confirm('¿Estás seguro que deseas cerrar sesión?', 'Confirmar Cierre de Sesión')
-        .then(confirmed => {
-            if (confirmed) {
-                Storage.clear();
-                window.location.href = 'login.html';
-            }
-        });
+// Funciones auxiliares
+function formatCurrency(amount) {
+    return 'S/ ' + parseFloat(amount).toFixed(2);
+}
+
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+function showNotification(message, type = 'info') {
+    // Implementación simple de notificaciones
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type}`;
+    notification.innerHTML = `
+        <i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+        <span>${message}</span>
+    `;
+    
+    // Insertar al principio del main-content
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+        mainContent.insertBefore(notification, mainContent.firstChild);
+        
+        // Eliminar después de 5 segundos
+        setTimeout(() => {
+            notification.remove();
+        }, 5000);
+    }
+}
+
+// Funciones globales para acciones rápidas
+window.toggleMobileSidebar = function() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.querySelector('.mobile-overlay');
+    
+    if (sidebar) {
+        sidebar.classList.toggle('mobile-open');
+    }
+    
+    if (overlay) {
+        overlay.classList.toggle('show');
+    }
+};
+
+window.updateChart = function(period) {
+    console.log('Updating chart for period:', period);
+    // Aquí implementarías la lógica para actualizar el gráfico según el período
 };
