@@ -1,142 +1,156 @@
 <?php
+/**
+ * API DE PRODUCTOS
+ * Archivo: backend/api/productos.php
+ */
+
 session_start();
+require_once '../config/config.php';
+require_once '../config/database.php';
+
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['business_id'])) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'No autorizado']);
     exit();
 }
 
-require_once '../config/database.php';
-require_once '../config/config.php';
-
-$db = getDB();
 $business_id = $_SESSION['business_id'];
 $method = $_SERVER['REQUEST_METHOD'];
 
 try {
+    $db = getDB();
+    
     switch ($method) {
         case 'GET':
-            // Obtener productos con filtros
-            $search = cleanInput($_GET['search'] ?? '');
-            $category = intval($_GET['category'] ?? 0);
-            $stock = cleanInput($_GET['stock'] ?? '');
-            $page = max(1, intval($_GET['page'] ?? 1));
-            $limit = min(100, intval($_GET['limit'] ?? 20));
-            $offset = ($page - 1) * $limit;
-            
-            // Construir consulta
-            $where = "p.business_id = ? AND p.status = 1";
-            $params = [$business_id];
-            
-            if ($search) {
-                $where .= " AND (p.name LIKE ? OR p.sku LIKE ? OR p.barcode LIKE ?)";
-                $searchParam = "%$search%";
-                array_push($params, $searchParam, $searchParam, $searchParam);
+            if (isset($_GET['id'])) {
+                // Obtener producto específico
+                $productId = intval($_GET['id']);
+                $product = $db->single(
+                    "SELECT p.*, c.name as category_name 
+                     FROM products p 
+                     LEFT JOIN categories c ON p.category_id = c.id 
+                     WHERE p.id = ? AND p.business_id = ? AND p.status != ?",
+                    [$productId, $business_id, STATUS_DELETED]
+                );
+                
+                if (!$product) {
+                    throw new Exception('Producto no encontrado');
+                }
+                
+                echo json_encode(['success' => true, 'data' => $product]);
+            } else {
+                // Listar productos
+                $page = intval($_GET['page'] ?? 1);
+                $limit = intval($_GET['limit'] ?? 50);
+                $search = cleanInput($_GET['search'] ?? '');
+                $category = intval($_GET['category'] ?? 0);
+                $offset = ($page - 1) * $limit;
+                
+                $whereConditions = ["p.business_id = ?", "p.status != ?"];
+                $params = [$business_id, STATUS_DELETED];
+                
+                if ($search) {
+                    $whereConditions[] = "(p.name LIKE ? OR p.sku LIKE ? OR p.barcode LIKE ?)";
+                    $searchTerm = "%{$search}%";
+                    $params[] = $searchTerm;
+                    $params[] = $searchTerm;
+                    $params[] = $searchTerm;
+                }
+                
+                if ($category > 0) {
+                    $whereConditions[] = "p.category_id = ?";
+                    $params[] = $category;
+                }
+                
+                $whereClause = implode(' AND ', $whereConditions);
+                
+                // Obtener productos
+                $products = $db->fetchAll(
+                    "SELECT p.*, c.name as category_name,
+                            CASE 
+                                WHEN p.track_stock = 1 AND p.current_stock <= p.min_stock THEN 1 
+                                ELSE 0 
+                            END as low_stock
+                     FROM products p 
+                     LEFT JOIN categories c ON p.category_id = c.id 
+                     WHERE {$whereClause}
+                     ORDER BY p.name ASC 
+                     LIMIT {$limit} OFFSET {$offset}",
+                    $params
+                );
+                
+                // Contar total
+                $total = $db->single(
+                    "SELECT COUNT(*) as total FROM products p WHERE " . $whereClause,
+                    $params
+                )['total'];
+                
+                echo json_encode([
+                    'success' => true,
+                    'data' => $products,
+                    'pagination' => [
+                        'page' => $page,
+                        'limit' => $limit,
+                        'total' => $total,
+                        'pages' => ceil($total / $limit)
+                    ]
+                ]);
             }
-            
-            if ($category) {
-                $where .= " AND p.category_id = ?";
-                $params[] = $category;
-            }
-            
-            if ($stock === 'low') {
-                $where .= " AND p.stock_quantity <= p.min_stock AND p.stock_quantity > 0";
-            } elseif ($stock === 'out') {
-                $where .= " AND p.stock_quantity = 0";
-            } elseif ($stock === 'normal') {
-                $where .= " AND p.stock_quantity > p.min_stock";
-            }
-            
-            // Obtener productos
-            $products = $db->fetchAll(
-                "SELECT p.*, c.name as category_name, c.color as category_color
-                 FROM products p
-                 LEFT JOIN categories c ON p.category_id = c.id
-                 WHERE $where
-                 ORDER BY p.name ASC
-                 LIMIT $limit OFFSET $offset",
-                $params
-            );
-            
-            // Contar total
-            $total = $db->single("SELECT COUNT(*) as count FROM products p WHERE $where", $params)['count'];
-            
-            echo json_encode([
-                'success' => true,
-                'products' => $products,
-                'pagination' => [
-                    'page' => $page,
-                    'limit' => $limit,
-                    'total' => $total,
-                    'pages' => ceil($total / $limit)
-                ]
-            ]);
             break;
             
         case 'POST':
-            // Crear producto
-            $data = json_decode(file_get_contents('php://input'), true);
+            // Crear nuevo producto
+            $input = json_decode(file_get_contents('php://input'), true);
             
-            // Validar datos requeridos
-            if (empty($data['name']) || !isset($data['selling_price'])) {
-                throw new Exception('Nombre y precio de venta son requeridos');
+            $required_fields = ['name', 'selling_price'];
+            foreach ($required_fields as $field) {
+                if (empty($input[$field])) {
+                    throw new Exception("El campo {$field} es requerido");
+                }
             }
             
             // Verificar SKU único
-            if (!empty($data['sku'])) {
+            if (!empty($input['sku'])) {
                 $exists = $db->single(
                     "SELECT id FROM products WHERE sku = ? AND business_id = ?",
-                    [$data['sku'], $business_id]
+                    [$input['sku'], $business_id]
                 );
                 if ($exists) {
                     throw new Exception('El SKU ya está en uso');
                 }
             }
             
-            // Preparar datos
+            // Crear producto
             $productData = [
                 'business_id' => $business_id,
-                'category_id' => $data['category_id'] ?? null,
-                'sku' => $data['sku'] ?? null,
-                'barcode' => $data['barcode'] ?? null,
-                'name' => cleanInput($data['name']),
-                'description' => cleanInput($data['description'] ?? ''),
-                'cost_price' => floatval($data['cost_price'] ?? 0),
-                'selling_price' => floatval($data['selling_price']),
-                'wholesale_price' => floatval($data['wholesale_price'] ?? 0),
-                'stock_quantity' => intval($data['stock_quantity'] ?? 0),
-                'min_stock' => intval($data['min_stock'] ?? 0),
-                'unit' => cleanInput($data['unit'] ?? 'unit'),
-                'track_stock' => isset($data['track_stock']) ? 1 : 0,
-                'status' => STATUS_ACTIVE
+                'name' => cleanInput($input['name']),
+                'selling_price' => floatval($input['selling_price']),
+                'cost_price' => floatval($input['cost_price'] ?? 0),
+                'wholesale_price' => floatval($input['wholesale_price'] ?? 0),
+                'category_id' => $input['category_id'] ?? null,
+                'sku' => $input['sku'] ?? null,
+                'barcode' => $input['barcode'] ?? null,
+                'description' => cleanInput($input['description'] ?? ''),
+                'min_stock' => intval($input['min_stock'] ?? 0),
+                'current_stock' => intval($input['current_stock'] ?? 0),
+                'unit' => cleanInput($input['unit'] ?? 'unit'),
+                'track_stock' => isset($input['track_stock']) ? 1 : 0,
+                'status' => STATUS_ACTIVE,
+                'created_at' => date('Y-m-d H:i:s')
             ];
             
-            $db->beginTransaction();
-            
-            // Insertar producto
             $productId = $db->insert('products', $productData);
             
-            // Registrar movimiento inicial de inventario
-            if ($productData['stock_quantity'] > 0 && $productData['track_stock']) {
-                $db->insert('inventory_movements', [
-                    'business_id' => $business_id,
-                    'product_id' => $productId,
-                    'user_id' => $_SESSION['user_id'],
-                    'movement_type' => 'in',
-                    'quantity' => $productData['stock_quantity'],
-                    'reason' => 'Stock inicial',
-                    'movement_date' => date('Y-m-d H:i:s')
-                ]);
+            if (!$productId) {
+                throw new Exception('Error al crear el producto');
             }
-            
-            $db->commit();
             
             echo json_encode([
                 'success' => true,
                 'message' => 'Producto creado exitosamente',
-                'product_id' => $productId
+                'data' => ['id' => $productId]
             ]);
             break;
             
@@ -147,9 +161,9 @@ try {
                 throw new Exception('ID de producto no válido');
             }
             
-            $data = json_decode(file_get_contents('php://input'), true);
+            $input = json_decode(file_get_contents('php://input'), true);
             
-            // Verificar que el producto pertenece al negocio
+            // Verificar que el producto existe y pertenece al negocio
             $product = $db->single(
                 "SELECT * FROM products WHERE id = ? AND business_id = ?",
                 [$productId, $business_id]
@@ -160,10 +174,10 @@ try {
             }
             
             // Verificar SKU único si cambió
-            if (!empty($data['sku']) && $data['sku'] != $product['sku']) {
+            if (!empty($input['sku']) && $input['sku'] != $product['sku']) {
                 $exists = $db->single(
                     "SELECT id FROM products WHERE sku = ? AND business_id = ? AND id != ?",
-                    [$data['sku'], $business_id, $productId]
+                    [$input['sku'], $business_id, $productId]
                 );
                 if ($exists) {
                     throw new Exception('El SKU ya está en uso');
@@ -172,17 +186,17 @@ try {
             
             // Actualizar datos
             $updateData = [
-                'name' => cleanInput($data['name']),
-                'selling_price' => floatval($data['selling_price']),
-                'cost_price' => floatval($data['cost_price'] ?? 0),
-                'wholesale_price' => floatval($data['wholesale_price'] ?? 0),
-                'category_id' => $data['category_id'] ?? null,
-                'sku' => $data['sku'] ?? null,
-                'barcode' => $data['barcode'] ?? null,
-                'description' => cleanInput($data['description'] ?? ''),
-                'min_stock' => intval($data['min_stock'] ?? 0),
-                'unit' => cleanInput($data['unit'] ?? 'unit'),
-                'track_stock' => isset($data['track_stock']) ? 1 : 0,
+                'name' => cleanInput($input['name']),
+                'selling_price' => floatval($input['selling_price']),
+                'cost_price' => floatval($input['cost_price'] ?? 0),
+                'wholesale_price' => floatval($input['wholesale_price'] ?? 0),
+                'category_id' => $input['category_id'] ?? null,
+                'sku' => $input['sku'] ?? null,
+                'barcode' => $input['barcode'] ?? null,
+                'description' => cleanInput($input['description'] ?? ''),
+                'min_stock' => intval($input['min_stock'] ?? 0),
+                'unit' => cleanInput($input['unit'] ?? 'unit'),
+                'track_stock' => isset($input['track_stock']) ? 1 : 0,
                 'updated_at' => date('Y-m-d H:i:s')
             ];
             
@@ -195,7 +209,7 @@ try {
             break;
             
         case 'DELETE':
-            // Eliminar producto (soft delete)
+            // Eliminar producto
             $productId = intval($_GET['id'] ?? 0);
             if (!$productId) {
                 throw new Exception('ID de producto no válido');
@@ -220,19 +234,23 @@ try {
             if ($hasSales > 0) {
                 // Soft delete
                 $db->update('products', ['status' => STATUS_DELETED], 'id = ?', [$productId]);
+                $message = 'Producto desactivado (tiene ventas asociadas)';
             } else {
-                // Hard delete si no tiene ventas
+                // Hard delete
                 $db->delete('products', 'id = ?', [$productId]);
+                $message = 'Producto eliminado permanentemente';
             }
             
             echo json_encode([
                 'success' => true,
-                'message' => 'Producto eliminado exitosamente'
+                'message' => $message
             ]);
             break;
             
         default:
-            throw new Exception('Método no permitido');
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Método no permitido']);
+            break;
     }
     
 } catch (Exception $e) {
