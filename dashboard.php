@@ -496,7 +496,7 @@ function formatDate($date) {
             
             const values = data.map(item => parseFloat(item.total));
 
-            new Chart(ctx, {
+            window.salesChart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: labels,
