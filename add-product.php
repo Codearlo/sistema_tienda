@@ -15,10 +15,29 @@ if (!isset($_SESSION['user_id'])) {
 $error_message = null;
 $success_message = null;
 $categories = [];
+$editing_product = null;
+$is_edit_mode = false;
 
 try {
     $db = getDB();
     $business_id = $_SESSION['business_id'];
+    
+    // Verificar si estamos editando un producto
+    if (isset($_GET['edit']) && !empty($_GET['edit'])) {
+        $product_id = intval($_GET['edit']);
+        $editing_product = $db->single("
+            SELECT p.*, c.name as category_name 
+            FROM products p 
+            LEFT JOIN categories c ON p.category_id = c.id 
+            WHERE p.id = ? AND p.business_id = ? AND p.status = 1
+        ", [$product_id, $business_id]);
+        
+        if ($editing_product) {
+            $is_edit_mode = true;
+        } else {
+            $error_message = "Producto no encontrado.";
+        }
+    }
     
     // Cargar categorías
     $categories = $db->fetchAll("
@@ -46,58 +65,100 @@ try {
             $error_message = "El precio de venta debe ser mayor a 0.";
         } else {
             try {
-                // Generar SKU automático si no se proporciona
-                if (empty($sku)) {
-                    $sku = 'PROD' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
-                }
-                
-                // Verificar SKU único
-                $existing = $db->single(
-                    "SELECT id FROM products WHERE sku = ? AND business_id = ?",
-                    [$sku, $business_id]
-                );
-                
-                if ($existing) {
-                    $sku = 'PROD' . time(); // Usar timestamp si existe
-                }
-                
-                // Insertar producto
-                $productData = [
-                    'business_id' => $business_id,
-                    'name' => $name,
-                    'description' => $description,
-                    'category_id' => $category_id,
-                    'sku' => $sku,
-                    'barcode' => $barcode,
-                    'cost_price' => $cost_price,
-                    'selling_price' => $selling_price,
-                    'stock_quantity' => $stock_quantity,
-                    'min_stock' => $min_stock,
-                    'track_stock' => 1,
-                    'status' => 1,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
-                ];
-                
-                $productId = $db->insert('products', $productData);
-                
-                // Registrar movimiento de inventario inicial
-                if ($stock_quantity > 0) {
-                    $db->insert('inventory_movements', [
+                if ($is_edit_mode) {
+                    // Actualizar producto existente
+                    $updateData = [
+                        'name' => $name,
+                        'description' => $description,
+                        'category_id' => $category_id,
+                        'sku' => $sku ?: $editing_product['sku'],
+                        'barcode' => $barcode,
+                        'cost_price' => $cost_price,
+                        'selling_price' => $selling_price,
+                        'min_stock' => $min_stock,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ];
+                    
+                    // Solo actualizar stock si cambió y hay diferencia
+                    if ($stock_quantity != $editing_product['stock_quantity']) {
+                        $updateData['stock_quantity'] = $stock_quantity;
+                        
+                        // Registrar movimiento de inventario
+                        $difference = $stock_quantity - $editing_product['stock_quantity'];
+                        $movement_type = $difference > 0 ? 'in' : 'out';
+                        $reason = $difference > 0 ? 'Ajuste de inventario (aumento)' : 'Ajuste de inventario (reducción)';
+                        
+                        $db->insert('inventory_movements', [
+                            'business_id' => $business_id,
+                            'product_id' => $editing_product['id'],
+                            'movement_type' => $movement_type,
+                            'quantity' => abs($difference),
+                            'reason' => $reason,
+                            'user_id' => $_SESSION['user_id'],
+                            'created_at' => date('Y-m-d H:i:s')
+                        ]);
+                    }
+                    
+                    $db->update('products', $updateData, "id = ? AND business_id = ?", [$editing_product['id'], $business_id]);
+                    
+                    $success_message = "Producto actualizado exitosamente.";
+                } else {
+                    // Crear nuevo producto
+                    // Generar SKU automático si no se proporciona
+                    if (empty($sku)) {
+                        $sku = 'PROD' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+                    }
+                    
+                    // Verificar SKU único
+                    $existing = $db->single(
+                        "SELECT id FROM products WHERE sku = ? AND business_id = ?",
+                        [$sku, $business_id]
+                    );
+                    
+                    if ($existing) {
+                        $sku = 'PROD' . time(); // Usar timestamp si existe
+                    }
+                    
+                    // Insertar producto
+                    $productData = [
                         'business_id' => $business_id,
-                        'product_id' => $productId,
-                        'movement_type' => 'in',
-                        'quantity' => $stock_quantity,
-                        'reason' => 'Stock inicial',
-                        'user_id' => $_SESSION['user_id'],
-                        'created_at' => date('Y-m-d H:i:s')
-                    ]);
+                        'name' => $name,
+                        'description' => $description,
+                        'category_id' => $category_id,
+                        'sku' => $sku,
+                        'barcode' => $barcode,
+                        'cost_price' => $cost_price,
+                        'selling_price' => $selling_price,
+                        'stock_quantity' => $stock_quantity,
+                        'min_stock' => $min_stock,
+                        'track_stock' => 1,
+                        'status' => 1,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ];
+                    
+                    $productId = $db->insert('products', $productData);
+                    
+                    // Registrar movimiento de inventario inicial
+                    if ($stock_quantity > 0) {
+                        $db->insert('inventory_movements', [
+                            'business_id' => $business_id,
+                            'product_id' => $productId,
+                            'movement_type' => 'in',
+                            'quantity' => $stock_quantity,
+                            'reason' => 'Stock inicial',
+                            'user_id' => $_SESSION['user_id'],
+                            'created_at' => date('Y-m-d H:i:s')
+                        ]);
+                    }
+                    
+                    $success_message = "Producto agregado exitosamente.";
                 }
                 
-                $success_message = "Producto agregado exitosamente.";
-                
-                // Limpiar formulario después del éxito
-                $_POST = [];
+                // Limpiar formulario después del éxito (solo para nuevo producto)
+                if (!$is_edit_mode) {
+                    $_POST = [];
+                }
                 
             } catch (Exception $e) {
                 $error_message = "Error al guardar el producto: " . $e->getMessage();
@@ -145,18 +206,20 @@ function formatCurrency($amount) {
         <!-- Header -->
         <header class="page-header">
             <div class="header-content">
-                <h1 class="page-title">Agregar Producto</h1>
-                <p class="page-subtitle">Agrega tu producto para tus clientes</p>
+                <h1 class="page-title"><?php echo $is_edit_mode ? 'Editar Producto' : 'Agregar Producto'; ?></h1>
+                <p class="page-subtitle"><?php echo $is_edit_mode ? 'Modifica la información de tu producto' : 'Agrega tu producto para tus clientes'; ?></p>
             </div>
             <div class="header-actions">
                 <button type="button" class="btn btn-outline" onclick="window.history.back()">
                     <i class="fas fa-arrow-left"></i>
                     Volver
                 </button>
+                <?php if (!$is_edit_mode): ?>
                 <button type="button" class="btn btn-primary" onclick="bulkUpload()">
                     <i class="fas fa-upload"></i>
                     Carga Masiva
                 </button>
+                <?php endif; ?>
             </div>
         </header>
 
@@ -176,6 +239,9 @@ function formatCurrency($amount) {
 
         <!-- Main Form -->
         <form method="POST" class="product-form" id="productForm">
+            <?php if ($is_edit_mode): ?>
+                <input type="hidden" name="product_id" value="<?php echo $editing_product['id']; ?>">
+            <?php endif; ?>
             <div class="form-grid">
                 <!-- Basic Information -->
                 <section class="form-section">
@@ -197,7 +263,7 @@ function formatCurrency($amount) {
                                    name="name" 
                                    class="form-input" 
                                    placeholder="Ingresa el nombre del producto"
-                                   value="<?php echo htmlspecialchars($_POST['name'] ?? ''); ?>"
+                                   value="<?php echo htmlspecialchars($editing_product['name'] ?? $_POST['name'] ?? ''); ?>"
                                    required>
                         </div>
                         
@@ -207,7 +273,7 @@ function formatCurrency($amount) {
                                       name="description" 
                                       class="form-textarea" 
                                       rows="4"
-                                      placeholder="Describe las características de tu producto"><?php echo htmlspecialchars($_POST['description'] ?? ''); ?></textarea>
+                                      placeholder="Describe las características de tu producto"><?php echo htmlspecialchars($editing_product['description'] ?? $_POST['description'] ?? ''); ?></textarea>
                         </div>
                     </div>
                 </section>
@@ -263,7 +329,10 @@ function formatCurrency($amount) {
                                 <option value="">Seleccionar categoría</option>
                                 <?php foreach ($categories as $category): ?>
                                     <option value="<?php echo $category['id']; ?>"
-                                            <?php echo (isset($_POST['category_id']) && $_POST['category_id'] == $category['id']) ? 'selected' : ''; ?>>
+                                            <?php 
+                                            $selected_category = $editing_product['category_id'] ?? $_POST['category_id'] ?? '';
+                                            echo ($selected_category == $category['id']) ? 'selected' : ''; 
+                                            ?>>
                                         <?php echo htmlspecialchars($category['name']); ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -303,7 +372,7 @@ function formatCurrency($amount) {
                                        placeholder="0.00"
                                        step="0.01"
                                        min="0"
-                                       value="<?php echo $_POST['cost_price'] ?? ''; ?>">
+                                       value="<?php echo $editing_product['cost_price'] ?? $_POST['cost_price'] ?? ''; ?>">
                             </div>
                         </div>
                         
@@ -318,7 +387,7 @@ function formatCurrency($amount) {
                                        placeholder="0.00"
                                        step="0.01"
                                        min="0"
-                                       value="<?php echo $_POST['selling_price'] ?? ''; ?>"
+                                       value="<?php echo $editing_product['selling_price'] ?? $_POST['selling_price'] ?? ''; ?>"
                                        required>
                             </div>
                         </div>
@@ -350,7 +419,7 @@ function formatCurrency($amount) {
                                    name="sku" 
                                    class="form-input" 
                                    placeholder="Se generará automáticamente"
-                                   value="<?php echo htmlspecialchars($_POST['sku'] ?? ''); ?>">
+                                   value="<?php echo htmlspecialchars($editing_product['sku'] ?? $_POST['sku'] ?? ''); ?>">
                             <small class="form-help">Código único del producto (se genera automáticamente si se deja vacío)</small>
                         </div>
                         
@@ -361,7 +430,7 @@ function formatCurrency($amount) {
                                    name="barcode" 
                                    class="form-input" 
                                    placeholder="Escanea o ingresa el código"
-                                   value="<?php echo htmlspecialchars($_POST['barcode'] ?? ''); ?>">
+                                   value="<?php echo htmlspecialchars($editing_product['barcode'] ?? $_POST['barcode'] ?? ''); ?>">
                         </div>
                         
                         <div class="form-row">
@@ -373,7 +442,7 @@ function formatCurrency($amount) {
                                        class="form-input" 
                                        placeholder="0"
                                        min="0"
-                                       value="<?php echo $_POST['stock_quantity'] ?? ''; ?>">
+                                       value="<?php echo $editing_product['stock_quantity'] ?? $_POST['stock_quantity'] ?? ''; ?>">
                             </div>
                             
                             <div class="form-group">
@@ -384,7 +453,7 @@ function formatCurrency($amount) {
                                        class="form-input" 
                                        placeholder="0"
                                        min="0"
-                                       value="<?php echo $_POST['min_stock'] ?? ''; ?>">
+                                       value="<?php echo $editing_product['min_stock'] ?? $_POST['min_stock'] ?? ''; ?>">
                             </div>
                         </div>
                     </div>
@@ -426,7 +495,7 @@ function formatCurrency($amount) {
                                    name="tags" 
                                    class="form-input" 
                                    placeholder="Ej: nuevo, promoción, popular"
-                                   value="<?php echo htmlspecialchars($_POST['tags'] ?? ''); ?>">
+                                   value="<?php echo htmlspecialchars($editing_product['tags'] ?? $_POST['tags'] ?? ''); ?>">
                             <small class="form-help">Separa las etiquetas con comas</small>
                         </div>
                     </div>
@@ -443,8 +512,11 @@ function formatCurrency($amount) {
                     Guardar Borrador
                 </button>
                 <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-plus"></i>
-                    Agregar Producto
+                    <i class="fas <?php echo $is_edit_mode ? 'fa-save' : 'fa-plus'; ?>"></i>
+                    <?php echo $is_edit_mode ? 'Actualizar Producto' : 'Agregar Producto'; ?>
+                </button>
+            </div>
+        </form>    Agregar Producto
                 </button>
             </div>
         </form>

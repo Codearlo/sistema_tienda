@@ -72,10 +72,10 @@ function formatCurrency($amount) {
                 <h1 class="page-title">Productos</h1>
             </div>
             <div class="header-actions">
-                <button class="btn btn-success" onclick="openProductModal()">
+                <a href="add-product.php" class="btn btn-success">
                     <i class="fas fa-plus"></i>
                     Nuevo Producto
-                </button>
+                </a>
                 <button class="btn btn-outline" onclick="openCategoryModal()">
                     <i class="fas fa-tags"></i>
                     Categorías
@@ -159,7 +159,7 @@ function formatCurrency($amount) {
                         <i class="fas fa-box-open"></i>
                         <h3>No hay productos</h3>
                         <p>Comienza agregando tu primer producto</p>
-                        <button class="btn btn-primary" onclick="openProductModal()">
+                        <button class="btn btn-primary" onclick="window.location.href='add-product.php'">
                             <i class="fas fa-plus"></i>
                             Agregar Producto
                         </button>
@@ -195,13 +195,13 @@ function formatCurrency($amount) {
                             </div>
                             
                             <div class="product-actions">
-                                <button class="btn btn-sm btn-primary" onclick="editProduct(<?php echo $product['id']; ?>)">
+                                <a href="add-product.php?edit=<?php echo $product['id']; ?>" class="btn btn-sm btn-primary" title="Editar">
                                     <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-sm btn-warning" onclick="adjustStock(<?php echo $product['id']; ?>)">
+                                </a>
+                                <button class="btn btn-sm btn-warning" onclick="adjustStock(<?php echo $product['id']; ?>)" title="Ajustar Stock">
                                     <i class="fas fa-boxes"></i>
                                 </button>
-                                <button class="btn btn-sm btn-danger" onclick="deleteProduct(<?php echo $product['id']; ?>)">
+                                <button class="btn btn-sm btn-danger" onclick="deleteProduct(<?php echo $product['id']; ?>)" title="Eliminar">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -255,9 +255,9 @@ function formatCurrency($amount) {
                                     </td>
                                     <td>
                                         <div class="table-actions">
-                                            <button class="btn btn-sm btn-primary" onclick="editProduct(<?php echo $product['id']; ?>)" title="Editar">
+                                            <a href="add-product.php?edit=<?php echo $product['id']; ?>" class="btn btn-sm btn-primary" title="Editar">
                                                 <i class="fas fa-edit"></i>
-                                            </button>
+                                            </a>
                                             <button class="btn btn-sm btn-warning" onclick="adjustStock(<?php echo $product['id']; ?>)" title="Ajustar Stock">
                                                 <i class="fas fa-boxes"></i>
                                             </button>
