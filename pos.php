@@ -1,25 +1,15 @@
 <?php
 session_start();
-
-require_once 'includes/onboarding_middleware.php';
-
-// Verificar que el usuario haya completado el onboarding
-requireOnboarding();
-
+require_once 'includes/auth.php';
+require_once 'backend/config/config.php';
 require_once 'backend/config/database.php';
 require_once 'includes/cache_control.php';
 
-// ===== VERIFICACIÓN DE AUTENTICACIÓN =====
-if (!isset($_SESSION['user_id'])) {
+// Verificar autenticación
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['business_id'])) {
     header('Location: login.php');
     exit();
 }
-
-// ===== CONFIGURACIÓN Y CARGA DE DATOS =====
-$error_message = null;
-$categories = [];
-$customers = [];
-$products = [];
 
 try {
     $db = getDB();
@@ -29,14 +19,14 @@ try {
     $categories = $db->fetchAll("
         SELECT * FROM categories 
         WHERE business_id = ? AND status = 1 
-        ORDER BY name
+        ORDER BY name ASC
     ", [$business_id]);
     
     // Cargar clientes
     $customers = $db->fetchAll("
-        SELECT id, CONCAT(first_name, ' ', last_name) as name 
-        FROM customers 
-        WHERE business_id = ? AND status = 1 
+        SELECT * FROM customers 
+        WHERE business_id = ? 
+        AND status = 1 
         ORDER BY first_name
     ", [$business_id]);
     
@@ -108,123 +98,155 @@ function formatCurrency($amount) {
 
             <!-- Main POS Layout -->
             <div class="pos-main">
-                <!-- Left Panel - Products -->
+                <!-- Left Panel - Productos -->
                 <div class="pos-left">
-                    <!-- Search Section -->
+                    <!-- Búsqueda de productos -->
                     <div class="product-search-section">
                         <div class="search-input-group">
                             <i class="fas fa-search search-icon"></i>
-                            <input type="text" class="search-input" placeholder="Buscar productos..." 
-                                   id="productSearch" autocomplete="off">
-                            <button class="search-clear-btn" onclick="clearSearch()" style="display: none;">
+                            <input 
+                                type="text" 
+                                id="productSearch" 
+                                class="search-input" 
+                                placeholder="Buscar productos..."
+                                autocomplete="off"
+                            >
+                            <button class="search-clear-btn" id="searchClearBtn" style="display: none;">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
                     </div>
 
-                    <!-- Quick Categories -->
-                    <div class="categories-quick">
+                    <!-- Categorías -->
+                    <div class="categories-section">
                         <h3>Categorías</h3>
                         <div class="categories-grid" id="categoriesGrid">
-                            <!-- Categories will be loaded here -->
+                            <button class="category-btn active" data-category="all">
+                                <i class="fas fa-th-large"></i>
+                                <span>Todas</span>
+                            </button>
+                            <?php foreach ($categories as $category): ?>
+                            <button class="category-btn" data-category="<?php echo $category['id']; ?>">
+                                <i class="fas fa-tag"></i>
+                                <span><?php echo htmlspecialchars($category['name']); ?></span>
+                            </button>
+                            <?php endforeach; ?>
                         </div>
                     </div>
 
-                    <!-- Products Grid -->
+                    <!-- Lista de productos -->
                     <div class="products-section">
-                        <div class="products-grid-pos" id="productsGrid">
-                            <!-- Products will be loaded here -->
-                        </div>
-                        
-                        <!-- Empty state -->
-                        <div class="empty-state" id="emptyProducts" style="display: none;">
-                            <i class="fas fa-box-open fa-3x"></i>
-                            <h3>No hay productos</h3>
-                            <p>No se encontraron productos con los criterios de búsqueda.</p>
-                            <button class="btn btn-primary" onclick="clearFilters()">
-                                Ver todos los productos
+                        <div class="products-header">
+                            <h3>Productos</h3>
+                            <button class="btn btn-sm btn-primary" onclick="openQuickProduct()">
+                                <i class="fas fa-plus"></i>
+                                Agregar
                             </button>
+                        </div>
+                        <div class="products-grid" id="productsGrid">
+                            <!-- Los productos se cargan dinámicamente -->
                         </div>
                     </div>
                 </div>
 
-                <!-- Right Panel - Cart -->
+                <!-- Right Panel - Carrito -->
                 <div class="pos-right">
-                    <!-- Cart Header -->
                     <div class="cart-header">
-                        <h2><i class="fas fa-shopping-cart"></i> Carrito de Compras</h2>
+                        <h2>
+                            <i class="fas fa-shopping-cart"></i>
+                            Carrito de Compras
+                        </h2>
                         <span class="cart-count" id="cartCount">0 productos</span>
                     </div>
 
-                    <!-- Customer Section -->
+                    <!-- Selección de cliente -->
                     <div class="customer-section">
-                        <label for="customerSelect">Cliente:</label>
-                        <select id="customerSelect" class="form-select">
-                            <option value="">Cliente general</option>
-                            <?php foreach ($customers as $customer): ?>
+                        <label>Cliente:</label>
+                        <div class="customer-input-group">
+                            <select id="customerSelect" class="form-input">
+                                <option value="">Cliente general</option>
+                                <?php foreach ($customers as $customer): ?>
                                 <option value="<?php echo $customer['id']; ?>">
-                                    <?php echo htmlspecialchars($customer['name']); ?>
+                                    <?php echo htmlspecialchars($customer['first_name'] . ' ' . $customer['last_name']); ?>
                                 </option>
-                            <?php endforeach; ?>
-                        </select>
+                                <?php endforeach; ?>
+                            </select>
+                            <button class="btn btn-sm btn-outline" onclick="openCustomerModal()">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
                     </div>
 
-                    <!-- Cart Items -->
+                    <!-- Items del carrito -->
                     <div class="cart-items" id="cartItems">
-                        <div class="empty-state">
-                            <i class="fas fa-shopping-cart fa-2x"></i>
-                            <h3>El carrito está vacío</h3>
-                            <p>Agregue productos para comenzar</p>
+                        <div class="empty-cart">
+                            <i class="fas fa-shopping-cart"></i>
+                            <p>El carrito está vacío</p>
+                            <small>Agregue productos para comenzar</small>
                         </div>
                     </div>
 
-                    <!-- Cart Summary -->
-                    <div class="cart-summary" id="cartSummary" style="display: none;">
-                        <div class="summary-row">
-                            <span>Subtotal:</span>
-                            <span id="subtotal">S/ 0.00</span>
+                    <!-- Totales -->
+                    <div class="cart-totals">
+                        <div class="discount-section">
+                            <label>Descuento:</label>
+                            <div class="discount-input-group">
+                                <input type="number" id="discountAmount" class="form-input" min="0" step="0.01" placeholder="0.00">
+                                <span class="input-addon">S/</span>
+                            </div>
                         </div>
-                        <div class="summary-row">
-                            <span>IGV (18%):</span>
-                            <span id="tax">S/ 0.00</span>
-                        </div>
-                        <div class="summary-row total">
-                            <span>Total:</span>
-                            <span id="total">S/ 0.00</span>
+
+                        <div class="totals-breakdown">
+                            <div class="total-line">
+                                <span>Subtotal:</span>
+                                <span id="subtotal">S/ 0.00</span>
+                            </div>
+                            <div class="total-line">
+                                <span>IGV (18%):</span>
+                                <span id="taxAmount">S/ 0.00</span>
+                            </div>
+                            <div class="total-line discount-line">
+                                <span>Descuento:</span>
+                                <span id="discountTotal">- S/ 0.00</span>
+                            </div>
+                            <div class="total-line final-total">
+                                <span>TOTAL:</span>
+                                <span id="finalTotal">S/ 0.00</span>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Payment Section -->
-                    <div class="payment-section" id="paymentSection" style="display: none;">
-                        <h3>Método de Pago</h3>
+                    <!-- Método de pago -->
+                    <div class="payment-section">
+                        <h4>Método de Pago</h4>
                         <div class="payment-methods">
-                            <button class="payment-method active" data-method="cash">
-                                <i class="fas fa-money-bill"></i>
-                                Efectivo
+                            <button class="payment-btn active" data-method="cash">
+                                <i class="fas fa-money-bill-wave"></i>
+                                <span>Efectivo</span>
                             </button>
-                            <button class="payment-method" data-method="card">
+                            <button class="payment-btn" data-method="card">
                                 <i class="fas fa-credit-card"></i>
-                                Tarjeta
+                                <span>Tarjeta</span>
                             </button>
-                            <button class="payment-method" data-method="transfer">
+                            <button class="payment-btn" data-method="transfer">
                                 <i class="fas fa-exchange-alt"></i>
-                                Transferencia
+                                <span>Transferencia</span>
                             </button>
                         </div>
 
                         <div class="cash-payment" id="cashPayment">
                             <label>Monto recibido:</label>
-                            <input type="number" class="form-input" id="cashReceived" 
-                                   placeholder="0.00" step="0.01" min="0">
-                            <div class="change-amount" id="changeAmount" style="display: none;">
-                                Vuelto: <span id="changeValue">S/ 0.00</span>
+                            <input type="number" id="cashReceived" class="form-input" min="0" step="0.01" placeholder="0.00">
+                            <div class="change-amount">
+                                <span>Cambio: </span>
+                                <span id="changeAmount">S/ 0.00</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- POS Actions -->
-                    <div class="pos-actions">
-                        <button class="btn btn-outline btn-block" onclick="holdTransaction()">
+                    <!-- Acciones -->
+                    <div class="cart-actions">
+                        <button class="btn btn-outline btn-block" onclick="holdSale()" id="holdBtn" disabled>
                             <i class="fas fa-pause"></i>
                             Suspender Venta
                         </button>
@@ -238,9 +260,9 @@ function formatCurrency($amount) {
         </div>
     </main>
 
-    <!-- Modals -->
-    <div class="modal" id="transactionModal">
-        <div class="modal-content">
+    <!-- Modal: Venta Completada -->
+    <div class="modal-overlay" id="transactionModal">
+        <div class="modal modal-receipt">
             <div class="modal-header">
                 <h3>Venta Completada</h3>
                 <button class="modal-close" onclick="closeTransactionModal()">&times;</button>
@@ -259,10 +281,110 @@ function formatCurrency($amount) {
         </div>
     </div>
 
+    <!-- Modal: Cliente Rápido -->
+    <div class="modal-overlay" id="customerModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Nuevo Cliente</h3>
+                <button class="modal-close" onclick="closeCustomerModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="quickCustomerForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Nombre *</label>
+                            <input type="text" id="customerName" name="name" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Teléfono</label>
+                            <input type="tel" name="phone" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-input">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-outline" onclick="closeCustomerModal()">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i>
+                            Guardar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Producto Rápido -->
+    <div class="modal-overlay" id="quickProductModal">
+        <div class="modal modal-large">
+            <div class="modal-header">
+                <h3>Nuevo Producto</h3>
+                <button class="modal-close" onclick="closeQuickProductModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="quickProductForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Nombre del producto: *</label>
+                            <input type="text" id="quickProductName" name="name" class="form-input" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Categoría:</label>
+                                <select name="category_id" class="form-input">
+                                    <option value="">Seleccionar categoría</option>
+                                    <?php foreach ($categories as $category): ?>
+                                    <option value="<?php echo $category['id']; ?>">
+                                        <?php echo htmlspecialchars($category['name']); ?>
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Código de barras:</label>
+                                <input type="text" name="barcode" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Precio de costo: *</label>
+                                <input type="number" name="cost" class="form-input" step="0.01" min="0" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Precio de venta: *</label>
+                                <input type="number" name="price" class="form-input" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Stock inicial: *</label>
+                            <input type="number" name="stock" class="form-input" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Descripción:</label>
+                            <textarea name="description" class="form-input" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-outline" onclick="closeQuickProductModal()">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i>
+                            Guardar Producto
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
-    <script src="assets/js/notifications.js"></script>
-    <script src="assets/js/api.js"></script>
-    <script src="assets/js/pos.js"></script>
+    <?php includeJs('assets/js/app.js'); ?>
+    <?php includeJs('assets/js/pos.js'); ?>
     
     <script>
         // Initialize POS data
@@ -275,6 +397,5 @@ function formatCurrency($amount) {
             initializePOS();
         });
     </script>
-    <script src="assets/js/pos-notifications.js"></script>
 </body>
 </html>
