@@ -492,10 +492,15 @@ function printReceipt() {
 }
 
 function showMessage(message, type = 'info') {
-    if (typeof Messages !== 'undefined') {
-        Messages.show(message, type);
+    // Usar sistema básico de alertas
+    if (type === 'error') {
+        alert('❌ ' + message);
+    } else if (type === 'warning') {
+        alert('⚠️ ' + message);
+    } else if (type === 'success') {
+        alert('✅ ' + message);
     } else {
-        alert(message);
+        alert('ℹ️ ' + message);
     }
 }
 
