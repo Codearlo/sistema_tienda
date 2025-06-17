@@ -9,6 +9,19 @@ if (!isset($_SESSION['user_id'])) {
 
 $current_page = basename($_SERVER['PHP_SELF'], '.php');
 
+// Función para obtener nombre corto cuando sea muy largo
+function getDisplayName($fullName, $maxLength = 15) {
+    if (strlen($fullName) <= $maxLength) {
+        return $fullName;
+    }
+    
+    // Si el nombre es muy largo, mostrar solo el primer nombre
+    $names = explode(' ', $fullName);
+    return $names[0];
+}
+
+$user_display_name = getDisplayName($_SESSION['user_name'] ?? 'Usuario', 15);
+
 $menu_items = [
     'dashboard' => ['url' => 'dashboard.php', 'icon' => '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/>', 'label' => 'Dashboard'],
     'pos' => ['url' => 'pos.php', 'icon' => '<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>', 'label' => 'Punto de Venta', 'badge' => 'POS'],
@@ -19,7 +32,7 @@ $menu_items = [
     'debts' => ['url' => 'debts.php', 'icon' => '<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>', 'label' => 'Deudas'],
     'reports' => ['url' => 'reports.php', 'icon' => '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>', 'label' => 'Reportes'],
     'employees' => ['url' => 'employees.php', 'icon' => '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>', 'label' => 'Empleados'],
-    'settings' => ['url' => 'settings.php', 'icon' => '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>', 'label' => 'Configuración']
+    'settings' => ['url' => 'settings.php', 'icon' => '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>', 'label' => 'Configuración']
 ];
 
 // Forzar recarga de cache
@@ -67,105 +80,75 @@ forceCssReload();
                     </svg>
                 </div>
                 <div class="user-info">
-                    <div class="user-name"><?php echo htmlspecialchars($_SESSION['user_name']); ?></div>
-                    <div class="user-role"><?php echo ucfirst($_SESSION['user_type']); ?></div>
+                    <div class="user-name" title="<?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Usuario'); ?>">
+                        <?php echo htmlspecialchars($user_display_name); ?>
+                    </div>
+                    <div class="user-role"><?php echo ucfirst($_SESSION['user_type'] ?? 'Usuario'); ?></div>
                 </div>
             </div>
             <div class="sidebar-actions">
-                <a href="backend/auth/logout.php" class="sidebar-action-btn" title="Cerrar sesión">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                <a href="logout.php" class="sidebar-action-btn" data-tooltip="Cerrar Sesión">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16,17 21,12 16,7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
                     </svg>
                 </a>
+                <button class="sidebar-toggle" onclick="toggleSidebar()" data-tooltip="Contraer Sidebar">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15,18 9,12 15,6"/>
+                    </svg>
+                </button>
             </div>
         </div>
     </div>
 </aside>
 
 <script>
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.toggle('collapsed');
+    
+    // Guardar preferencia
+    localStorage.setItem('sidebar-collapsed', sidebar.classList.contains('collapsed'));
+}
+
 function toggleMobileSidebar() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('mobileOverlay');
     
-    if (!sidebar || !overlay) return;
-    
-    sidebar.classList.toggle('open');
+    sidebar.classList.toggle('mobile-open');
     overlay.classList.toggle('show');
     
-    if (sidebar.classList.contains('open')) {
+    if (sidebar.classList.contains('mobile-open')) {
         document.body.style.overflow = 'hidden';
     } else {
         document.body.style.overflow = '';
     }
 }
 
-function closeMobileSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('mobileOverlay');
-    
-    if (!sidebar || !overlay) return;
-    
-    sidebar.classList.remove('open');
-    overlay.classList.remove('show');
-    document.body.style.overflow = '';
-}
+// Cerrar sidebar móvil al hacer clic en overlay
+document.getElementById('mobileOverlay').addEventListener('click', function() {
+    toggleMobileSidebar();
+});
 
-function handleSidebarNavigation(event, url) {
-    event.preventDefault();
-    
-    const sidebar = document.getElementById('sidebar');
-    const isExpanded = sidebar.matches(':hover') || window.innerWidth <= 1024;
-    
-    if (isExpanded) {
-        // Agregar clase de animación de contracción
-        sidebar.classList.add('sidebar-contracting');
-        
-        // Forzar contracción
-        if (window.innerWidth > 1024) {
-            // En desktop, simular fin de hover
-            sidebar.style.width = '70px';
-            sidebar.style.pointerEvents = 'none';
-        } else {
-            // En móvil, cerrar sidebar
-            closeMobileSidebar();
-        }
-        
-        // Esperar a que termine la animación de contracción
-        setTimeout(() => {
-            window.location.href = url;
-        }, 300);
-    } else {
-        // Si ya está contraído, navegar directamente
-        window.location.href = url;
-    }
-}
-
+// Restaurar estado del sidebar
 document.addEventListener('DOMContentLoaded', function() {
-    const overlay = document.getElementById('mobileOverlay');
-    if (overlay) {
-        overlay.addEventListener('click', closeMobileSidebar);
-    }
-    
-    // Agregar event listeners a todos los enlaces del sidebar
-    const sidebarLinks = document.querySelectorAll('.sidebar-nav-link');
-    sidebarLinks.forEach(link => {
-        link.addEventListener('click', function(event) {
-            const url = this.getAttribute('href');
-            handleSidebarNavigation(event, url);
-        });
-    });
-    
-    // Restaurar funcionalidad normal después de la contracción
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar) {
-        sidebar.addEventListener('transitionend', function() {
-            this.classList.remove('sidebar-contracting');
-            this.style.pointerEvents = '';
-            this.style.width = '';
-        });
+    const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+    if (isCollapsed) {
+        document.getElementById('sidebar').classList.add('collapsed');
     }
 });
 
-window.toggleMobileSidebar = toggleMobileSidebar;
-window.closeMobileSidebar = closeMobileSidebar;
+// Cerrar sidebar móvil al cambiar el tamaño de ventana
+window.addEventListener('resize', function() {
+    if (window.innerWidth > 768) {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('mobileOverlay');
+        
+        sidebar.classList.remove('mobile-open');
+        overlay.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+});
 </script>

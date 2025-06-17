@@ -53,12 +53,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['first_name'] = $user['first_name'];
                 $_SESSION['last_name'] = $user['last_name'];
                 $_SESSION['user_name'] = trim($user['first_name'] . ' ' . $user['last_name']);
+                $_SESSION['user_name_short'] = $user['first_name'];
                 $_SESSION['user_type'] = $user['user_type'];
                 $_SESSION['logged_in_at'] = time();
                 
                 if ($user['business_id']) {
                     $_SESSION['business_id'] = $user['business_id'];
                     $_SESSION['business_name'] = $user['business_name'];
+                } else {
+                    // Si no tiene business asignado, usar el ID 1 como temporal
+                    $_SESSION['business_id'] = 1;
+                    $_SESSION['business_name'] = 'Negocio Principal';
                 }
                 
                 // Actualizar último login
@@ -363,7 +368,7 @@ if (isset($_SESSION['success_message'])) {
                     </button>
                     <button type="button" class="demo-btn" onclick="fillDemo('alejandro.cabanah@gmail.com', 'password123')">
                         <i class="fas fa-user"></i><br>
-                        Usuario
+                        Alejandro
                     </button>
                 </div>
             </div>
