@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             // Buscar usuario por email
-            $user = $db->fetchOne(
+            $user = $db->single(
                 "SELECT u.*, b.id as business_id, b.name as business_name 
                  FROM users u 
                  LEFT JOIN businesses b ON u.business_id = b.id 
@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Actualizar último login
                 try {
-                    $db->execute("UPDATE users SET last_login = ? WHERE id = ?", [date('Y-m-d H:i:s'), $user['id']]);
+                    $db->query("UPDATE users SET last_login = ? WHERE id = ?", [date('Y-m-d H:i:s'), $user['id']]);
                 } catch (Exception $updateError) {
                     error_log('Error updating last login: ' . $updateError->getMessage());
                 }
