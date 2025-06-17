@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
             
             // Buscar usuario
-            $stmt = $pdo->prepare("SELECT u.*, b.id as business_id, b.name as business_name 
+            $stmt = $pdo->prepare("SELECT u.*, b.id as business_id, b.business_name 
                                    FROM users u 
                                    LEFT JOIN businesses b ON u.business_id = b.id 
                                    WHERE u.email = ? AND u.status = 1");
