@@ -189,16 +189,12 @@ function isDevelopmentMode() {
            (isset($_SERVER['HTTP_HOST']) && in_array($_SERVER['HTTP_HOST'], ['localhost', '127.0.0.1']));
 }
 
-// ===== CONFIGURACIÓN DE ERRORES =====
-if (isDevelopmentMode()) {
-    error_reporting(E_ALL);
-    ini_set('display_errors', 1);
-    ini_set('display_startup_errors', 1);
-} else {
-    error_reporting(0);
-    ini_set('display_errors', 0);
-    ini_set('display_startup_errors', 0);
-}
+// Desactivar display_errors para depurar JSON output
+error_reporting(E_ALL); // Mantener reportes de errores en logs
+ini_set('display_errors', 0); // NO mostrar errores en la salida
+ini_set('display_startup_errors', 0); // NO mostrar errores de inicio en la salida
+ini_set('log_errors', 1); // Asegurarse de que los errores se registren
+ini_set('error_log', BASE_PATH . '/logs/php_error.log'); // Ruta del archivo de log
 
 // ===== CONFIGURACIÓN DE SESIÓN =====
 ini_set('session.cookie_httponly', 1);
