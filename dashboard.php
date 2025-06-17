@@ -86,7 +86,7 @@ try {
     
     // Productos más vendidos
     $top_products = $db->fetchAll(
-        "SELECT p.name, SUM(si.quantity) as total_sold, SUM(si.total_price) as revenue
+        "SELECT p.name, SUM(si.quantity) as total_sold, SUM(si.line_total) as revenue
          FROM sale_items si 
          JOIN products p ON si.product_id = p.id 
          JOIN sales s ON si.sale_id = s.id
