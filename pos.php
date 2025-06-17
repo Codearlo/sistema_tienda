@@ -275,5 +275,6 @@ function formatCurrency($amount) {
             initializePOS();
         });
     </script>
+    <script src="assets/js/pos-notifications.js"></script>
 </body>
 </html>

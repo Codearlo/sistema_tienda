@@ -776,3 +776,278 @@
     padding: var(--spacing-md);
   }
 }
+
+/* =====================================================
+   FIX PARA NOTIFICACIONES EN POS
+   Agregar al final de assets/css/layouts/pos.css
+   ===================================================== */
+
+/* ===== NOTIFICACIONES EN POS ===== */
+
+/* Contenedor de notificaciones específico para POS */
+.pos-page #notification-container {
+  position: fixed;
+  top: 80px; /* Debajo del header del POS */
+  right: 20px;
+  z-index: 9999; /* Por encima de todo */
+  max-width: 350px;
+  pointer-events: none;
+}
+
+/* Notificaciones individuales en POS */
+.pos-page .notification {
+  pointer-events: auto;
+  margin-bottom: 10px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  transform: translateX(100%);
+  opacity: 0;
+  animation: slideInNotification 0.3s ease-out forwards;
+  max-width: 350px;
+}
+
+/* Animación de entrada */
+@keyframes slideInNotification {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Animación de salida */
+.pos-page .notification.notification-exit {
+  animation: slideOutNotification 0.3s ease-in forwards;
+}
+
+@keyframes slideOutNotification {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* Tipos de notificación con colores específicos */
+.pos-page .notification-success {
+  border-left: 4px solid #10b981;
+}
+
+.pos-page .notification-error {
+  border-left: 4px solid #ef4444;
+}
+
+.pos-page .notification-warning {
+  border-left: 4px solid #f59e0b;
+}
+
+.pos-page .notification-info {
+  border-left: 4px solid #3b82f6;
+}
+
+.pos-page .notification-sale {
+  border-left: 4px solid #8b5cf6;
+}
+
+/* Contenido de la notificación */
+.pos-page .notification-content {
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.pos-page .notification-icon {
+  font-size: 20px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.pos-page .notification-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.pos-page .notification-title {
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.pos-page .notification-message {
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+.pos-page .notification-time {
+  color: #9ca3af;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.pos-page .notification-close {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.pos-page .notification-close:hover {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+/* Indicador de conexión en POS */
+.pos-page #connection-status {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ef4444;
+  z-index: 9998;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.pos-page #connection-status.connected {
+  background: #22c55e;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+}
+
+.pos-page #connection-status.disconnected {
+  background: #ef4444;
+  animation: pulseRed 2s infinite;
+}
+
+@keyframes pulseRed {
+  0%, 100% { 
+    opacity: 1; 
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.5; 
+    transform: scale(1.1);
+  }
+}
+
+/* Asegurar que las notificaciones no interfieran con modales */
+.pos-page .modal {
+  z-index: 10000; /* Por encima de notificaciones */
+}
+
+.pos-page .modal-overlay {
+  z-index: 9999;
+}
+
+/* Responsive: En móvil, notificaciones más pequeñas */
+@media (max-width: 768px) {
+  .pos-page #notification-container {
+    top: 60px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+  
+  .pos-page .notification {
+    max-width: none;
+    font-size: 13px;
+  }
+  
+  .pos-page .notification-content {
+    padding: 12px;
+  }
+  
+  .pos-page .notification-title {
+    font-size: 13px;
+  }
+  
+  .pos-page .notification-message {
+    font-size: 12px;
+  }
+}
+
+/* Fix para evitar que las notificaciones afecten el scroll del POS */
+.pos-page .pos-main {
+  position: relative;
+  z-index: 1;
+}
+
+.pos-page .pos-left,
+.pos-page .pos-right {
+  position: relative;
+  z-index: 2;
+}
+
+/* Limitar número de notificaciones visibles en POS */
+.pos-page #notification-container .notification:nth-child(n+4) {
+  display: none;
+}
+
+/* Notificaciones específicas para ventas en POS */
+.pos-page .notification-sale .notification-content {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+}
+
+.pos-page .notification-sale .notification-icon {
+  color: #8b5cf6;
+}
+
+/* Mini notificación para acciones rápidas */
+.pos-page .notification-mini {
+  padding: 8px 12px;
+  font-size: 12px;
+  border-radius: 6px;
+  animation-duration: 0.2s;
+}
+
+.pos-page .notification-mini .notification-content {
+  padding: 0;
+  gap: 8px;
+}
+
+.pos-page .notification-mini .notification-icon {
+  font-size: 16px;
+  margin-top: 0;
+}
+
+/* Estado de carga de notificaciones */
+.pos-page .notification-loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.pos-page .notification-loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+  animation: loadingBar 1s infinite;
+}
+
+@keyframes loadingBar {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
