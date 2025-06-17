@@ -94,57 +94,15 @@ function setStaticCacheHeaders($maxAge = 3600) {
     header("Cache-Control: public, max-age=" . $maxAge);
     header("Expires: " . gmdate('D, d M Y H:i:s', time() + $maxAge) . ' GMT');
     header("Last-Modified: " . gmdate('D, d M Y H:i:s', filemtime(__FILE__)) . ' GMT');
-}
-
-/**
- * Genera headers para evitar caché en páginas dinámicas
- */
-function setNoCacheHeaders() {
-    header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
-    header("Cache-Control: post-check=0, pre-check=0", false);
-    header("Pragma: no-cache");
-    header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");
-}
-
-/**
- * Verifica si un archivo ha sido modificado
- */
-function isFileModified($filePath, $lastModified) {
-    if (!file_exists($filePath)) {
-        return false;
-    }
     
-    return filemtime($filePath) > $lastModified;
-}
-
-/**
- * Genera ETag para un archivo
- */
-function generateETag($filePath) {
-    if (!file_exists($filePath)) {
-        return false;
-    }
-    
-    $mtime = filemtime($filePath);
-    $size = filesize($filePath);
-    
-    return md5($filePath . $mtime . $size);
-}
-
-/**
- * Verifica headers de caché del navegador
- */
-function checkBrowserCache($filePath) {
-    if (!file_exists($filePath)) {
-        return false;
-    }
-    
-    $etag = generateETag($filePath);
-    $lastModified = filemtime($filePath);
+    // ETag para control de cache más eficiente
+    $etag = md5_file(__FILE__);
+    header("ETag: " . $etag);
     
     // Verificar If-None-Match (ETag)
     if (isset($_SERVER['HTTP_IF_NONE_MATCH']) && $_SERVER['HTTP_IF_NONE_MATCH'] == $etag) {
         header('HTTP/1.1 304 Not Modified');
+        header('Last-Modified: ' . gmdate('D, d M Y H:i:s', filemtime(__FILE__)) . ' GMT');
         header('ETag: ' . $etag);
         exit();
     }
@@ -152,6 +110,7 @@ function checkBrowserCache($filePath) {
     // Verificar If-Modified-Since
     if (isset($_SERVER['HTTP_IF_MODIFIED_SINCE'])) {
         $ifModifiedSince = strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']);
+        $lastModified = filemtime(__FILE__);
         if ($lastModified <= $ifModifiedSince) {
             header('HTTP/1.1 304 Not Modified');
             header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $lastModified) . ' GMT');
@@ -260,142 +219,93 @@ function combineJsFiles($jsFiles, $outputFile) {
 }
 
 /**
- * Obtiene el tipo MIME de un archivo
+ * Verificar si un archivo necesita ser regenerado
  */
-function getFileMimeType($filePath) {
-    $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-    
-    $mimeTypes = [
-        'css' => 'text/css',
-        'js' => 'text/javascript',
-        'png' => 'image/png',
-        'jpg' => 'image/jpeg',
-        'jpeg' => 'image/jpeg',
-        'gif' => 'image/gif',
-        'svg' => 'image/svg+xml',
-        'woff' => 'font/woff',
-        'woff2' => 'font/woff2',
-        'ttf' => 'font/ttf',
-        'eot' => 'application/vnd.ms-fontobject'
-    ];
-    
-    return isset($mimeTypes[$extension]) ? $mimeTypes[$extension] : 'application/octet-stream';
-}
-
-/**
- * Sirve un archivo estático con headers de caché apropiados
- */
-function serveStaticFile($filePath, $maxAge = 86400) {
-    if (!file_exists($filePath)) {
-        header('HTTP/1.1 404 Not Found');
-        exit();
+function needsRegeneration($sourceFiles, $targetFile) {
+    if (!file_exists($targetFile)) {
+        return true;
     }
     
-    // Verificar caché del navegador
-    checkBrowserCache($filePath);
+    $targetTime = filemtime($targetFile);
     
-    // Configurar headers
-    $mimeType = getFileMimeType($filePath);
-    $lastModified = filemtime($filePath);
-    $etag = generateETag($filePath);
+    foreach ($sourceFiles as $sourceFile) {
+        if (file_exists($sourceFile) && filemtime($sourceFile) > $targetTime) {
+            return true;
+        }
+    }
     
-    header('Content-Type: ' . $mimeType);
-    header('Content-Length: ' . filesize($filePath));
-    header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $lastModified) . ' GMT');
-    header('ETag: ' . $etag);
-    header('Cache-Control: public, max-age=' . $maxAge);
-    header('Expires: ' . gmdate('D, d M Y H:i:s', time() + $maxAge) . ' GMT');
-    
-    // Enviar el archivo
-    readfile($filePath);
-    exit();
+    return false;
 }
 
 /**
- * Limpia todos los archivos de caché
+ * Optimiza imágenes para web
  */
-function clearAllCache($cacheDir = 'cache/') {
-    if (!is_dir($cacheDir)) {
+function optimizeImage($sourcePath, $targetPath = null, $quality = 85) {
+    if (!$targetPath) {
+        $targetPath = $sourcePath;
+    }
+    
+    $imageInfo = getimagesize($sourcePath);
+    if (!$imageInfo) {
         return false;
     }
     
-    $files = glob($cacheDir . '*');
-    foreach ($files as $file) {
-        if (is_file($file)) {
-            unlink($file);
-        }
+    $mimeType = $imageInfo['mime'];
+    
+    switch ($mimeType) {
+        case 'image/jpeg':
+            $image = imagecreatefromjpeg($sourcePath);
+            imagejpeg($image, $targetPath, $quality);
+            break;
+        case 'image/png':
+            $image = imagecreatefrompng($sourcePath);
+            imagepng($image, $targetPath, round($quality / 10));
+            break;
+        case 'image/gif':
+            $image = imagecreatefromgif($sourcePath);
+            imagegif($image, $targetPath);
+            break;
+        default:
+            return false;
+    }
+    
+    if (isset($image)) {
+        imagedestroy($image);
     }
     
     return true;
 }
 
 /**
- * Genera un hash único para el estado actual de los assets
+ * Obtiene el tipo MIME de un archivo
  */
-function getAssetsHash($assetPaths) {
-    $hashData = '';
-    
-    foreach ($assetPaths as $path) {
-        if (file_exists($path)) {
-            $hashData .= $path . filemtime($path);
-        }
+function getMimeType($filePath) {
+    if (function_exists('finfo_file')) {
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mimeType = finfo_file($finfo, $filePath);
+        finfo_close($finfo);
+        return $mimeType;
     }
     
-    return md5($hashData);
+    return mime_content_type($filePath);
 }
 
 /**
- * Verifica si los assets necesitan ser regenerados
+ * Configuración automática basada en el entorno
  */
-function assetsNeedRegeneration($assetPaths, $cacheFile) {
-    if (!file_exists($cacheFile)) {
-        return true;
-    }
-    
-    $currentHash = getAssetsHash($assetPaths);
-    $cachedHash = file_get_contents($cacheFile . '.hash');
-    
-    return $currentHash !== $cachedHash;
-}
-
-/**
- * Configuración global de caché para desarrollo/producción
- */
-function configureCacheEnvironment($environment = 'development') {
-    if ($environment === 'production') {
-        // En producción, usar caché agresivo
-        ini_set('opcache.enable', 1);
-        ini_set('opcache.memory_consumption', 128);
-        ini_set('opcache.max_accelerated_files', 4000);
-        ini_set('opcache.revalidate_freq', 60);
+function setupCacheEnvironment() {
+    if (defined('ENVIRONMENT') && ENVIRONMENT === 'production') {
+        // Producción: Cache agresivo
+        header("Cache-Control: public, max-age=31536000"); // 1 año
+        header("Expires: " . gmdate('D, d M Y H:i:s', time() + 31536000) . ' GMT');
     } else {
-        // En desarrollo, desactivar caché
-        ini_set('opcache.enable', 0);
-        setNoCacheHeaders();
+        // Desarrollo: Sin cache
+        header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+        header("Pragma: no-cache");
+        header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");
     }
 }
 
-/**
- * Log de actividad de caché
- */
-function logCacheActivity($message, $level = 'INFO') {
-    $logFile = 'logs/cache.log';
-    $timestamp = date('Y-m-d H:i:s');
-    $logMessage = "[{$timestamp}] [{$level}] {$message}" . PHP_EOL;
-    
-    // Crear directorio de logs si no existe
-    $logDir = dirname($logFile);
-    if (!is_dir($logDir)) {
-        mkdir($logDir, 0755, true);
-    }
-    
-    file_put_contents($logFile, $logMessage, FILE_APPEND | LOCK_EX);
-}
-
-// Configurar el entorno de caché automáticamente
-$environment = defined('APP_ENV') ? APP_ENV : 'development';
-configureCacheEnvironment($environment);
-
-// Log de inicialización
-logCacheActivity('Cache control system initialized');
+// Ejecutar configuración automáticamente
+setupCacheEnvironment();
 ?>
