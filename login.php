@@ -4,13 +4,17 @@ require_once 'backend/config/config.php';
 require_once 'backend/config/database.php';
 require_once 'includes/cache_control.php';
 
-// Funciones auxiliares
-function cleanInput($data) {
-    return htmlspecialchars(strip_tags(trim($data)));
+// Funciones auxiliares (solo si no existen)
+if (!function_exists('cleanInput')) {
+    function cleanInput($data) {
+        return htmlspecialchars(strip_tags(trim($data)));
+    }
 }
 
-function isLoggedIn() {
-    return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
+if (!function_exists('isLoggedIn')) {
+    function isLoggedIn() {
+        return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
+    }
 }
 
 // Si ya está logueado, redirigir al dashboard
