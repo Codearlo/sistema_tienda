@@ -100,7 +100,7 @@ function setProductionCacheHeaders($maxAge = 3600) {
  */
 function setupCacheEnvironment() {
     if (defined('ENVIRONMENT') && ENVIRONMENT === 'production') {
-        setProductionCacheHeaders(31536000); // 1 año
+        setProductionCacheHeaders(31536000);
     } else {
         forceCssReload();
     }

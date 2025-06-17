@@ -22,7 +22,8 @@ class Database {
                 [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_EMULATE_PREPARES => false
+                    PDO::ATTR_EMULATE_PREPARES => false,
+                    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
                 ]
             );
         } catch (PDOException $e) {
@@ -90,33 +91,40 @@ class Database {
             
         } catch (PDOException $e) {
             error_log("Insert error: " . $e->getMessage() . " Table: " . $table);
-            throw new Exception("Error al insertar registro");
+            throw new Exception("Error al insertar datos");
         }
     }
     
     /**
      * Actualizar registro
      */
-    public function update($table, $data, $whereCondition, $whereParams = []) {
+    public function update($table, $data, $where, $params = []) {
         try {
-            $setParams = [];
-            $set = [];
-            
-            foreach ($data as $key => $value) {
-                $set[] = "{$key} = ?";
-                $setParams[] = $value;
+            $setParts = [];
+            foreach (array_keys($data) as $key) {
+                $setParts[] = "{$key} = :{$key}";
             }
-            $setClause = implode(', ', $set);
+            $setClause = implode(', ', $setParts);
             
-            $sql = "UPDATE {$table} SET {$setClause} WHERE {$whereCondition}";
-            $finalParams = array_merge($setParams, $whereParams);
-            
+            $sql = "UPDATE {$table} SET {$setClause} WHERE {$where}";
             $stmt = $this->pdo->prepare($sql);
-            return $stmt->execute($finalParams);
+            
+            // Bind data values
+            foreach ($data as $key => $value) {
+                $stmt->bindValue(":{$key}", $value);
+            }
+            
+            // Bind where parameters
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+            
+            $stmt->execute();
+            return $stmt->rowCount();
             
         } catch (PDOException $e) {
             error_log("Update error: " . $e->getMessage() . " Table: " . $table);
-            throw new Exception("Error al actualizar registro");
+            throw new Exception("Error al actualizar datos");
         }
     }
     
@@ -127,23 +135,24 @@ class Database {
         try {
             $sql = "DELETE FROM {$table} WHERE {$where}";
             $stmt = $this->pdo->prepare($sql);
-            return $stmt->execute($params);
+            $stmt->execute($params);
+            return $stmt->rowCount();
         } catch (PDOException $e) {
             error_log("Delete error: " . $e->getMessage() . " Table: " . $table);
-            throw new Exception("Error al eliminar registro");
+            throw new Exception("Error al eliminar datos");
         }
     }
     
     /**
      * Contar registros
      */
-    public function count($table, $where = '1=1', $params = []) {
+    public function count($table, $where = '1', $params = []) {
         try {
             $sql = "SELECT COUNT(*) as total FROM {$table} WHERE {$where}";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
             $result = $stmt->fetch();
-            return $result['total'];
+            return intval($result['total']);
         } catch (PDOException $e) {
             error_log("Count error: " . $e->getMessage() . " Table: " . $table);
             throw new Exception("Error al contar registros");
@@ -180,6 +189,44 @@ class Database {
     }
     
     /**
+     * Obtener con paginación
+     */
+    public function paginate($sql, $params = [], $page = 1, $perPage = 20) {
+        try {
+            // Calcular offset
+            $offset = ($page - 1) * $perPage;
+            
+            // Contar total de registros
+            $countSql = "SELECT COUNT(*) as total FROM ({$sql}) as count_query";
+            $totalStmt = $this->pdo->prepare($countSql);
+            $totalStmt->execute($params);
+            $total = intval($totalStmt->fetch()['total']);
+            
+            // Obtener datos paginados
+            $paginatedSql = $sql . " LIMIT {$perPage} OFFSET {$offset}";
+            $dataStmt = $this->pdo->prepare($paginatedSql);
+            $dataStmt->execute($params);
+            $data = $dataStmt->fetchAll();
+            
+            return [
+                'data' => $data,
+                'pagination' => [
+                    'current_page' => $page,
+                    'per_page' => $perPage,
+                    'total' => $total,
+                    'last_page' => ceil($total / $perPage),
+                    'from' => $offset + 1,
+                    'to' => min($offset + $perPage, $total)
+                ]
+            ];
+            
+        } catch (PDOException $e) {
+            error_log("Paginate error: " . $e->getMessage() . " SQL: " . $sql);
+            throw new Exception("Error en la paginación");
+        }
+    }
+    
+    /**
      * Iniciar transacción
      */
     public function beginTransaction() {
@@ -206,6 +253,58 @@ class Database {
     public function lastInsertId() {
         return $this->pdo->lastInsertId();
     }
+    
+    /**
+     * Preparar statement
+     */
+    public function prepare($sql) {
+        return $this->pdo->prepare($sql);
+    }
+    
+    /**
+     * Obtener información de la base de datos
+     */
+    public function getInfo() {
+        try {
+            $version = $this->pdo->getAttribute(PDO::ATTR_SERVER_VERSION);
+            $status = $this->pdo->getAttribute(PDO::ATTR_CONNECTION_STATUS);
+            
+            return [
+                'version' => $version,
+                'status' => $status,
+                'driver' => $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME)
+            ];
+        } catch (PDOException $e) {
+            error_log("Database info error: " . $e->getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Verificar conexión
+     */
+    public function isConnected() {
+        try {
+            $this->pdo->query('SELECT 1');
+            return true;
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+    
+    /**
+     * Cerrar conexión
+     */
+    public function close() {
+        $this->pdo = null;
+    }
+    
+    /**
+     * Destructor
+     */
+    public function __destruct() {
+        $this->close();
+    }
 }
 
 /**
@@ -220,5 +319,40 @@ function getDB() {
  */
 function getPDO() {
     return Database::getInstance()->getPDO();
+}
+
+/**
+ * Función helper para ejecutar consultas rápidas
+ */
+function dbQuery($sql, $params = []) {
+    return Database::getInstance()->fetchAll($sql, $params);
+}
+
+/**
+ * Función helper para obtener un solo registro
+ */
+function dbSingle($sql, $params = []) {
+    return Database::getInstance()->single($sql, $params);
+}
+
+/**
+ * Función helper para insertar
+ */
+function dbInsert($table, $data) {
+    return Database::getInstance()->insert($table, $data);
+}
+
+/**
+ * Función helper para actualizar
+ */
+function dbUpdate($table, $data, $where, $params = []) {
+    return Database::getInstance()->update($table, $data, $where, $params);
+}
+
+/**
+ * Función helper para eliminar
+ */
+function dbDelete($table, $where, $params = []) {
+    return Database::getInstance()->delete($table, $where, $params);
 }
 ?>
