@@ -1,9 +1,6 @@
 <?php
-/**
- * BARRA LATERAL DE NAVEGACIÓN
- * Archivo: includes/slidebar.php
- */
-
+// Archivo: includes/slidebar.php
+// Incluir sistema de control de cache
 require_once __DIR__ . '/cache_control.php';
 
 if (!isset($_SESSION['user_id'])) {
@@ -12,99 +9,60 @@ if (!isset($_SESSION['user_id'])) {
 
 $current_page = basename($_SERVER['PHP_SELF'], '.php');
 
-// Función para nombres cortos
+// Función para obtener nombre corto cuando sea muy largo
 function getDisplayName($fullName, $maxLength = 15) {
     if (strlen($fullName) <= $maxLength) {
         return $fullName;
     }
+    
+    // Si el nombre es muy largo, mostrar solo el primer nombre
     $names = explode(' ', $fullName);
     return $names[0];
 }
 
 $user_display_name = getDisplayName($_SESSION['user_name'] ?? 'Usuario', 15);
 
-// Menú de navegación
 $menu_items = [
-    'dashboard' => [
-        'url' => 'dashboard.php', 
-        'icon' => 'fas fa-home', 
-        'label' => 'Dashboard'
-    ],
-    'pos' => [
-        'url' => 'pos.php', 
-        'icon' => 'fas fa-cash-register', 
-        'label' => 'Punto de Venta', 
-        'badge' => 'POS'
-    ],
-    'sales' => [
-        'url' => 'sales.php', 
-        'icon' => 'fas fa-chart-line', 
-        'label' => 'Ventas'
-    ],
-    'products' => [
-        'url' => 'products.php', 
-        'icon' => 'fas fa-box', 
-        'label' => 'Productos'
-    ],
-    'customers' => [
-        'url' => 'customers.php', 
-        'icon' => 'fas fa-users', 
-        'label' => 'Clientes'
-    ],
-    'expenses' => [
-        'url' => 'expenses.php', 
-        'icon' => 'fas fa-receipt', 
-        'label' => 'Gastos'
-    ],
-    'debts' => [
-        'url' => 'debts.php', 
-        'icon' => 'fas fa-credit-card', 
-        'label' => 'Deudas'
-    ],
-    'reports' => [
-        'url' => 'reports.php', 
-        'icon' => 'fas fa-chart-bar', 
-        'label' => 'Reportes'
-    ],
-    'employees' => [
-        'url' => 'employees.php', 
-        'icon' => 'fas fa-user-tie', 
-        'label' => 'Empleados'
-    ],
-    'settings' => [
-        'url' => 'settings.php', 
-        'icon' => 'fas fa-cog', 
-        'label' => 'Configuración'
-    ]
+    'dashboard' => ['url' => 'dashboard.php', 'icon' => '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/>', 'label' => 'Dashboard'],
+    'pos' => ['url' => 'pos.php', 'icon' => '<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>', 'label' => 'Punto de Venta', 'badge' => 'POS'],
+    'sales' => ['url' => 'sales.php', 'icon' => '<circle cx="12" cy="12" r="10"/><path d="M16 8l-4 4-4-4"/>', 'label' => 'Ventas'],
+    'products' => ['url' => 'products.php', 'icon' => '<path d="M20 7h-9a2 2 0 0 1-2-2V2"/><path d="M9 2v5a2 2 0 0 0 2 2h9"/><path d="M3 13.6V7a2 2 0 0 1 2-2h5"/><path d="M3 21h18"/>', 'label' => 'Productos'],
+    'customers' => ['url' => 'customers.php', 'icon' => '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', 'label' => 'Clientes'],
+    'expenses' => ['url' => 'expenses.php', 'icon' => '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', 'label' => 'Gastos'],
+    'debts' => ['url' => 'debts.php', 'icon' => '<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>', 'label' => 'Deudas'],
+    'reports' => ['url' => 'reports.php', 'icon' => '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>', 'label' => 'Reportes'],
+    'employees' => ['url' => 'employees.php', 'icon' => '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>', 'label' => 'Empleados'],
+    'settings' => ['url' => 'settings.php', 'icon' => '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>', 'label' => 'Configuración']
 ];
 
-// Filtrar menú según tipo de usuario
-$user_type = $_SESSION['user_type'] ?? 'employee';
-if ($user_type === 'employee' || $user_type === 'cashier') {
-    unset($menu_items['employees'], $menu_items['settings'], $menu_items['reports']);
-}
+// Forzar recarga de cache
+forceCssReload();
 ?>
+<div class="mobile-overlay" id="mobileOverlay"></div>
 
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
-        <div class="logo">
-            <img src="assets/images/logo.png" alt="Treinta" class="logo-img">
-            <span class="logo-text">Treinta</span>
+        <svg class="sidebar-logo" viewBox="0 0 100 100" width="40" height="40">
+            <circle cx="50" cy="50" r="45" fill="#2563eb"/>
+            <text x="50" y="58" text-anchor="middle" fill="white" font-size="24" font-weight="bold">30</text>
+        </svg>
+        <div class="sidebar-title-section">
+            <h2 class="sidebar-title">Treinta</h2>
+            <p class="sidebar-business"><?php echo htmlspecialchars($_SESSION['business_name'] ?? 'Mi Negocio'); ?></p>
         </div>
-        <button class="sidebar-toggle mobile-only" onclick="toggleMobileSidebar()">
-            <i class="fas fa-times"></i>
-        </button>
     </div>
 
     <nav class="sidebar-nav">
-        <ul class="nav-menu">
+        <ul class="sidebar-nav-list">
             <?php foreach ($menu_items as $key => $item): ?>
-                <li class="nav-item <?php echo ($current_page === $key) ? 'active' : ''; ?>">
-                    <a href="<?php echo $item['url']; ?>" class="nav-link">
-                        <i class="<?php echo $item['icon']; ?>"></i>
-                        <span class="nav-text"><?php echo $item['label']; ?></span>
+                <li class="sidebar-nav-item">
+                    <a href="<?php echo $item['url']; ?>" class="sidebar-nav-link <?php echo $current_page === $key ? 'active' : ''; ?>" data-page="<?php echo $key; ?>" data-tooltip="<?php echo $item['label']; ?>">
+                        <svg class="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <?php echo $item['icon']; ?>
+                        </svg>
+                        <span class="sidebar-nav-label"><?php echo $item['label']; ?></span>
                         <?php if (isset($item['badge'])): ?>
-                            <span class="nav-badge"><?php echo $item['badge']; ?></span>
+                            <span class="sidebar-nav-badge"><?php echo $item['badge']; ?></span>
                         <?php endif; ?>
                     </a>
                 </li>
@@ -113,55 +71,84 @@ if ($user_type === 'employee' || $user_type === 'cashier') {
     </nav>
 
     <div class="sidebar-footer">
-        <div class="user-info">
-            <div class="user-avatar">
-                <i class="fas fa-user"></i>
+        <div class="user-profile">
+            <div class="user-profile-info">
+                <div class="user-avatar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                </div>
+                <div class="user-info">
+                    <div class="user-name" title="<?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Usuario'); ?>">
+                        <?php echo htmlspecialchars($user_display_name); ?>
+                    </div>
+                    <div class="user-role"><?php echo ucfirst($_SESSION['user_type'] ?? 'Usuario'); ?></div>
+                </div>
             </div>
-            <div class="user-details">
-                <div class="user-name"><?php echo htmlspecialchars($user_display_name); ?></div>
-                <div class="user-role"><?php echo ucfirst($_SESSION['user_type'] ?? 'Usuario'); ?></div>
+            <div class="sidebar-actions">
+                <a href="logout.php" class="sidebar-action-btn" data-tooltip="Cerrar Sesión">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16,17 21,12 16,7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                </a>
+                <button class="sidebar-toggle" onclick="toggleSidebar()" data-tooltip="Contraer Sidebar">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15,18 9,12 15,6"/>
+                    </svg>
+                </button>
             </div>
-        </div>
-        
-        <div class="sidebar-actions">
-            <a href="profile.php" class="action-btn" title="Perfil">
-                <i class="fas fa-user-circle"></i>
-            </a>
-            <a href="logout.php" class="action-btn" title="Cerrar Sesión">
-                <i class="fas fa-sign-out-alt"></i>
-            </a>
         </div>
     </div>
 </aside>
 
-<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobileSidebar()"></div>
-
 <script>
-function toggleMobileSidebar() {
+function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-    const body = document.body;
+    sidebar.classList.toggle('collapsed');
     
-    sidebar.classList.toggle('sidebar-open');
-    overlay.classList.toggle('active');
-    body.classList.toggle('sidebar-mobile-open');
+    // Guardar preferencia
+    localStorage.setItem('sidebar-collapsed', sidebar.classList.contains('collapsed'));
 }
 
-// Cerrar sidebar en móvil al hacer clic en un enlace
-document.querySelectorAll('.nav-link').forEach(link => {
-    link.addEventListener('click', () => {
-        if (window.innerWidth <= 768) {
-            toggleMobileSidebar();
-        }
-    });
+function toggleMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('mobileOverlay');
+    
+    sidebar.classList.toggle('mobile-open');
+    overlay.classList.toggle('show');
+    
+    if (sidebar.classList.contains('mobile-open')) {
+        document.body.style.overflow = 'hidden';
+    } else {
+        document.body.style.overflow = '';
+    }
+}
+
+// Cerrar sidebar móvil al hacer clic en overlay
+document.getElementById('mobileOverlay').addEventListener('click', function() {
+    toggleMobileSidebar();
 });
 
-// Cerrar sidebar al redimensionar ventana
-window.addEventListener('resize', () => {
+// Restaurar estado del sidebar
+document.addEventListener('DOMContentLoaded', function() {
+    const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+    if (isCollapsed) {
+        document.getElementById('sidebar').classList.add('collapsed');
+    }
+});
+
+// Cerrar sidebar móvil al cambiar el tamaño de ventana
+window.addEventListener('resize', function() {
     if (window.innerWidth > 768) {
-        document.getElementById('sidebar').classList.remove('sidebar-open');
-        document.getElementById('sidebarOverlay').classList.remove('active');
-        document.body.classList.remove('sidebar-mobile-open');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('mobileOverlay');
+        
+        sidebar.classList.remove('mobile-open');
+        overlay.classList.remove('show');
+        document.body.style.overflow = '';
     }
 });
 </script>
