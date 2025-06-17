@@ -44,15 +44,24 @@ try {
 // Test 3: Funciones auxiliares
 echo "<h2>3. Test Funciones</h2>";
 
-function cleanInput($data) {
-    return htmlspecialchars(strip_tags(trim($data)));
+// Solo definir si no existe
+if (!function_exists('cleanInput')) {
+    function cleanInput($data) {
+        return htmlspecialchars(strip_tags(trim($data)));
+    }
+    echo "✅ cleanInput() definida<br>";
+} else {
+    echo "✅ cleanInput() ya existe<br>";
 }
 
-function isLoggedIn() {
-    return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
+if (!function_exists('isLoggedIn')) {
+    function isLoggedIn() {
+        return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
+    }
+    echo "✅ isLoggedIn() definida<br>";
+} else {
+    echo "✅ isLoggedIn() ya existe<br>";
 }
-
-echo "✅ Funciones definidas<br>";
 
 // Test 4: Test login directo
 echo "<h2>4. Test Login Manual</h2>";
