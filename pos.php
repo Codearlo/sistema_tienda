@@ -48,14 +48,6 @@ try {
         WHERE p.business_id = ? AND p.status = 1 
         ORDER BY p.name ASC
     ", [$business_id]);
-
-    // Cargar ventas suspendidas
-    $suspended_sales = $db->fetchAll("
-        SELECT id, sale_number, customer_id, total, created_at
-        FROM suspended_sales
-        WHERE business_id = ? AND status = 'active'
-        ORDER BY created_at DESC
-    ", [$business_id]);
     
 } catch (Exception $e) {
     $error_message = "Error de conexión: " . $e->getMessage();
@@ -248,7 +240,6 @@ function formatCurrency($amount) {
         </div>
     </div>
 
-    <script src="assets/js/notifications.js"></script>
     <script src="assets/js/api.js"></script>
     <script src="assets/js/pos.js"></script>
     
@@ -265,9 +256,6 @@ function formatCurrency($amount) {
             echo json_encode($formatted_products);
         ?>;
         
-        const initialSuspendedSales = <?php echo json_encode($suspended_sales); ?>;
-
-
         // Initialize POS when DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
             initializePOS();
