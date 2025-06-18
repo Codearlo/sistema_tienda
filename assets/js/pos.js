@@ -139,8 +139,8 @@ function loadProducts() {
     if (emptyState) emptyState.style.display = 'none';
     
     const html = filteredProducts.map(product => {
-        const isOutOfStock = product.track_stock && product.current_stock <= 0;
-        const isLowStock = product.track_stock && product.current_stock <= product.min_stock && product.current_stock > 0;
+        const isOutOfStock = product.track_stock && product.stock_quantity <= 0;
+        const isLowStock = product.track_stock && product.stock_quantity <= product.min_stock && product.stock_quantity > 0;
         
         return `
             <div class="product-card ${isOutOfStock ? 'out-of-stock' : ''}" 
@@ -157,7 +157,7 @@ function loadProducts() {
                     <p class="product-category">${escapeHtml(product.category_name || 'Sin categoría')}</p>
                     <div class="product-price">S/ ${parseFloat(product.selling_price).toFixed(2)}</div>
                     <div class="product-stock ${isLowStock ? 'low-stock' : ''}">
-                        Stock: ${product.current_stock || 0} ${product.unit || 'unidades'}
+                        Stock: ${product.stock_quantity || 0} ${product.unit || 'unidades'}
                     </div>
                     ${isOutOfStock ? '<div class="out-of-stock-label">Sin Stock</div>' : ''}
                 </div>
@@ -186,7 +186,7 @@ function addToCart(productId) {
     }
     
     // Verificar stock disponible
-    if (product.track_stock && product.current_stock <= 0) {
+    if (product.track_stock && product.stock_quantity <= 0) {
         showNotification('Producto sin stock disponible', 'error');
         return;
     }
@@ -196,8 +196,8 @@ function addToCart(productId) {
     
     if (existingItem) {
         // Verificar stock antes de incrementar
-        if (product.track_stock && existingItem.quantity >= product.current_stock) {
-            showNotification(`Stock máximo disponible: ${product.current_stock}`, 'warning');
+        if (product.track_stock && existingItem.quantity >= product.stock_quantity) {
+            showNotification(`Stock máximo disponible: ${product.stock_quantity}`, 'warning');
             return;
         }
         existingItem.quantity += 1;
@@ -209,7 +209,7 @@ function addToCart(productId) {
             price: parseFloat(product.selling_price),
             quantity: 1,
             track_stock: product.track_stock,
-            available_stock: product.current_stock
+            available_stock: product.stock_quantity
         });
     }
     

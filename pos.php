@@ -17,9 +17,9 @@ try {
     // CORREGIDO: Cargar productos con stock actualizado desde tabla 'products'
     $products = $db->fetchAll(
         "SELECT p.id, p.name, p.sku, p.barcode, p.selling_price, 
-                p.stock_quantity as current_stock, p.min_stock, p.track_stock,
+                p.stock_quantity, p.min_stock, p.track_stock,
                 c.name as category_name, p.category_id,
-                p.image, p.unit
+                p.image, p.unit, p.description
          FROM products p 
          LEFT JOIN categories c ON p.category_id = c.id 
          WHERE p.business_id = ? AND p.status = 1 
