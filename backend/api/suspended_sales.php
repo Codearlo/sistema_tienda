@@ -1,12 +1,12 @@
 <?php
 /**
  * API para manejo de ventas suspendidas
- * Versión mejorada con mejor manejo de errores y diagnósticos
+ * Versión con rutas corregidas
  */
 
 // Configuración de errores para desarrollo
 error_reporting(E_ALL);
-ini_set('display_errors', 0); // No mostrar errores en output para no romper JSON
+ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 
 // Iniciar sesión si no está iniciada
@@ -25,7 +25,6 @@ function debugLog($message, $data = null) {
 
 // Función mejorada para respuestas JSON
 function sendJsonResponse($success, $message, $data = null, $statusCode = 200) {
-    // Limpiar cualquier output previo que pueda estar causando problemas
     if (ob_get_length()) {
         ob_clean();
     }
@@ -47,10 +46,10 @@ function sendJsonResponse($success, $message, $data = null, $statusCode = 200) {
 debugLog("Iniciando suspended_sales.php", ['method' => $_SERVER['REQUEST_METHOD']]);
 
 try {
-    // Verificar que los archivos de configuración existan
+    // RUTAS CORREGIDAS - includes está en la raíz, no en backend
     $configFiles = [
         '../config/database.php' => realpath(__DIR__ . '/../config/database.php'),
-        '../includes/auth.php' => realpath(__DIR__ . '/../includes/auth.php')
+        '../../includes/auth.php' => realpath(__DIR__ . '/../../includes/auth.php')  // Subir dos niveles
     ];
     
     foreach ($configFiles as $file => $realPath) {
@@ -60,9 +59,9 @@ try {
         }
     }
     
-    // Incluir archivos necesarios
+    // Incluir archivos necesarios con rutas corregidas
     require_once '../config/database.php';
-    require_once '../includes/auth.php';
+    require_once '../../includes/auth.php';  // Ruta corregida
     
     debugLog("Archivos de configuración cargados correctamente");
     
@@ -344,3 +343,4 @@ function handleDeleteSuspendedSale($db, $business_id) {
         sendJsonResponse(false, 'Error al eliminar la venta suspendida: ' . $e->getMessage(), null, 500);
     }
 }
+?>
