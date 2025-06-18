@@ -1,49 +1,61 @@
 <?php
 session_start();
+
+require_once 'includes/onboarding_middleware.php';
+
+// Verificar que el usuario haya completado el onboarding
+requireOnboarding();
+
 require_once 'backend/config/database.php';
 require_once 'includes/cache_control.php';
 
-// Verificar autenticación
-if (!isset($_SESSION['user_id']) || !isset($_SESSION['business_id'])) {
+// ===== VERIFICACIÓN DE AUTENTICACIÓN =====
+if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
     exit();
 }
 
-$business_id = $_SESSION['business_id'];
+// ===== CONFIGURACIÓN Y CARGA DE DATOS =====
+$error_message = null;
+$categories = [];
+$customers = [];
+$products = [];
 
 try {
     $db = getDB();
-    
-    // CORREGIDO: Cargar productos con stock actualizado desde tabla 'products'
-    $products = $db->fetchAll(
-        "SELECT p.id, p.name, p.sku, p.barcode, p.selling_price, 
-                p.stock_quantity, p.min_stock, p.track_stock,
-                c.name as category_name, p.category_id,
-                p.image, p.unit, p.description
-         FROM products p 
-         LEFT JOIN categories c ON p.category_id = c.id 
-         WHERE p.business_id = ? AND p.status = 1 
-         ORDER BY p.name ASC",
-        [$business_id]
-    );
+    $business_id = $_SESSION['business_id'];
     
     // Cargar categorías
-    $categories = $db->fetchAll(
-        "SELECT * FROM categories WHERE business_id = ? AND status = 1 ORDER BY name ASC",
-        [$business_id]
-    );
+    $categories = $db->fetchAll("
+        SELECT * FROM categories 
+        WHERE business_id = ? AND status = 1 
+        ORDER BY name
+    ", [$business_id]);
     
     // Cargar clientes
-    $customers = $db->fetchAll(
-        "SELECT id, first_name, last_name, email, phone FROM customers WHERE business_id = ? AND status = 1 ORDER BY first_name ASC",
-        [$business_id]
-    );
+    $customers = $db->fetchAll("
+        SELECT id, CONCAT(first_name, ' ', last_name) as name 
+        FROM customers 
+        WHERE business_id = ? AND status = 1 
+        ORDER BY first_name
+    ", [$business_id]);
+    
+    // Cargar productos
+    $products = $db->fetchAll("
+        SELECT p.*, c.name as category_name 
+        FROM products p 
+        LEFT JOIN categories c ON p.category_id = c.id 
+        WHERE p.business_id = ? AND p.status = 1 
+        ORDER BY p.name ASC
+    ", [$business_id]);
     
 } catch (Exception $e) {
-    error_log("Error en POS: " . $e->getMessage());
-    $products = [];
-    $categories = [];
-    $customers = [];
+    $error_message = "Error de conexión: " . $e->getMessage();
+}
+
+// Función para formatear moneda
+function formatCurrency($amount) {
+    return 'S/ ' . number_format($amount, 2);
 }
 ?>
 
@@ -52,174 +64,170 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Punto de Venta - Sistema de Inventario</title>
-    
-    <!-- CSS Files -->
-    <link rel="stylesheet" href="assets/css/variables.css">
-    <link rel="stylesheet" href="assets/css/base.css">
-    <link rel="stylesheet" href="assets/css/layouts/pos.css">
-    <link rel="stylesheet" href="assets/css/components/buttons.css">
-    <link rel="stylesheet" href="assets/css/components/cards.css">
-    <link rel="stylesheet" href="assets/css/components/forms.css">
-    <link rel="stylesheet" href="assets/css/components/modals.css">
-    <link rel="stylesheet" href="assets/css/components/notifications.css">
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Punto de Venta - Treinta</title>
+    <?php 
+    forceCssReload();
+    includeCss('assets/css/style.css');
+    includeCss('assets/css/layouts/pos.css');
+    ?>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="pos-page">
-    <!-- Sidebar -->
-    <?php include 'includes/sidebar.php'; ?>
+<body class="dashboard-page">
+    <?php include 'includes/slidebar.php'; ?>
     
-    <!-- POS Container -->
-    <div class="pos-container">
-        <!-- Header -->
-        <header class="pos-header">
-            <div class="pos-title">
-                <button class="mobile-menu-btn" onclick="toggleSidebar()">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <div class="pos-logo">
-                    <i class="fas fa-cash-register"></i>
-                </div>
-                <h1>Punto de Venta</h1>
-            </div>
-            
-            <div class="pos-header-actions">
-                <div class="user-info">
-                    <div>Usuario: <?php echo htmlspecialchars($_SESSION['first_name'] . ' ' . $_SESSION['last_name']); ?></div>
-                    <div class="current-time" id="currentTime"></div>
-                </div>
-            </div>
-        </header>
-        
-        <!-- Main POS Content -->
-        <main class="pos-main">
-            <!-- Left Panel - Products -->
-            <div class="pos-left">
-                <!-- Search and filters -->
-                <div class="pos-filters">
-                    <div class="search-box">
-                        <input type="text" id="productSearch" placeholder="Buscar productos, SKU o código...">
-                        <i class="fas fa-search"></i>
+    <main class="main-content">
+        <div class="pos-container">
+            <!-- Header -->
+            <header class="pos-header">
+                <div class="pos-title">
+                    <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="pos-logo">
+                        <i class="fas fa-cash-register"></i>
                     </div>
+                    <h1>Punto de Venta</h1>
+                </div>
+                
+                <div class="pos-header-actions">
+                    <button class="btn btn-outline" onclick="clearCart()">
+                        <i class="fas fa-trash"></i>
+                        Limpiar
+                    </button>
+                    <button class="btn btn-success" onclick="completeTransaction()" id="completeBtn" disabled>
+                        <i class="fas fa-check"></i>
+                        Completar Venta
+                    </button>
                     
-                    <div class="filter-actions">
-                        <button class="btn btn-outline btn-sm" onclick="clearSearch()">
-                            <i class="fas fa-times"></i>
-                            Limpiar
-                        </button>
+                    <div class="user-info">
+                        <span><?php echo htmlspecialchars($_SESSION['user_name']); ?></span>
+                        <div class="current-time" id="currentTime"></div>
                     </div>
                 </div>
-                
-                <!-- Categories -->
-                <div class="categories-tabs" id="categoriesTabs">
-                    <!-- Categories will be loaded by JavaScript -->
-                </div>
-                
-                <!-- Products Grid -->
-                <div class="products-section">
-                    <div class="products-grid-pos" id="productsGrid">
-                        <!-- Products will be loaded by JavaScript -->
-                    </div>
-                    
-                    <div class="empty-state" id="emptyProducts" style="display: none;">
-                        <div class="empty-icon">
-                            <i class="fas fa-search"></i>
+            </header>
+
+            <!-- Main POS Layout -->
+            <div class="pos-main">
+                <!-- Left Panel - Products -->
+                <div class="pos-left">
+                    <!-- Search Section -->
+                    <div class="product-search-section">
+                        <div class="search-input-group">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" class="search-input" placeholder="Buscar productos..." 
+                                   id="productSearch" autocomplete="off">
+                            <button class="search-clear-btn" onclick="clearSearch()" style="display: none;">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
-                        <h3>No se encontraron productos</h3>
-                        <p>Intenta ajustar los filtros de búsqueda</p>
                     </div>
-                </div>
-            </div>
-            
-            <!-- Right Panel - Cart -->
-            <div class="pos-right">
-                <!-- Cart Header -->
-                <div class="cart-header">
-                    <h3>
-                        <i class="fas fa-shopping-cart"></i>
-                        Carrito de Compras
-                    </h3>
-                    <div class="cart-actions">
-                        <button class="btn btn-outline btn-sm" onclick="clearCart()" id="clearCartBtn" disabled>
-                            <i class="fas fa-trash"></i>
-                            Limpiar
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Customer Selection -->
-                <div class="customer-section">
-                    <label>Cliente:</label>
-                    <select id="customerSelect" class="form-control">
-                        <option value="">Cliente Genérico</option>
-                        <?php foreach ($customers as $customer): ?>
-                        <option value="<?php echo $customer['id']; ?>">
-                            <?php echo htmlspecialchars($customer['first_name'] . ' ' . $customer['last_name']); ?>
-                        </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                
-                <!-- Cart Items -->
-                <div class="cart-items" id="cartItems">
-                    <div class="empty-cart">
-                        <div class="empty-cart-icon">
-                            <i class="fas fa-shopping-cart"></i>
+
+                    <!-- Quick Categories -->
+                    <div class="categories-quick">
+                        <h3>Categorías</h3>
+                        <div class="categories-grid" id="categoriesGrid">
+                            <!-- Categories will be loaded here -->
                         </div>
-                        <p>El carrito está vacío</p>
-                        <small>Selecciona productos para comenzar una venta</small>
+                    </div>
+
+                    <!-- Products Grid -->
+                    <div class="products-section">
+                        <div class="products-grid-pos" id="productsGrid">
+                            <!-- Products will be loaded here -->
+                        </div>
+                        
+                        <!-- Empty state -->
+                        <div class="empty-state" id="emptyProducts" style="display: none;">
+                            <i class="fas fa-box-open fa-3x"></i>
+                            <h3>No hay productos</h3>
+                            <p>No se encontraron productos con los criterios de búsqueda.</p>
+                            <button class="btn btn-primary" onclick="clearFilters()">
+                                Ver todos los productos
+                            </button>
+                        </div>
                     </div>
                 </div>
-                
-                <!-- Cart Summary -->
-                <div class="cart-summary" id="cartSummary" style="display: none;">
-                    <div class="summary-row">
-                        <span>Subtotal:</span>
-                        <span id="subtotal">S/ 0.00</span>
+
+                <!-- Right Panel - Cart -->
+                <div class="pos-right">
+                    <!-- Cart Header -->
+                    <div class="cart-header">
+                        <h2><i class="fas fa-shopping-cart"></i> Carrito de Compras</h2>
+                        <span class="cart-count" id="cartCount">0 productos</span>
                     </div>
-                    <div class="summary-row">
-                        <span>IGV (18%):</span>
-                        <span id="tax">S/ 0.00</span>
-                    </div>
-                    <div class="summary-row total">
-                        <span>Total:</span>
-                        <span id="total">S/ 0.00</span>
-                    </div>
-                </div>
-                
-                <!-- Payment Section -->
-                <div class="payment-section" id="paymentSection" style="display: none;">
-                    <div class="payment-methods">
-                        <label>Método de Pago:</label>
-                        <select id="paymentMethod" class="form-control">
-                            <option value="cash">Efectivo</option>
-                            <option value="card">Tarjeta</option>
-                            <option value="transfer">Transferencia</option>
-                            <option value="mixed">Mixto</option>
+
+                    <!-- Customer Section -->
+                    <div class="customer-section">
+                        <label for="customerSelect">Cliente:</label>
+                        <select id="customerSelect" class="form-select">
+                            <option value="">Cliente general</option>
+                            <?php foreach ($customers as $customer): ?>
+                                <option value="<?php echo $customer['id']; ?>">
+                                    <?php echo htmlspecialchars($customer['name']); ?>
+                                </option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
-                    
-                    <div class="payment-amount" id="cashPayment">
-                        <label>Monto Recibido:</label>
-                        <input type="number" id="amountReceived" class="form-control" step="0.01" placeholder="0.00">
-                        <div class="change-amount" id="changeAmount" style="display: none;">
-                            <strong>Cambio: <span id="change">S/ 0.00</span></strong>
+
+                    <!-- Cart Items -->
+                    <div class="cart-items" id="cartItems">
+                        <div class="empty-state">
+                            <i class="fas fa-shopping-cart fa-2x"></i>
+                            <h3>El carrito está vacío</h3>
+                            <p>Agregue productos para comenzar</p>
                         </div>
                     </div>
-                    
-                    <div class="action-buttons">
-                        <button class="btn btn-success btn-block" onclick="processPayment()" id="processPaymentBtn">
-                            <i class="fas fa-check"></i>
-                            Procesar Venta
-                        </button>
-                        
+
+                    <!-- Cart Summary -->
+                    <div class="cart-summary" id="cartSummary" style="display: none;">
+                        <div class="summary-row">
+                            <span>Subtotal:</span>
+                            <span id="subtotal">S/ 0.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>IGV (18%):</span>
+                            <span id="tax">S/ 0.00</span>
+                        </div>
+                        <div class="summary-row total">
+                            <span>Total:</span>
+                            <span id="total">S/ 0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Payment Section -->
+                    <div class="payment-section" id="paymentSection" style="display: none;">
+                        <h3>Método de Pago</h3>
+                        <div class="payment-methods">
+                            <button class="payment-method active" data-method="cash">
+                                <i class="fas fa-money-bill"></i>
+                                Efectivo
+                            </button>
+                            <button class="payment-method" data-method="card">
+                                <i class="fas fa-credit-card"></i>
+                                Tarjeta
+                            </button>
+                            <button class="payment-method" data-method="transfer">
+                                <i class="fas fa-exchange-alt"></i>
+                                Transferencia
+                            </button>
+                        </div>
+
+                        <div class="cash-payment" id="cashPayment">
+                            <label>Monto recibido:</label>
+                            <input type="number" class="form-input" id="cashReceived" 
+                                   placeholder="0.00" step="0.01" min="0">
+                            <div class="change-amount" id="changeAmount" style="display: none;">
+                                Vuelto: <span id="changeValue">S/ 0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- POS Actions -->
+                    <div class="pos-actions">
                         <button class="btn btn-outline btn-block" onclick="holdTransaction()">
                             <i class="fas fa-pause"></i>
                             Suspender Venta
                         </button>
-                        
                         <button class="btn btn-primary btn-block" onclick="printReceipt()">
                             <i class="fas fa-print"></i>
                             Imprimir Último Recibo
@@ -227,8 +235,8 @@ try {
                     </div>
                 </div>
             </div>
-        </main>
-    </div>
+        </div>
+    </main>
 
     <!-- Modals -->
     <div class="modal" id="transactionModal">
