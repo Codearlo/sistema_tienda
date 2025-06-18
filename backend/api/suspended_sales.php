@@ -46,10 +46,10 @@ function sendJsonResponse($success, $message, $data = null, $statusCode = 200) {
 debugLog("Iniciando suspended_sales.php", ['method' => $_SERVER['REQUEST_METHOD']]);
 
 try {
-    // RUTAS CORREGIDAS - includes está en la raíz, no en backend
+    // RUTAS CORREGIDAS - desde backend/api/ hacia la raíz
     $configFiles = [
         '../config/database.php' => realpath(__DIR__ . '/../config/database.php'),
-        '../../includes/auth.php' => realpath(__DIR__ . '/../../includes/auth.php')  // Subir dos niveles
+        '../../includes/auth.php' => realpath(__DIR__ . '/../../includes/auth.php')  // Ruta corregida: subir dos niveles para llegar a la raíz
     ];
     
     foreach ($configFiles as $file => $realPath) {
@@ -61,7 +61,7 @@ try {
     
     // Incluir archivos necesarios con rutas corregidas
     require_once '../config/database.php';
-    require_once '../includes/auth.php';  // Ruta corregida
+    require_once '../../includes/auth.php';  // Ruta corregida
     
     debugLog("Archivos de configuración cargados correctamente");
     
