@@ -29,7 +29,7 @@ try {
     $today = date('Y-m-d');
     $this_month = date('Y-m');
     
-    // Ventas del día - ORIGINAL
+    // Ventas del día
     $daily_sales = $db->single(
         "SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total 
          FROM sales 
@@ -37,7 +37,7 @@ try {
         [$business_id, $today]
     );
     
-    // Ventas del mes - ORIGINAL
+    // Ventas del mes
     $monthly_sales = $db->single(
         "SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total 
          FROM sales 
@@ -75,7 +75,7 @@ try {
         [$business_id]
     );
     
-    // Ventas de la semana (últimos 7 días) - ORIGINAL
+    // Ventas de la semana (últimos 7 días)
     $weekly_sales = $db->fetchAll(
         "SELECT DATE(created_at) as date, COALESCE(SUM(total_amount), 0) as total 
          FROM sales 
@@ -85,7 +85,7 @@ try {
         [$business_id]
     );
     
-    // Productos más vendidos del mes - ORIGINAL
+    // Productos más vendidos del mes
     $top_products = $db->fetchAll(
         "SELECT p.name, SUM(si.quantity) as total_sold, SUM(si.line_total) as revenue
          FROM sale_items si 
@@ -98,7 +98,7 @@ try {
         [$business_id]
     );
     
-    // Calcular comparaciones - ORIGINAL
+    // Calcular comparaciones
     $yesterday = date('Y-m-d', strtotime('-1 day'));
     $yesterday_sales = $db->single(
         "SELECT COALESCE(SUM(total_amount), 0) as total 
@@ -115,7 +115,7 @@ try {
         $daily_change = 100;
     }
     
-    // Mes anterior - ORIGINAL
+    // Mes anterior
     $last_month_start = date('Y-m-01', strtotime('-1 month'));
     $last_month_end = date('Y-m-t', strtotime('-1 month'));
     $last_month_sales = $db->single(
@@ -188,7 +188,6 @@ function formatPercentage($percentage) {
     <?php include 'includes/slidebar.php'; ?>
     
     <main class="main-content">
-        <!-- Header principal -->
         <header class="main-header">
             <div class="header-left">
                 <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">
@@ -203,7 +202,6 @@ function formatPercentage($percentage) {
             </div>
         </header>
 
-        <!-- Mensaje de bienvenida si es primera vez -->
         <?php if ($show_welcome): ?>
         <div class="alert alert-success" style="margin-bottom: 2rem;">
             <div class="alert-content">
@@ -218,7 +216,6 @@ function formatPercentage($percentage) {
         </div>
         <?php endif; ?>
 
-        <!-- Mensaje de error -->
         <?php if ($error_message): ?>
         <div class="alert alert-error" style="margin-bottom: 2rem;">
             <div class="alert-content">
@@ -233,9 +230,7 @@ function formatPercentage($percentage) {
         </div>
         <?php endif; ?>
 
-        <!-- Grid de estadísticas principales -->
         <div class="stats-grid">
-            <!-- Ventas Hoy -->
             <div class="stat-card">
                 <div class="stat-header">
                     <div class="stat-title">Ventas Hoy</div>
@@ -251,7 +246,6 @@ function formatPercentage($percentage) {
                 </div>
             </div>
 
-            <!-- Ventas del Mes -->
             <div class="stat-card">
                 <div class="stat-header">
                     <div class="stat-title">Ventas del Mes</div>
@@ -267,7 +261,6 @@ function formatPercentage($percentage) {
                 </div>
             </div>
 
-            <!-- Productos -->
             <div class="stat-card">
                 <div class="stat-header">
                     <div class="stat-title">Productos</div>
@@ -290,7 +283,6 @@ function formatPercentage($percentage) {
                 <?php endif; ?>
             </div>
 
-            <!-- Clientes -->
             <div class="stat-card">
                 <div class="stat-header">
                     <div class="stat-title">Clientes</div>
@@ -314,9 +306,7 @@ function formatPercentage($percentage) {
             </div>
         </div>
 
-        <!-- Grid del dashboard -->
         <div class="dashboard-grid">
-            <!-- Productos con stock bajo -->
             <?php if (count($low_stock_products) > 0): ?>
             <div class="dashboard-card">
                 <div class="card-header">
@@ -359,7 +349,6 @@ function formatPercentage($percentage) {
             </div>
             <?php endif; ?>
 
-            <!-- Productos más vendidos -->
             <?php if (count($top_products) > 0): ?>
             <div class="dashboard-card">
                 <div class="card-header">
@@ -394,7 +383,6 @@ function formatPercentage($percentage) {
             </div>
             <?php endif; ?>
 
-            <!-- Acciones rápidas si no hay otros datos -->
             <?php if (count($low_stock_products) == 0 && count($top_products) == 0): ?>
             <div class="dashboard-card">
                 <div class="card-header">
@@ -451,7 +439,6 @@ function formatPercentage($percentage) {
         </div>
     </main>
 
-    <!-- Scripts -->
     <script src="assets/js/app.js"></script>
     <script src="assets/js/dashboard.js"></script>
 </body>
