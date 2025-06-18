@@ -110,7 +110,6 @@ function handlePostSale($db, $business_id, $user_id) {
                 $line_total = $item_subtotal_base; // line_total es el total con IGV por ítem
             }
 
-
             // Insertar ítem de venta en la tabla `sale_items`
             $stmt_item = $db->prepare("
                 INSERT INTO sale_items (
@@ -132,16 +131,6 @@ function handlePostSale($db, $business_id, $user_id) {
                 ");
                 $stmt_stock->execute([$quantity, $product_id, $business_id]);
             }
-        }
-
-        // Si la venta proviene de una suspendida, actualizar su estado a 'completed'
-        if ($suspended_sale_id) {
-            $stmt_update_suspended = $db->prepare("
-                UPDATE suspended_sales 
-                SET status = 'completed' 
-                WHERE id = ? AND business_id = ?
-            ");
-            $stmt_update_suspended->execute([$suspended_sale_id, $business_id]);
         }
 
         $db->commit();
