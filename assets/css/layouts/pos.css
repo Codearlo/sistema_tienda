@@ -14,11 +14,10 @@
   flex-direction: column;
   height: 100vh;
   flex: 1;
-  /* CORREGIDO: Usar el mismo patrón que dashboard */
   margin-left: 70px;
+  padding: var(--spacing-xl);
   max-width: 1200px;
   margin-right: auto;
-  margin-left: auto;
   width: calc(100% - 70px);
   transition: margin-left var(--transition-normal);
 }
@@ -695,6 +694,7 @@
 @media (max-width: 1024px) {
   .pos-container {
     margin-left: 0;
+    padding: var(--spacing-lg);
     max-width: none;
     width: 100%;
   }
@@ -745,10 +745,12 @@
 /* Cuando la sidebar está expandida */
 .sidebar-open .pos-container {
   margin-left: 250px;
+  width: calc(100% - 250px);
 }
 
 @media (max-width: 1024px) {
   .sidebar-open .pos-container {
     margin-left: 0;
+    width: 100%;
   }
 }
