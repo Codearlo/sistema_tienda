@@ -12,7 +12,9 @@ const POSState = {
     selectedCategory: null,
     paymentMethod: 'cash',
     cashReceived: 0,
-    includeIgv: true // Nuevo estado para controlar el IGV
+    includeIgv: true, // Nuevo estado para controlar el IGV
+    suspendedSales: [], // Nuevo estado para las ventas suspendidas
+    currentSuspendedSaleId: null // ID de la venta suspendida que se está reanudando
 };
 
 // ===== INICIALIZACIÓN =====
@@ -28,6 +30,9 @@ function initializePOS() {
     }
     if (typeof customers !== 'undefined') {
         POSState.customers = customers;
+    }
+    if (typeof initialSuspendedSales !== 'undefined') {
+        POSState.suspendedSales = initialSuspendedSales;
     }
     
     // Inicializar reloj
@@ -239,35 +244,35 @@ function updateCartDisplay() {
             </div>
         `;
         cartCount.textContent = '0 productos';
-        return;
+        document.getElementById('customerSelect').value = ''; // Limpiar cliente
+    } else {
+        const html = POSState.cart.map(item => `
+            <div class="cart-item">
+                <div class="item-info">
+                    <h4 class="item-name">${item.name}</h4>
+                    <p class="item-price">S/ ${item.price.toFixed(2)}</p>
+                </div>
+                <div class="item-controls">
+                    <button class="qty-btn" onclick="updateQuantity(${item.product_id}, ${item.quantity - 1})">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <span class="item-quantity">${item.quantity}</span>
+                    <button class="qty-btn" onclick="updateQuantity(${item.product_id}, ${item.quantity + 1})">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <div class="item-total">
+                    S/ ${item.subtotal.toFixed(2)}
+                </div>
+                <button class="remove-btn" onclick="removeFromCart(${item.product_id})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `).join('');
+        
+        cartItems.innerHTML = html;
+        cartCount.textContent = `${POSState.cart.length} productos`;
     }
-    
-    const html = POSState.cart.map(item => `
-        <div class="cart-item">
-            <div class="item-info">
-                <h4 class="item-name">${item.name}</h4>
-                <p class="item-price">S/ ${item.price.toFixed(2)}</p>
-            </div>
-            <div class="item-controls">
-                <button class="qty-btn" onclick="updateQuantity(${item.product_id}, ${item.quantity - 1})">
-                    <i class="fas fa-minus"></i>
-                </button>
-                <span class="item-quantity">${item.quantity}</span>
-                <button class="qty-btn" onclick="updateQuantity(${item.product_id}, ${item.quantity + 1})">
-                    <i class="fas fa-plus"></i>
-                </button>
-            </div>
-            <div class="item-total">
-                S/ ${item.subtotal.toFixed(2)}
-            </div>
-            <button class="remove-btn" onclick="removeFromCart(${item.product_id})">
-                <i class="fas fa-trash"></i>
-            </button>
-        </div>
-    `).join('');
-    
-    cartItems.innerHTML = html;
-    cartCount.textContent = `${POSState.cart.length} productos`;
 }
 
 // ===== CÁLCULOS =====
@@ -456,7 +461,8 @@ async function completeTransaction() {
         tax: tax,
         total: total,
         cash_received: POSState.cashReceived,
-        change_amount: POSState.paymentMethod === 'cash' ? (POSState.cashReceived - total) : 0
+        change_amount: POSState.paymentMethod === 'cash' ? (POSState.cashReceived - total) : 0,
+        suspended_sale_id: POSState.currentSuspendedSaleId // Enviar ID de venta suspendida si aplica
     };
     
     try {
@@ -466,6 +472,14 @@ async function completeTransaction() {
             showTransactionComplete(response.data);
             clearCart();
             showMessage('Venta completada exitosamente', 'success');
+            // Si la venta se completó y venía de una suspendida, actualizar la lista
+            if (POSState.currentSuspendedSaleId) {
+                removeSuspendedSaleFromList(POSState.currentSuspendedSaleId);
+                POSState.currentSuspendedSaleId = null; // Resetear
+            }
+            // Recargar productos para reflejar el stock actualizado (asumiendo que backend lo maneja)
+            loadProducts(); 
+
         } else {
             showMessage(response.message || 'Error al procesar la venta', 'error');
         }
@@ -510,12 +524,183 @@ function newTransaction() {
     clearCart();
 }
 
+// ===== FUNCIONALIDAD DE SUSPENDER VENTA =====
+async function holdTransaction() {
+    if (POSState.cart.length === 0) {
+        showMessage('No hay productos en el carrito para suspender la venta.', 'warning');
+        return;
+    }
+
+    const subtotal = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
+    let tax = 0;
+    let total = subtotal;
+
+    if (POSState.includeIgv) {
+        tax = subtotal * 0.18;
+        total = subtotal + tax;
+    }
+
+    const suspendedSaleData = {
+        customer_id: document.getElementById('customerSelect').value || null,
+        items: POSState.cart,
+        subtotal: subtotal,
+        tax: tax,
+        total: total
+    };
+
+    try {
+        const response = await API.post('/suspended_sales.php', suspendedSaleData); // Nuevo endpoint para suspender ventas
+        
+        if (response.success) {
+            showMessage('Venta suspendida exitosamente. Nº de Venta Suspendida: ' + response.data.sale_number, 'success');
+            POSState.suspendedSales.unshift(response.data); // Añadir al inicio de la lista
+            clearCart(); // Limpiar el carrito actual
+        } else {
+            showMessage(response.message || 'Error al suspender la venta', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showMessage('Error de conexión al suspender venta', 'error');
+    }
+}
+
+function openSuspendedSalesModal() {
+    const modal = document.getElementById('suspendedSalesModal');
+    if (modal) {
+        renderSuspendedSalesList(); // Renderizar la lista cada vez que se abre
+        modal.style.display = 'flex';
+    }
+}
+
+function closeSuspendedSalesModal() {
+    const modal = document.getElementById('suspendedSalesModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function renderSuspendedSalesList() {
+    const listContainer = document.getElementById('suspendedSalesList');
+    if (!listContainer) return;
+
+    if (POSState.suspendedSales.length === 0) {
+        listContainer.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-box-open fa-2x"></i>
+                <p>No hay ventas suspendidas.</p>
+            </div>
+        `;
+        return;
+    }
+
+    const html = POSState.suspendedSales.map(sale => {
+        const customer = POSState.customers.find(c => c.id == sale.customer_id);
+        const customerName = customer ? customer.name : 'Cliente General';
+        const saleDate = new Date(sale.created_at).toLocaleString('es-PE', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+
+        return `
+            <div class="suspended-sale-item" data-sale-id="${sale.id}">
+                <div class="sale-info">
+                    <h4>Venta Suspendida #${sale.sale_number || sale.id}</h4>
+                    <p>Cliente: ${customerName}</p>
+                    <p>Total Estimado: S/ ${parseFloat(sale.total).toFixed(2)}</p>
+                    <p>Fecha: ${saleDate}</p>
+                </div>
+                <div class="sale-actions">
+                    <button class="btn btn-primary btn-sm" onclick="resumeSuspendedSale(${sale.id})">
+                        <i class="fas fa-play"></i> Reanudar
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteSuspendedSale(${sale.id})">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    listContainer.innerHTML = html;
+}
+
+async function resumeSuspendedSale(saleId) {
+    try {
+        const response = await API.get(`/suspended_sales.php?id=${saleId}`);
+        
+        if (response.success && response.data) {
+            const suspendedSale = response.data;
+            
+            // Limpiar el carrito actual antes de cargar la venta suspendida
+            clearCart(); 
+
+            // Cargar los items de la venta suspendida al carrito
+            POSState.cart = suspendedSale.items.map(item => ({
+                product_id: item.product_id,
+                name: item.product_name,
+                price: parseFloat(item.price),
+                quantity: parseInt(item.quantity),
+                subtotal: parseFloat(item.subtotal)
+            }));
+
+            // Establecer el cliente si existe
+            if (suspendedSale.customer_id) {
+                document.getElementById('customerSelect').value = suspendedSale.customer_id;
+            }
+
+            // Establecer el estado del IGV (asumiendo que se guardó, o por defecto)
+            POSState.includeIgv = suspendedSale.include_igv !== undefined ? suspendedSale.include_igv : true;
+
+            POSState.currentSuspendedSaleId = saleId; // Guardar el ID de la venta suspendida reanudada
+
+            updateCartDisplay();
+            updateTotals();
+            updateIgvButtonState();
+            closeSuspendedSalesModal();
+            showMessage(`Venta suspendida #${suspendedSale.sale_number} reanudada.`, 'success');
+
+        } else {
+            showMessage(response.message || 'Error al reanudar la venta suspendida', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showMessage('Error de conexión al reanudar venta', 'error');
+    }
+}
+
+async function deleteSuspendedSale(saleId) {
+    if (!confirm('¿Estás seguro de que quieres eliminar esta venta suspendida? Esta acción no se puede deshacer.')) {
+        return;
+    }
+
+    try {
+        const response = await API.delete(`/suspended_sales.php?id=${saleId}`);
+        
+        if (response.success) {
+            showMessage('Venta suspendida eliminada exitosamente.', 'success');
+            removeSuspendedSaleFromList(saleId);
+            renderSuspendedSalesList(); // Volver a renderizar la lista
+        } else {
+            showMessage(response.message || 'Error al eliminar la venta suspendida', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showMessage('Error de conexión al eliminar venta', 'error');
+    }
+}
+
+function removeSuspendedSaleFromList(saleId) {
+    POSState.suspendedSales = POSState.suspendedSales.filter(sale => sale.id != saleId);
+}
+
+
 // ===== UTILIDADES =====
 function clearCart() {
     POSState.cart = [];
     POSState.cashReceived = 0;
     POSState.includeIgv = true; // Resetear el estado del IGV al limpiar el carrito
-    
+    POSState.currentSuspendedSaleId = null; // Asegurarse de limpiar el ID de venta suspendida
+
     document.getElementById('cashReceived').value = '';
     document.getElementById('customerSelect').value = '';
     
@@ -529,14 +714,16 @@ function updateClock() {
     if (!timeElement) return;
     
     const now = new Date();
-    const timeString = now.toLocaleTimeString('es-PE');
-    const dateString = now.toLocaleDateString('es-PE');
+    const options = {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+    };
+    const dateTimeString = now.toLocaleDateString('es-PE', options);
     
-    timeElement.innerHTML = `${dateString}<br>${timeString}`;
-}
-
-function holdTransaction() {
-    showMessage('Funcionalidad en desarrollo', 'info');
+    // Divide la fecha y la hora si es necesario o muestra como una sola línea
+    // const parts = dateTimeString.split(', ');
+    // timeElement.innerHTML = `${parts[0]}<br>${parts[1]}`;
+    timeElement.innerHTML = dateTimeString;
 }
 
 function printReceipt() {

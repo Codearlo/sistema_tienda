@@ -20,6 +20,7 @@ $error_message = null;
 $categories = [];
 $customers = [];
 $products = [];
+$suspended_sales = []; // Nueva variable para almacenar ventas suspendidas
 
 try {
     $db = getDB();
@@ -47,6 +48,14 @@ try {
         LEFT JOIN categories c ON p.category_id = c.id 
         WHERE p.business_id = ? AND p.status = 1 
         ORDER BY p.name ASC
+    ", [$business_id]);
+
+    // Cargar ventas suspendidas
+    $suspended_sales = $db->fetchAll("
+        SELECT id, sale_number, customer_id, total, created_at
+        FROM suspended_sales
+        WHERE business_id = ? AND status = 'active'
+        ORDER BY created_at DESC
     ", [$business_id]);
     
 } catch (Exception $e) {
@@ -211,7 +220,7 @@ function formatCurrency($amount) {
                     </div>
 
                     <div class="pos-actions">
-                        <button class="btn btn-outline btn-block" onclick="holdTransaction()">
+                        <button class="btn btn-outline btn-block" onclick="openSuspendedSalesModal()">
                             <i class="fas fa-pause"></i>
                             Suspender Venta
                         </button>
@@ -244,6 +253,54 @@ function formatCurrency($amount) {
         </div>
     </div>
 
+    <div class="modal" id="suspendedSalesModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Ventas Suspendidas</h3>
+                <button class="modal-close" onclick="closeSuspendedSalesModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="suspended-sales-list" id="suspendedSalesList">
+                    <?php if (empty($suspended_sales)): ?>
+                        <div class="empty-state">
+                            <i class="fas fa-box-open fa-2x"></i>
+                            <p>No hay ventas suspendidas.</p>
+                        </div>
+                    <?php else: ?>
+                        <?php foreach ($suspended_sales as $sale): ?>
+                            <div class="suspended-sale-item" data-sale-id="<?php echo $sale['id']; ?>">
+                                <div class="sale-info">
+                                    <h4>Venta Suspendida #<?php echo htmlspecialchars($sale['sale_number']); ?></h4>
+                                    <p>Cliente: <?php 
+                                        $customer_name = "Cliente General";
+                                        foreach ($customers as $c) {
+                                            if ($c['id'] == $sale['customer_id']) {
+                                                $customer_name = htmlspecialchars($c['name']);
+                                                break;
+                                            }
+                                        }
+                                        echo $customer_name;
+                                    ?></p>
+                                    <p>Total Estimado: S/ <?php echo number_format($sale['total'], 2); ?></p>
+                                    <p>Fecha: <?php echo (new DateTime($sale['created_at']))->format('d/m/Y H:i'); ?></p>
+                                </div>
+                                <div class="sale-actions">
+                                    <button class="btn btn-primary btn-sm" onclick="resumeSuspendedSale(<?php echo $sale['id']; ?>)">
+                                        <i class="fas fa-play"></i> Reanudar
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteSuspendedSale(<?php echo $sale['id']; ?>)">
+                                        <i class="fas fa-trash"></i> Eliminar
+                                    </button>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <script src="assets/js/notifications.js"></script>
     <script src="assets/js/api.js"></script>
     <script src="assets/js/pos.js"></script>
@@ -261,6 +318,9 @@ function formatCurrency($amount) {
             echo json_encode($formatted_products);
         ?>;
         
+        const initialSuspendedSales = <?php echo json_encode($suspended_sales); ?>;
+
+
         // Initialize POS when DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
             initializePOS();

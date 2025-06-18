@@ -704,6 +704,58 @@
   border-top: 1px solid var(--gray-200);
 }
 
+
+/* Estilos específicos para el modal de ventas suspendidas */
+#suspendedSalesModal .modal-content {
+    max-width: 600px; /* Un poco más ancho para la lista */
+}
+
+.suspended-sales-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.suspended-sale-item {
+    background-color: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex-wrap: wrap; /* Permitir envolver en pantallas pequeñas */
+}
+
+.suspended-sale-item .sale-info {
+    flex: 1;
+    min-width: 200px; /* Asegurar un ancho mínimo */
+}
+
+.suspended-sale-item h4 {
+    margin: 0 0 var(--spacing-xs) 0;
+    font-size: var(--text-base);
+    color: var(--gray-900);
+}
+
+.suspended-sale-item p {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--gray-700);
+}
+
+.suspended-sale-item .sale-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-shrink: 0; /* Evitar que los botones se encojan */
+}
+
+.suspended-sale-item .btn-sm {
+    padding: var(--spacing-xs) var(--spacing-md); /* Ajustar padding para botones pequeños */
+    font-size: var(--text-sm);
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
   .pos-container {
@@ -766,5 +818,14 @@
   
   .payment-methods {
     grid-template-columns: 1fr;
+  }
+
+  .suspended-sale-item {
+      flex-direction: column;
+      align-items: flex-start;
+  }
+  .suspended-sale-item .sale-actions {
+      width: 100%;
+      justify-content: center;
   }
 }
