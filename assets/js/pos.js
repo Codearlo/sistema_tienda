@@ -524,49 +524,58 @@ function newTransaction() {
     clearCart();
 }
 
-// ===== FUNCIONALIDAD DE SUSPENDER VENTA =====
+
+
 async function holdTransaction() {
-    // Primero validamos que haya productos en el carrito
+    console.log('🔍 Iniciando holdTransaction()');
+    
     if (POSState.cart.length === 0) {
         showMessage('No hay productos en el carrito para suspender la venta.', 'warning');
         return;
     }
 
-    // Calculamos los totales usando la misma lógica que el resto del sistema
     const subtotal = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
     let tax = 0;
     let total = subtotal;
 
-    // Aplicamos IGV si está habilitado
     if (POSState.includeIgv) {
         tax = subtotal * 0.18;
         total = subtotal + tax;
     }
 
-    // Aquí está la corrección principal: agregar includeIgv al objeto
     const suspendedSaleData = {
         customer_id: document.getElementById('customerSelect').value || null,
         items: POSState.cart,
         subtotal: subtotal,
         tax: tax,
         total: total,
-        includeIgv: POSState.includeIgv  // ✅ ESTA ES LA LÍNEA FALTANTE
+        includeIgv: POSState.includeIgv
     };
 
+    console.log('📦 Datos a enviar:', suspendedSaleData);
+    console.log('🎯 URL de destino:', API.baseURL + '/suspended_sales.php');
+
     try {
-        // Realizamos la petición al endpoint correcto
-        const response = await API.post('/suspended_sales.php', suspendedSaleData);
+        console.log('🌐 Enviando petición...');
+        const response = await API.post('/suspended_sales.php?debug=1', suspendedSaleData);
+        console.log('✅ Respuesta recibida:', response);
         
         if (response.success) {
             showMessage('Venta suspendida exitosamente. Nº de Venta Suspendida: ' + response.data.sale_number, 'success');
-            POSState.suspendedSales.unshift(response.data); // Añadir al inicio de la lista
-            clearCart(); // Limpiar el carrito actual
+            POSState.suspendedSales.unshift(response.data);
+            clearCart();
         } else {
+            console.error('❌ Error en respuesta:', response);
             showMessage(response.message || 'Error al suspender la venta', 'error');
         }
     } catch (error) {
-        console.error('Error:', error);
-        showMessage('Error de conexión al suspender venta', 'error');
+        console.error('💥 Error capturado:', error);
+        console.error('📊 Detalles del error:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack
+        });
+        showMessage('Error de conexión al suspender venta: ' + error.message, 'error');
     }
 }
 
