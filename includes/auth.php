@@ -47,3 +47,37 @@ if (!defined('STATUS_DELETED')) {
     define('STATUS_DELETED', -1);
 }
 ?>
+
+<?php
+// ... código existente ...
+
+/**
+ * Verificar si el usuario está autenticado
+ * @return bool
+ */
+function isAuthenticated() {
+    // Verificar que la sesión esté iniciada
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    // Verificar que existan las variables de sesión necesarias
+    return isset($_SESSION['user_id']) && 
+           isset($_SESSION['business_id']) && 
+           !empty($_SESSION['user_id']) && 
+           !empty($_SESSION['business_id']);
+}
+
+/**
+ * Requerir autenticación (para APIs)
+ * Envía respuesta JSON si no está autenticado
+ */
+function requireAuthenticationJSON() {
+    if (!isAuthenticated()) {
+        header('Content-Type: application/json');
+        http_response_code(401);
+        echo json_encode(['success' => false, 'message' => 'No autorizado']);
+        exit();
+    }
+}
+?>
