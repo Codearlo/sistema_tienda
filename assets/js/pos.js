@@ -1,79 +1,137 @@
-/**
- * POINT OF SALE (POS) - JavaScript Completo
- * Sistema funcional de punto de venta
- */
-
 // Estado global del POS
 const POSState = {
     cart: [],
     products: [],
     categories: [],
     customers: [],
+    selectedCustomer: null,
     selectedCategory: null,
-    paymentMethod: 'cash',
-    cashReceived: 0
+    searchTerm: '',
+    isLoading: false,
+    paymentMethod: 'cash'
 };
 
-// ===== INICIALIZACIÓN =====
-function initializePOS() {
-    console.log('Inicializando POS...');
+// ===== FUNCIONES DE INICIALIZACIÓN =====
+document.addEventListener('DOMContentLoaded', function() {
+    initializePOS();
     
-    // Usar datos del PHP
-    if (typeof products !== 'undefined') {
-        POSState.products = products;
-    }
-    if (typeof categories !== 'undefined') {
-        POSState.categories = categories;
-    }
-    if (typeof customers !== 'undefined') {
-        POSState.customers = customers;
-    }
-    
-    // Inicializar reloj
-    updateClock();
-    setInterval(updateClock, 1000);
-    
-    // Configurar eventos
-    setupEventListeners();
-    
-    // Cargar interfaz
-    loadCategories();
-    loadProducts();
-    updateCartDisplay();
-    updateTotals();
-    setupPaymentMethods();
-    
-    console.log('POS inicializado correctamente');
-}
-
-// ===== CONFIGURACIÓN DE EVENTOS =====
-function setupEventListeners() {
-    // Búsqueda de productos
+    // Event listeners
     const searchInput = document.getElementById('productSearch');
     if (searchInput) {
-        searchInput.addEventListener('input', handleProductSearch);
+        searchInput.addEventListener('input', debounce(searchProducts, 300));
     }
     
-    // Botón limpiar búsqueda
-    const clearBtn = document.querySelector('.search-clear-btn');
-    if (clearBtn) {
-        clearBtn.addEventListener('click', clearSearch);
-    }
+    // Keyboard shortcuts
+    document.addEventListener('keydown', handleKeyboardShortcuts);
     
-    // Monto recibido en efectivo
-    const cashInput = document.getElementById('cashReceived');
-    if (cashInput) {
-        cashInput.addEventListener('input', calculateChange);
-    }
-    
-    // Métodos de pago
-    const paymentMethods = document.querySelectorAll('.payment-method');
-    paymentMethods.forEach(btn => {
-        btn.addEventListener('click', () => selectPaymentMethod(btn.dataset.method));
+    // Cerrar modales al hacer clic fuera
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAllModals();
+            }
+        });
     });
+});
+
+async function initializePOS() {
+    showLoading(true);
+    
+    try {
+        // Cargar datos en paralelo para mejor rendimiento
+        const [productsRes, categoriesRes, customersRes] = await Promise.all([
+            fetch('backend/api/index.php?endpoint=products'),
+            fetch('backend/api/index.php?endpoint=categories'),
+            fetch('backend/api/index.php?endpoint=customers')
+        ]);
+        
+        if (!productsRes.ok || !categoriesRes.ok || !customersRes.ok) {
+            throw new Error('Error al cargar datos');
+        }
+        
+        const productsData = await productsRes.json();
+        const categoriesData = await categoriesRes.json();
+        const customersData = await customersRes.json();
+        
+        if (productsData.success) {
+            POSState.products = productsData.products || [];
+        }
+        
+        if (categoriesData.success) {
+            POSState.categories = categoriesData.categories || [];
+        }
+        
+        if (customersData.success) {
+            POSState.customers = customersData.customers || [];
+        }
+        
+        // Cargar UI
+        loadCategories();
+        loadProducts();
+        loadCustomers();
+        updateCartDisplay();
+        
+    } catch (error) {
+        console.error('Error inicializando POS:', error);
+        showMessage('Error al cargar datos del POS', 'error');
+    } finally {
+        showLoading(false);
+    }
 }
 
-// ===== MANEJO DE PRODUCTOS =====
+// ===== FUNCIONES DE UI =====
+function showLoading(show) {
+    POSState.isLoading = show;
+    const loader = document.getElementById('posLoader');
+    if (loader) {
+        loader.style.display = show ? 'flex' : 'none';
+    }
+}
+
+function showMessage(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+        <span>${message}</span>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 10);
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// ===== GESTIÓN DE PRODUCTOS =====
+function searchProducts() {
+    const searchTerm = document.getElementById('productSearch').value;
+    POSState.searchTerm = searchTerm;
+    loadProducts();
+}
+
+function filterByCategory(categoryId) {
+    POSState.selectedCategory = categoryId;
+    
+    // Actualizar botones de categorías
+    document.querySelectorAll('.category-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    if (categoryId) {
+        event.target.classList.add('active');
+    } else {
+        document.querySelector('.category-btn[onclick="filterByCategory(null)"]').classList.add('active');
+    }
+    
+    loadProducts();
+}
+
 function loadCategories() {
     const grid = document.getElementById('categoriesGrid');
     if (!grid) return;
@@ -132,7 +190,8 @@ function loadProducts() {
     emptyState.style.display = 'none';
     
     const html = filteredProducts.map(product => `
-        <div class="product-card" onclick="addToCart(${product.id})">
+        <div class="product-card ${product.stock_quantity <= 0 ? 'out-of-stock' : ''}" 
+             onclick="${product.stock_quantity > 0 ? `addToCart(${product.id})` : ''}">
             <div class="product-image">
                 ${product.image ? 
                     `<img src="${product.image}" alt="${product.name}">` :
@@ -143,8 +202,8 @@ function loadProducts() {
                 <h4 class="product-name">${product.name}</h4>
                 <p class="product-category">${product.category_name || 'Sin categoría'}</p>
                 <div class="product-price">S/ ${parseFloat(product.selling_price).toFixed(2)}</div>
-                <div class="product-stock ${product.current_stock <= 5 ? 'low-stock' : ''}">
-                    Stock: ${product.current_stock || 0}
+                <div class="product-stock ${product.stock_quantity <= 5 ? 'low-stock' : ''}">
+                    Stock: ${product.stock_quantity || 0}
                 </div>
             </div>
         </div>
@@ -165,7 +224,7 @@ function addToCart(productId) {
     const currentQuantity = POSState.cart.reduce((sum, item) => 
         item.product_id === productId ? sum + item.quantity : sum, 0);
     
-    if (currentQuantity >= (product.current_stock || 0)) {
+    if (currentQuantity >= (product.stock_quantity || 0)) {
         showMessage('Stock insuficiente', 'warning');
         return;
     }
@@ -208,7 +267,7 @@ function updateQuantity(productId, newQuantity) {
     
     // Verificar stock
     const product = POSState.products.find(p => p.id == productId);
-    if (newQuantity > (product.current_stock || 0)) {
+    if (newQuantity > (product.stock_quantity || 0)) {
         showMessage('Stock insuficiente', 'warning');
         return;
     }
@@ -231,42 +290,49 @@ function updateCartDisplay() {
             <div class="empty-state">
                 <i class="fas fa-shopping-cart fa-2x"></i>
                 <h3>El carrito está vacío</h3>
-                <p>Agregue productos para comenzar</p>
+                <p>Agregue productos para comenzar una venta</p>
             </div>
         `;
-        cartCount.textContent = '0 productos';
+        if (cartCount) cartCount.textContent = '0 productos';
         return;
     }
     
     const html = POSState.cart.map(item => `
-        <div class="cart-item">
-            <div class="item-info">
-                <h4 class="item-name">${item.name}</h4>
-                <p class="item-price">S/ ${item.price.toFixed(2)}</p>
+        <div class="cart-item" data-product-id="${item.product_id}">
+            <div class="cart-item-info">
+                <h4>${item.name}</h4>
+                <div class="cart-item-price">S/ ${item.price.toFixed(2)}</div>
             </div>
-            <div class="item-controls">
-                <button class="qty-btn" onclick="updateQuantity(${item.product_id}, ${item.quantity - 1})">
-                    <i class="fas fa-minus"></i>
+            <div class="cart-item-controls">
+                <div class="quantity-control">
+                    <button class="qty-btn" onclick="updateQuantity(${item.product_id}, ${item.quantity - 1})">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <input type="number" 
+                           class="qty-input" 
+                           value="${item.quantity}" 
+                           min="1" 
+                           onchange="updateQuantity(${item.product_id}, parseInt(this.value))">
+                    <button class="qty-btn" onclick="updateQuantity(${item.product_id}, ${item.quantity + 1})">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <div class="cart-item-subtotal">
+                    S/ ${item.subtotal.toFixed(2)}
+                </div>
+                <button class="btn-icon delete" onclick="removeFromCart(${item.product_id})">
+                    <i class="fas fa-trash"></i>
                 </button>
-                <span class="item-quantity">${item.quantity}</span>
-                <button class="qty-btn" onclick="updateQuantity(${item.product_id}, ${item.quantity + 1})">
-                    <i class="fas fa-plus"></i>
-                </button>
             </div>
-            <div class="item-total">
-                S/ ${item.subtotal.toFixed(2)}
-            </div>
-            <button class="remove-btn" onclick="removeFromCart(${item.product_id})">
-                <i class="fas fa-trash"></i>
-            </button>
         </div>
     `).join('');
     
     cartItems.innerHTML = html;
-    cartCount.textContent = `${POSState.cart.length} productos`;
+    
+    const totalItems = POSState.cart.reduce((sum, item) => sum + item.quantity, 0);
+    if (cartCount) cartCount.textContent = `${totalItems} productos`;
 }
 
-// ===== CÁLCULOS =====
 function updateTotals() {
     const subtotal = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
     const tax = subtotal * 0.18; // IGV 18%
@@ -275,149 +341,88 @@ function updateTotals() {
     document.getElementById('subtotal').textContent = `S/ ${subtotal.toFixed(2)}`;
     document.getElementById('tax').textContent = `S/ ${tax.toFixed(2)}`;
     document.getElementById('total').textContent = `S/ ${total.toFixed(2)}`;
+}
+
+function clearCart() {
+    if (POSState.cart.length === 0) return;
     
-    // Mostrar/ocultar secciones
-    const cartSummary = document.getElementById('cartSummary');
-    const paymentSection = document.getElementById('paymentSection');
-    const completeBtn = document.getElementById('completeBtn');
-    
-    if (POSState.cart.length > 0) {
-        cartSummary.style.display = 'block';
-        paymentSection.style.display = 'block';
-        completeBtn.disabled = false;
-    } else {
-        cartSummary.style.display = 'none';
-        paymentSection.style.display = 'none';
-        completeBtn.disabled = true;
+    if (confirm('¿Está seguro de limpiar el carrito?')) {
+        POSState.cart = [];
+        updateCartDisplay();
+        updateTotals();
+        showMessage('Carrito limpiado', 'info');
     }
 }
 
-// ===== MÉTODOS DE PAGO =====
-function setupPaymentMethods() {
-    const methods = document.querySelectorAll('.payment-method');
-    methods.forEach(method => {
-        method.addEventListener('click', () => {
-            methods.forEach(m => m.classList.remove('active'));
-            method.classList.add('active');
-            POSState.paymentMethod = method.dataset.method;
-            
-            // Mostrar/ocultar sección de efectivo
-            const cashPayment = document.getElementById('cashPayment');
-            if (POSState.paymentMethod === 'cash') {
-                cashPayment.style.display = 'block';
-            } else {
-                cashPayment.style.display = 'none';
-            }
-        });
-    });
+// ===== GESTIÓN DE CLIENTES =====
+function loadCustomers() {
+    const select = document.getElementById('customerSelect');
+    if (!select) return;
+    
+    const html = `
+        <option value="">Cliente General</option>
+        ${POSState.customers.map(customer => 
+            `<option value="${customer.id}">${customer.first_name} ${customer.last_name || ''}</option>`
+        ).join('')}
+    `;
+    
+    select.innerHTML = html;
 }
 
-function selectPaymentMethod(method) {
-    POSState.paymentMethod = method;
-    
-    // Actualizar botones
-    document.querySelectorAll('.payment-method').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    document.querySelector(`[data-method="${method}"]`).classList.add('active');
-    
-    // Mostrar/ocultar sección de efectivo
-    const cashPayment = document.getElementById('cashPayment');
-    if (method === 'cash') {
-        cashPayment.style.display = 'block';
-    } else {
-        cashPayment.style.display = 'none';
-    }
+function selectCustomer() {
+    const select = document.getElementById('customerSelect');
+    POSState.selectedCustomer = select.value ? parseInt(select.value) : null;
 }
 
-function calculateChange() {
-    const cashReceived = parseFloat(document.getElementById('cashReceived').value) || 0;
-    const total = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0) * 1.18;
-    
-    POSState.cashReceived = cashReceived;
-    
-    const changeAmount = document.getElementById('changeAmount');
-    const changeValue = document.getElementById('changeValue');
-    
-    if (cashReceived >= total && cashReceived > 0) {
-        const change = cashReceived - total;
-        changeValue.textContent = `S/ ${change.toFixed(2)}`;
-        changeAmount.style.display = 'block';
-    } else {
-        changeAmount.style.display = 'none';
-    }
+function showAddCustomerModal() {
+    document.getElementById('addCustomerModal').style.display = 'flex';
 }
 
-// ===== BÚSQUEDA Y FILTROS =====
-function handleProductSearch() {
-    loadProducts();
-    
-    const searchInput = document.getElementById('productSearch');
-    const clearBtn = document.querySelector('.search-clear-btn');
-    
-    if (searchInput.value.length > 0) {
-        clearBtn.style.display = 'block';
-    } else {
-        clearBtn.style.display = 'none';
-    }
+function closeAddCustomerModal() {
+    document.getElementById('addCustomerModal').style.display = 'none';
+    document.getElementById('addCustomerForm').reset();
 }
 
-function clearSearch() {
-    document.getElementById('productSearch').value = '';
-    document.querySelector('.search-clear-btn').style.display = 'none';
-    loadProducts();
-}
-
-function filterByCategory(categoryId) {
-    POSState.selectedCategory = categoryId;
-    loadCategories();
-    loadProducts();
-}
-
-function clearFilters() {
-    POSState.selectedCategory = null;
-    document.getElementById('productSearch').value = '';
-    document.querySelector('.search-clear-btn').style.display = 'none';
-    loadCategories();
-    loadProducts();
-}
-
-// ===== TRANSACCIONES =====
-async function completeTransaction() {
-    if (POSState.cart.length === 0) {
-        showMessage('El carrito está vacío', 'warning');
-        return;
-    }
+async function addCustomerSubmit(event) {
+    event.preventDefault();
     
-    if (POSState.paymentMethod === 'cash') {
-        const total = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0) * 1.18;
-        if (POSState.cashReceived < total) {
-            showMessage('El monto recibido es insuficiente', 'warning');
-            return;
-        }
-    }
-    
-    const saleData = {
-        customer_id: document.getElementById('customerSelect').value || null,
-        payment_method: POSState.paymentMethod,
-        items: POSState.cart,
-        subtotal: POSState.cart.reduce((sum, item) => sum + item.subtotal, 0),
-        tax: POSState.cart.reduce((sum, item) => sum + item.subtotal, 0) * 0.18,
-        total: POSState.cart.reduce((sum, item) => sum + item.subtotal, 0) * 1.18,
-        cash_received: POSState.cashReceived,
-        change_amount: POSState.paymentMethod === 'cash' ? 
-            POSState.cashReceived - (POSState.cart.reduce((sum, item) => sum + item.subtotal, 0) * 1.18) : 0
+    const formData = new FormData(event.target);
+    const customerData = {
+        first_name: formData.get('first_name'),
+        last_name: formData.get('last_name'),
+        email: formData.get('email'),
+        phone: formData.get('phone'),
+        document_number: formData.get('document_number')
     };
     
     try {
-        const response = await API.post('/ventas.php', saleData);
+        const response = await fetch('backend/api/index.php?endpoint=customers', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(customerData)
+        });
         
-        if (response.success) {
-            showTransactionComplete(response.data);
-            clearCart();
-            showMessage('Venta completada exitosamente', 'success');
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage('Cliente agregado exitosamente', 'success');
+            closeAddCustomerModal();
+            
+            // Recargar clientes
+            const customersRes = await fetch('backend/api/index.php?endpoint=customers');
+            const customersData = await customersRes.json();
+            if (customersData.success) {
+                POSState.customers = customersData.customers;
+                loadCustomers();
+                
+                // Seleccionar el nuevo cliente
+                document.getElementById('customerSelect').value = result.customer.id;
+                POSState.selectedCustomer = result.customer.id;
+            }
         } else {
-            showMessage(response.message || 'Error al procesar la venta', 'error');
+            showMessage(result.message || 'Error al agregar cliente', 'error');
         }
     } catch (error) {
         console.error('Error:', error);
@@ -425,92 +430,271 @@ async function completeTransaction() {
     }
 }
 
-function showTransactionComplete(saleData) {
-    const modal = document.getElementById('transactionModal');
-    const details = document.getElementById('transactionDetails');
+// ===== PROCESAMIENTO DE PAGOS =====
+function showPaymentModal() {
+    if (POSState.cart.length === 0) {
+        showMessage('El carrito está vacío', 'warning');
+        return;
+    }
     
-    details.innerHTML = `
-        <div class="transaction-summary">
-            <h4>Venta #${saleData.sale_number}</h4>
-            <p><strong>Fecha:</strong> ${new Date().toLocaleString()}</p>
-            <p><strong>Total:</strong> S/ ${saleData.total}</p>
-            <p><strong>Método de pago:</strong> ${getPaymentMethodName(saleData.payment_method)}</p>
-            ${saleData.change_amount > 0 ? `<p><strong>Vuelto:</strong> S/ ${saleData.change_amount.toFixed(2)}</p>` : ''}
-        </div>
-    `;
+    const modal = document.getElementById('paymentModal');
+    const total = parseFloat(document.getElementById('total').textContent.replace('S/ ', ''));
+    
+    document.getElementById('paymentTotal').textContent = `S/ ${total.toFixed(2)}`;
+    document.getElementById('cashReceived').value = '';
+    document.getElementById('changeAmount').textContent = 'S/ 0.00';
     
     modal.style.display = 'flex';
-}
-
-function getPaymentMethodName(method) {
-    const names = {
-        'cash': 'Efectivo',
-        'card': 'Tarjeta',
-        'transfer': 'Transferencia'
-    };
-    return names[method] || method;
-}
-
-function closeTransactionModal() {
-    document.getElementById('transactionModal').style.display = 'none';
-}
-
-function newTransaction() {
-    closeTransactionModal();
-    clearCart();
-}
-
-// ===== UTILIDADES =====
-function clearCart() {
-    POSState.cart = [];
-    POSState.cashReceived = 0;
     
-    document.getElementById('cashReceived').value = '';
-    document.getElementById('customerSelect').value = '';
+    // Focus en el campo de efectivo recibido
+    setTimeout(() => {
+        document.getElementById('cashReceived').focus();
+    }, 100);
+}
+
+function closePaymentModal() {
+    document.getElementById('paymentModal').style.display = 'none';
+}
+
+function selectPaymentMethod(method) {
+    POSState.paymentMethod = method;
     
-    updateCartDisplay();
-    updateTotals();
-}
-
-function updateClock() {
-    const timeElement = document.getElementById('currentTime');
-    if (!timeElement) return;
+    // Actualizar UI
+    document.querySelectorAll('.payment-method-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
     
-    const now = new Date();
-    const timeString = now.toLocaleTimeString('es-PE');
-    const dateString = now.toLocaleDateString('es-PE');
-    
-    timeElement.innerHTML = `${dateString}<br>${timeString}`;
-}
-
-function holdTransaction() {
-    showMessage('Funcionalidad en desarrollo', 'info');
-}
-
-function printReceipt() {
-    showMessage('Funcionalidad de impresión en desarrollo', 'info');
-}
-
-function showMessage(message, type = 'info') {
-    // Usar sistema básico de alertas
-    if (type === 'error') {
-        alert('❌ ' + message);
-    } else if (type === 'warning') {
-        alert('⚠️ ' + message);
-    } else if (type === 'success') {
-        alert('✅ ' + message);
+    // Mostrar/ocultar campo de efectivo
+    const cashField = document.getElementById('cashReceivedField');
+    if (method === 'cash') {
+        cashField.style.display = 'block';
+        document.getElementById('cashReceived').focus();
     } else {
-        alert('ℹ️ ' + message);
+        cashField.style.display = 'none';
+        document.getElementById('changeAmount').textContent = 'S/ 0.00';
     }
 }
 
-// ===== MOBILE MENU =====
-function toggleMobileSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('mobileOverlay');
+function calculateChange() {
+    const total = parseFloat(document.getElementById('paymentTotal').textContent.replace('S/ ', ''));
+    const received = parseFloat(document.getElementById('cashReceived').value) || 0;
+    const change = Math.max(0, received - total);
     
-    if (sidebar && overlay) {
-        sidebar.classList.toggle('mobile-open');
-        overlay.classList.toggle('show');
+    document.getElementById('changeAmount').textContent = `S/ ${change.toFixed(2)}`;
+}
+
+async function processSale() {
+    if (POSState.cart.length === 0) {
+        showMessage('El carrito está vacío', 'warning');
+        return;
     }
+    
+    // Validar efectivo recibido si es pago en efectivo
+    if (POSState.paymentMethod === 'cash') {
+        const total = parseFloat(document.getElementById('paymentTotal').textContent.replace('S/ ', ''));
+        const received = parseFloat(document.getElementById('cashReceived').value) || 0;
+        
+        if (received < total) {
+            showMessage('El efectivo recibido es insuficiente', 'error');
+            return;
+        }
+    }
+    
+    showLoading(true);
+    
+    const saleData = {
+        customer_id: POSState.selectedCustomer,
+        items: POSState.cart,
+        payment_method: POSState.paymentMethod,
+        notes: document.getElementById('saleNotes')?.value || ''
+    };
+    
+    try {
+        const response = await fetch('backend/api/index.php?endpoint=sales', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(saleData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage('Venta procesada exitosamente', 'success');
+            
+            // Limpiar carrito y actualizar stock
+            POSState.cart = [];
+            updateCartDisplay();
+            updateTotals();
+            closePaymentModal();
+            
+            // Recargar productos para actualizar stock
+            const productsRes = await fetch('backend/api/index.php?endpoint=products');
+            const productsData = await productsRes.json();
+            if (productsData.success) {
+                POSState.products = productsData.products;
+                loadProducts();
+            }
+            
+            // Preguntar si desea imprimir recibo
+            if (confirm('¿Desea imprimir el recibo?')) {
+                printReceipt(result.sale);
+            }
+        } else {
+            showMessage(result.message || 'Error al procesar la venta', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showMessage('Error de conexión', 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+// ===== FUNCIONES DE IMPRESIÓN =====
+function printReceipt(sale) {
+    // Crear ventana de impresión
+    const printWindow = window.open('', '_blank', 'width=300,height=600');
+    
+    const receiptHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Recibo - ${sale.sale_number}</title>
+            <style>
+                body {
+                    font-family: monospace;
+                    font-size: 12px;
+                    margin: 0;
+                    padding: 10px;
+                }
+                .header {
+                    text-align: center;
+                    margin-bottom: 10px;
+                }
+                .divider {
+                    border-top: 1px dashed #000;
+                    margin: 10px 0;
+                }
+                .item {
+                    margin: 5px 0;
+                }
+                .total {
+                    font-weight: bold;
+                    font-size: 14px;
+                }
+                .footer {
+                    text-align: center;
+                    margin-top: 20px;
+                    font-size: 10px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h2>TREINTA POS</h2>
+                <p>Recibo: ${sale.sale_number}</p>
+                <p>${new Date(sale.sale_date).toLocaleString()}</p>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="items">
+                ${sale.items.map(item => `
+                    <div class="item">
+                        <div>${item.name}</div>
+                        <div>${item.quantity} x S/ ${item.price.toFixed(2)} = S/ ${item.subtotal.toFixed(2)}</div>
+                    </div>
+                `).join('')}
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="totals">
+                <div>Subtotal: S/ ${sale.subtotal.toFixed(2)}</div>
+                <div>IGV (18%): S/ ${sale.tax_amount.toFixed(2)}</div>
+                <div class="total">TOTAL: S/ ${sale.total_amount.toFixed(2)}</div>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="payment">
+                <div>Método: ${sale.payment_method.toUpperCase()}</div>
+                ${sale.payment_method === 'cash' ? `
+                    <div>Recibido: S/ ${sale.cash_received.toFixed(2)}</div>
+                    <div>Cambio: S/ ${sale.change_amount.toFixed(2)}</div>
+                ` : ''}
+            </div>
+            
+            <div class="footer">
+                <p>¡Gracias por su compra!</p>
+                <p>Powered by Treinta POS</p>
+            </div>
+        </body>
+        </html>
+    `;
+    
+    printWindow.document.write(receiptHTML);
+    printWindow.document.close();
+    
+    // Imprimir automáticamente
+    printWindow.onload = function() {
+        printWindow.print();
+        printWindow.close();
+    };
+}
+
+// ===== FUNCIONES AUXILIARES =====
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+function closeAllModals() {
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.style.display = 'none';
+    });
+}
+
+function handleKeyboardShortcuts(e) {
+    // F2 - Buscar producto
+    if (e.key === 'F2') {
+        e.preventDefault();
+        document.getElementById('productSearch')?.focus();
+    }
+    
+    // F4 - Procesar pago
+    if (e.key === 'F4') {
+        e.preventDefault();
+        showPaymentModal();
+    }
+    
+    // F6 - Limpiar carrito
+    if (e.key === 'F6') {
+        e.preventDefault();
+        clearCart();
+    }
+    
+    // ESC - Cerrar modales
+    if (e.key === 'Escape') {
+        closeAllModals();
+    }
+}
+
+// Función para manejar el menú móvil
+function toggleMobileSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    
+    sidebar.classList.toggle('active');
+    overlay.classList.toggle('active');
 }
