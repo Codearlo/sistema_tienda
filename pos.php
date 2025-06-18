@@ -220,9 +220,13 @@ function formatCurrency($amount) {
                     </div>
 
                     <div class="pos-actions">
-                        <button class="btn btn-outline btn-block" onclick="openSuspendedSalesModal()">
-                            <i class="fas fa-pause"></i>
+                        <button class="btn btn-outline btn-block" onclick="holdTransaction()">
+                            <i class="fas fa-list"></i>
                             Suspender Venta
+                        </button>
+                        <button class="btn btn-secondary btn-block" onclick="openSuspendedSalesModal()">
+                            <i class="fas fa-list"></i>
+                            Ver Ventas Suspendidas
                         </button>
                         <button class="btn btn-primary btn-block" onclick="printReceipt()">
                             <i class="fas fa-print"></i>
