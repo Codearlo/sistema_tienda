@@ -75,13 +75,13 @@ try {
     $business_data = [];
 }
 
-// Configuraciones por defecto
+// Configuraciones por defecto (se mantienen las que no son de notificaciones)
 $config = array_merge([
-    'email_sales_report' => 0,
-    'email_low_stock' => 0,
+    // 'email_sales_report' => 0, // Eliminado
+    // 'email_low_stock' => 0,    // Eliminado
     'whatsapp_receipts' => 0,
     'whatsapp_reminders' => 0,
-    'low_stock_threshold' => 10
+    // 'low_stock_threshold' => 10 // Eliminado
 ], $config);
 
 // Datos del negocio por defecto
@@ -102,8 +102,7 @@ $business_info = array_merge([
     <title>Configuración - Treinta</title>
     <link href="assets/css/style.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="assets/js/notifications.js"></script>
-</head>
+    </head>
 <body class="dashboard-page">
     <?php include 'includes/slidebar.php'; ?>
     
@@ -138,7 +137,6 @@ $business_info = array_merge([
         <?php endif; ?>
 
         <div class="settings-container">
-            <!-- Profile Settings -->
             <div class="card">
                 <div class="card-header">
                     <h2><i class="fas fa-user"></i> Perfil del Usuario</h2>
@@ -182,7 +180,6 @@ $business_info = array_merge([
                 </div>
             </div>
 
-            <!-- Business Settings -->
             <div class="card">
                 <div class="card-header">
                     <h2><i class="fas fa-store"></i> Configuración del Negocio</h2>
@@ -225,53 +222,6 @@ $business_info = array_merge([
                 </div>
             </div>
 
-            <!-- Notifications -->
-            <div class="card">
-                <div class="card-header">
-                    <h2><i class="fas fa-bell"></i> Notificaciones</h2>
-                    <p>Configura cómo y cuándo recibir notificaciones</p>
-                </div>
-                
-                <div class="card-body">
-                    <form id="notificationForm" class="form">
-                        <div class="notification-group">
-                            <div>
-                                <h3>Reportes de ventas por email</h3>
-                                <p>Recibe reportes automáticos de tus ventas diarias</p>
-                            </div>
-                            <label class="switch">
-                                <input type="checkbox" id="emailSalesReport" <?php echo $config['email_sales_report'] ? 'checked' : ''; ?>>
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        
-                        <div class="notification-group">
-                            <div>
-                                <h3>Alertas de stock bajo</h3>
-                                <p>Notificaciones cuando los productos tengan poco stock</p>
-                            </div>
-                            <label class="switch">
-                                <input type="checkbox" id="emailLowStock" <?php echo $config['email_low_stock'] ? 'checked' : ''; ?>>
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="lowStockThreshold" class="form-label">Umbral de stock bajo</label>
-                            <input type="number" id="lowStockThreshold" class="form-input" 
-                                   value="<?php echo htmlspecialchars($config['low_stock_threshold'] ?? 10); ?>" min="1">
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Guardar Notificaciones
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Account Management -->
             <div class="card danger-zone">
                 <div class="card-header">
                     <h2><i class="fas fa-exclamation-triangle"></i> Gestión de Cuenta</h2>
@@ -297,7 +247,6 @@ $business_info = array_merge([
         </div>
     </main>
 
-    <!-- Delete Account Modal -->
     <div id="deleteAccountModal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
@@ -345,12 +294,11 @@ $business_info = array_merge([
                 saveBusiness();
             });
             
-            // Manejar formulario de notificaciones
-            document.getElementById('notificationForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                saveNotifications();
-            });
-            
+            // La sección de notificaciones ha sido eliminada del HTML y PHP, por lo tanto,
+            // la lógica de `document.getElementById('notificationForm').addEventListener('submit', ...)`
+            // y la llamada a `saveNotifications()` dentro de `saveAllSettings()`
+            // deben ser eliminadas o comentadas.
+
             // Handle delete confirmation input
             const confirmInput = document.getElementById('confirmDelete');
             const deleteBtn = document.getElementById('confirmDeleteBtn');
@@ -440,6 +388,8 @@ $business_info = array_merge([
             }
         }
 
+        // Se elimina la función saveNotifications() ya que la funcionalidad fue removida.
+        /*
         async function saveNotifications() {
             const form = document.getElementById('notificationForm');
             const button = form.querySelector('button[type="submit"]');
@@ -477,6 +427,7 @@ $business_info = array_merge([
                 button.disabled = false;
             }
         }
+        */
 
         function showAlert(message, type) {
             // Crear elemento de alerta
@@ -507,7 +458,8 @@ $business_info = array_merge([
             if (confirm('¿Guardar todos los cambios?')) {
                 saveProfile();
                 setTimeout(() => saveBusiness(), 500);
-                setTimeout(() => saveNotifications(), 1000);
+                // Eliminado la llamada a saveNotifications()
+                // setTimeout(() => saveNotifications(), 1000);
             }
         }
 
