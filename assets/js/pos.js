@@ -557,7 +557,8 @@ async function holdTransaction() {
 
     try {
         console.log('🌐 Enviando petición...');
-        const response = await API.post('/suspended_sales.php?debug=1', suspendedSaleData);
+        // Modificación: Eliminar el parámetro 'debug=1' de la URL de la API
+        const response = await API.post('/suspended_sales.php', suspendedSaleData);
         console.log('✅ Respuesta recibida:', response);
         
         if (response.success) {
