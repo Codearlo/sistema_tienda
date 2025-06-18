@@ -192,7 +192,6 @@ function formatCurrency($amount) {
     <?php include 'includes/slidebar.php'; ?>
     
     <main class="main-content">
-        <!-- Breadcrumb -->
         <nav class="breadcrumb">
             <a href="dashboard.php" class="breadcrumb-link">
                 <i class="fas fa-home"></i>
@@ -203,7 +202,6 @@ function formatCurrency($amount) {
             <span class="breadcrumb-current">Agregar Producto</span>
         </nav>
 
-        <!-- Header -->
         <header class="page-header">
             <div class="header-content">
                 <h1 class="page-title"><?php echo $is_edit_mode ? 'Editar Producto' : 'Agregar Producto'; ?></h1>
@@ -237,13 +235,11 @@ function formatCurrency($amount) {
             </div>
         <?php endif; ?>
 
-        <!-- Main Form -->
         <form method="POST" class="product-form" id="productForm">
             <?php if ($is_edit_mode): ?>
                 <input type="hidden" name="product_id" value="<?php echo $editing_product['id']; ?>">
             <?php endif; ?>
             <div class="form-grid">
-                <!-- Basic Information -->
                 <section class="form-section">
                     <div class="section-header">
                         <h2 class="section-title">
@@ -278,7 +274,6 @@ function formatCurrency($amount) {
                     </div>
                 </section>
 
-                <!-- Product Images -->
                 <section class="form-section">
                     <div class="section-header">
                         <h2 class="section-title">
@@ -293,8 +288,7 @@ function formatCurrency($amount) {
                     <div class="section-content">
                         <div class="image-upload-area">
                             <div class="image-previews" id="imagePreviews">
-                                <!-- Images will be added here -->
-                            </div>
+                                </div>
                             <div class="upload-placeholder" onclick="triggerImageUpload()">
                                 <i class="fas fa-plus"></i>
                                 <span>Agregar Imagen</span>
@@ -310,7 +304,6 @@ function formatCurrency($amount) {
                     </div>
                 </section>
 
-                <!-- Category -->
                 <section class="form-section">
                     <div class="section-header">
                         <h2 class="section-title">
@@ -348,7 +341,6 @@ function formatCurrency($amount) {
                     </div>
                 </section>
 
-                <!-- Pricing -->
                 <section class="form-section">
                     <div class="section-header">
                         <h2 class="section-title">
@@ -399,7 +391,6 @@ function formatCurrency($amount) {
                     </div>
                 </section>
 
-                <!-- Inventory -->
                 <section class="form-section">
                     <div class="section-header">
                         <h2 class="section-title">
@@ -459,7 +450,6 @@ function formatCurrency($amount) {
                     </div>
                 </section>
 
-                <!-- Additional Options -->
                 <section class="form-section">
                     <div class="section-header">
                         <h2 class="section-title">
@@ -502,7 +492,6 @@ function formatCurrency($amount) {
                 </section>
             </div>
 
-            <!-- Form Actions -->
             <div class="form-actions">
                 <button type="button" class="btn btn-ghost" onclick="window.history.back()">
                     Cancelar
@@ -522,7 +511,6 @@ function formatCurrency($amount) {
         </form>
     </main>
 
-    <!-- Category Modal -->
     <div id="categoryModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -553,7 +541,6 @@ function formatCurrency($amount) {
         </div>
     </div>
 
-    <!-- Scripts -->
     <?php includeJs('assets/js/add-product.js'); ?>
     
     <script>
