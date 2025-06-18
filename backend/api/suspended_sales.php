@@ -49,7 +49,7 @@ try {
     // RUTAS CORREGIDAS - desde backend/api/ hacia la raíz
     $configFiles = [
         '../config/database.php' => realpath(__DIR__ . '/../config/database.php'),
-        '../../includes/auth.php' => realpath(__DIR__ . '/../../includes/auth.php')  // Ruta corregida: subir dos niveles para llegar a la raíz
+        '/includes/auth.php' => realpath(__DIR__ . '/includes/auth.php')  // Ruta corregida: subir dos niveles para llegar a la raíz
     ];
     
     foreach ($configFiles as $file => $realPath) {
