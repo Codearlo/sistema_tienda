@@ -111,6 +111,117 @@ function handleGetProducts($db, $business_id) {
         
         echo json_encode([
             'success' => true,
+            'products' => $products // Corregido: 'product_id' a 'products' para una lista
+        ]);
+        
+    } catch (Exception $e) {
+        error_log("Error obteniendo productos: " . $e->getMessage()); // Corregido: mensaje de log
+        http_response_code(500); // Cambiado a 500 para errores internos
+        echo json_encode(['success' => false, 'message' => 'Error al obtener productos']); // Corregido: mensaje de error
+    }
+}
+
+/**
+ * Obtener un producto específico
+ */
+function handleGetProduct($db, $product_id, $business_id) {
+    try {
+        $product = $db->fetch("
+            SELECT 
+                p.*,
+                c.name as category_name
+            FROM products p 
+            LEFT JOIN categories c ON p.category_id = c.id 
+            WHERE p.id = ? AND p.business_id = ?
+        ", [$product_id, $business_id]);
+        
+        if (!$product) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Producto no encontrado']);
+            return;
+        }
+        
+        echo json_encode([
+            'success' => true,
+            'product' => $product
+        ]);
+        
+    } catch (Exception $e) {
+        error_log("Error obteniendo producto: " . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Error al obtener producto']);
+    }
+}
+
+/**
+ * Crear nuevo producto
+ */
+function handleCreateProduct($db, $business_id) {
+    try {
+        $input = json_decode(file_get_contents('php://input'), true);
+        
+        // Validar datos requeridos
+        if (empty($input['name'])) {
+            throw new Exception('El nombre del producto es requerido');
+        }
+        
+        if (!isset($input['selling_price']) || $input['selling_price'] <= 0) {
+            throw new Exception('El precio de venta debe ser mayor a 0');
+        }
+        
+        // Verificar que el código de barras no exista (si se proporciona)
+        if (!empty($input['barcode'])) {
+            $existing = $db->fetch("
+                SELECT id FROM products 
+                WHERE barcode = ? AND business_id = ? AND status = 1
+            ", [$input['barcode'], $business_id]);
+            
+            if ($existing) {
+                throw new Exception('Ya existe un producto con ese código de barras');
+            }
+        }
+        
+        $product_id = $db->insert("
+            INSERT INTO products (
+                business_id, name, description, barcode, selling_price, 
+                purchase_price, stock_quantity, min_stock, unit, 
+                category_id, image_url, status, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())
+        ", [
+            $business_id,
+            $input['name'],
+            $input['description'] ?? '',
+            $input['barcode'] ?? null,
+            $input['selling_price'],
+            $input['purchase_price'] ?? 0,
+            $input['stock_quantity'] ?? 0,
+            $input['min_stock'] ?? 5,
+            $input['unit'] ?? 'unidades',
+            $input['category_id'] ?? null,
+            $input['image_url'] ?? null
+        ]);
+        
+        if (!$product_id) {
+            throw new Exception('Error al crear el producto');
+        }
+        
+        // Registrar movimiento inicial de inventario si hay stock
+        if (($input['stock_quantity'] ?? 0) > 0) {
+            $db->insert("
+                INSERT INTO inventory_movements (
+                    business_id, product_id, movement_type, quantity, 
+                    reference_type, reference_id, notes, created_at
+                ) VALUES (?, ?, 'in', ?, 'initial_stock', ?, 'Stock inicial', NOW())
+            ", [
+                $business_id,
+                $product_id,
+                $input['stock_quantity'],
+                $product_id
+            ]);
+        }
+        
+        echo json_encode([
+            'success' => true,
             'message' => 'Producto creado exitosamente',
             'product_id' => $product_id
         ]);
@@ -225,10 +336,10 @@ function handleDeleteProduct($db, $product_id, $business_id) {
         // Verificar que no hay ventas recientes con este producto
         $recent_sales = $db->fetch("
             SELECT COUNT(*) as count 
-            FROM sale_details sd
-            JOIN sales s ON sd.sale_id = s.id
-            WHERE sd.product_id = ? AND s.business_id = ? 
-            AND s.sale_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+            FROM sale_items si
+            JOIN sales s ON si.sale_id = s.id
+            WHERE si.product_id = ? AND s.business_id = ? 
+            AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
         ", [$product_id, $business_id]);
         
         if ($recent_sales['count'] > 0) {
@@ -356,115 +467,3 @@ function handleUpdateStock($db, $business_id) {
         echo json_encode(['success' => false, 'message' => $e->getMessage()]);
     }
 }
-?>products' => $products
-        ]);
-        
-    } catch (Exception $e) {
-        error_log("Error obteniendo productos: " . $e->getMessage());
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Error al obtener productos']);
-    }
-}
-
-/**
- * Obtener un producto específico
- */
-function handleGetProduct($db, $product_id, $business_id) {
-    try {
-        $product = $db->fetch("
-            SELECT 
-                p.*,
-                c.name as category_name
-            FROM products p 
-            LEFT JOIN categories c ON p.category_id = c.id 
-            WHERE p.id = ? AND p.business_id = ?
-        ", [$product_id, $business_id]);
-        
-        if (!$product) {
-            http_response_code(404);
-            echo json_encode(['success' => false, 'message' => 'Producto no encontrado']);
-            return;
-        }
-        
-        echo json_encode([
-            'success' => true,
-            'product' => $product
-        ]);
-        
-    } catch (Exception $e) {
-        error_log("Error obteniendo producto: " . $e->getMessage());
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Error al obtener producto']);
-    }
-}
-
-/**
- * Crear nuevo producto
- */
-function handleCreateProduct($db, $business_id) {
-    try {
-        $input = json_decode(file_get_contents('php://input'), true);
-        
-        // Validar datos requeridos
-        if (empty($input['name'])) {
-            throw new Exception('El nombre del producto es requerido');
-        }
-        
-        if (!isset($input['selling_price']) || $input['selling_price'] <= 0) {
-            throw new Exception('El precio de venta debe ser mayor a 0');
-        }
-        
-        // Verificar que el código de barras no exista (si se proporciona)
-        if (!empty($input['barcode'])) {
-            $existing = $db->fetch("
-                SELECT id FROM products 
-                WHERE barcode = ? AND business_id = ? AND status = 1
-            ", [$input['barcode'], $business_id]);
-            
-            if ($existing) {
-                throw new Exception('Ya existe un producto con ese código de barras');
-            }
-        }
-        
-        $product_id = $db->insert("
-            INSERT INTO products (
-                business_id, name, description, barcode, selling_price, 
-                purchase_price, stock_quantity, min_stock, unit, 
-                category_id, image_url, status, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())
-        ", [
-            $business_id,
-            $input['name'],
-            $input['description'] ?? '',
-            $input['barcode'] ?? null,
-            $input['selling_price'],
-            $input['purchase_price'] ?? 0,
-            $input['stock_quantity'] ?? 0,
-            $input['min_stock'] ?? 5,
-            $input['unit'] ?? 'unidades',
-            $input['category_id'] ?? null,
-            $input['image_url'] ?? null
-        ]);
-        
-        if (!$product_id) {
-            throw new Exception('Error al crear el producto');
-        }
-        
-        // Registrar movimiento inicial de inventario si hay stock
-        if (($input['stock_quantity'] ?? 0) > 0) {
-            $db->insert("
-                INSERT INTO inventory_movements (
-                    business_id, product_id, movement_type, quantity, 
-                    reference_type, reference_id, notes, created_at
-                ) VALUES (?, ?, 'in', ?, 'initial_stock', ?, 'Stock inicial', NOW())
-            ", [
-                $business_id,
-                $product_id,
-                $input['stock_quantity'],
-                $product_id
-            ]);
-        }
-        
-        echo json_encode([
-            'success' => true,
-            '
