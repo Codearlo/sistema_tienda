@@ -120,9 +120,9 @@ function handleProducts($db, $method, $params) {
                 // CORREGIDO: Consulta que usa directamente stock_quantity de tabla products
                 $products = $db->fetchAll(
                     "SELECT p.id, p.name, p.sku, p.barcode, p.selling_price, 
-                            p.stock_quantity as current_stock, p.min_stock, p.track_stock,
+                            p.stock_quantity, p.min_stock, p.track_stock,
                             c.name as category_name, p.category_id,
-                            p.image, p.unit,
+                            p.image, p.unit, p.description,
                             CASE 
                                 WHEN p.stock_quantity <= p.min_stock THEN 1 
                                 ELSE 0 
