@@ -13,21 +13,13 @@ const POSState = {
     paymentMethod: 'cash',
     cashReceived: 0,
     includeIgv: true, // Nuevo estado para controlar el IGV
-    // Las propiedades relacionadas con ventas suspendidas ya no son necesarias aquí.
-    // suspendedSales: [],
-    // currentSuspendedSaleId: null,
 };
 
 // ===== INICIALIZACIÓN =====
-document.addEventListener('DOMContentLoaded', function() {
-    initializePOS();
-});
-
 function initializePOS() {
     console.log('Inicializando POS...');
     
     // Usar datos del PHP
-    // Asegúrate de que 'products', 'categories', 'customers' estén definidos globalmente por el PHP antes de que este script se ejecute.
     if (typeof products !== 'undefined') {
         POSState.products = products;
     }
@@ -37,10 +29,9 @@ function initializePOS() {
     if (typeof customers !== 'undefined') {
         POSState.customers = customers;
     }
-    // Eliminar completamente la referencia a initialSuspendedSales, ya que se asume que el PHP no la define más.
-    // if (typeof initialSuspendedSales !== 'undefined') {
-    //     POSState.suspendedSales = initialSuspendedSales;
-    // }
+    if (typeof initialSuspendedSales !== 'undefined') {
+        POSState.suspendedSales = initialSuspendedSales;
+    }
     
     // Inicializar reloj
     updateClock();
@@ -102,23 +93,15 @@ function loadCategories() {
         </button>
     `;
     
-    // Asegurarse de que categories es un array y tiene elementos
-    if (Array.isArray(POSState.categories)) {
-        POSState.categories.forEach(category => {
-            // La imagen muestra un problema con el onclick, posiblemente por cómo se está construyendo el HTML.
-            // Asegurémonos de que el valor de category.name esté correctamente escapado si se imprime en el HTML de otra manera,
-            // pero para el onclick solo necesitamos el ID.
-            html += `
-                <button class="category-btn ${POSState.selectedCategory === category.id ? 'active' : ''}" 
-                        onclick="filterByCategory(${category.id})">
-                    <i class="fas fa-tag"></i>
-                    ${htmlspecialchars(category.name)}
-                </button>
-            `;
-        });
-    } else {
-        console.warn("POSState.categories no es un array o está vacío.");
-    }
+    POSState.categories.forEach(category => {
+        html += `
+            <button class="category-btn ${POSState.selectedCategory === category.id ? 'active' : ''}" 
+                    onclick="filterByCategory(${category.id})">
+                <i class="fas fa-tag"></i>
+                ${category.name}
+            </button>
+        `;
+    });
     
     grid.innerHTML = html;
 }
@@ -159,13 +142,13 @@ function loadProducts() {
         <div class="product-card" onclick="addToCart(${product.id})">
             <div class="product-image">
                 ${product.image ? 
-                    `<img src="${htmlspecialchars(product.image)}" alt="${htmlspecialchars(product.name)}">` :
+                    `<img src="${product.image}" alt="${product.name}">` :
                     '<div class="product-placeholder"><i class="fas fa-box"></i></div>'
                 }
             </div>
             <div class="product-info">
-                <h4 class="product-name">${htmlspecialchars(product.name)}</h4>
-                <p class="product-category">${htmlspecialchars(product.category_name || 'Sin categoría')}</p>
+                <h4 class="product-name">${product.name}</h4>
+                <p class="product-category">${product.category_name || 'Sin categoría'}</p>
                 <div class="product-price">S/ ${parseFloat(product.selling_price).toFixed(2)}</div>
                 <div class="product-stock ${product.current_stock <= 5 ? 'low-stock' : ''}">
                     Stock: ${product.current_stock || 0}
@@ -264,7 +247,7 @@ function updateCartDisplay() {
         const html = POSState.cart.map(item => `
             <div class="cart-item">
                 <div class="item-info">
-                    <h4 class="item-name">${htmlspecialchars(item.name)}</h4>
+                    <h4 class="item-name">${item.name}</h4>
                     <p class="item-price">S/ ${item.price.toFixed(2)}</p>
                 </div>
                 <div class="item-controls">
@@ -486,11 +469,11 @@ async function completeTransaction() {
             showTransactionComplete(response.data);
             clearCart();
             showMessage('Venta completada exitosamente', 'success');
-            // La lógica de ventas suspendidas eliminada de aquí
-            // if (POSState.currentSuspendedSaleId) {
-            //     removeSuspendedSaleFromList(POSState.currentSuspendedSaleId);
-            //     POSState.currentSuspendedSaleId = null; // Resetear
-            // }
+            // Si la venta se completó y venía de una suspendida, actualizar la lista
+            if (POSState.currentSuspendedSaleId) {
+                removeSuspendedSaleFromList(POSState.currentSuspendedSaleId);
+                POSState.currentSuspendedSaleId = null; // Resetear
+            }
             // Recargar productos para reflejar el stock actualizado (asumiendo que backend lo maneja)
             loadProducts(); 
 
@@ -544,8 +527,7 @@ function clearCart() {
     POSState.cart = [];
     POSState.cashReceived = 0;
     POSState.includeIgv = true; // Resetear el estado del IGV al limpiar el carrito
-    // La propiedad currentSuspendedSaleId ya no es necesaria.
-    // POSState.currentSuspendedSaleId = null; 
+    POSState.currentSuspendedSaleId = null; // Asegurarse de limpiar el ID de venta suspendida
 
     document.getElementById('cashReceived').value = '';
     document.getElementById('customerSelect').value = '';
@@ -578,7 +560,6 @@ function printReceipt() {
 
 function showMessage(message, type = 'info') {
     // Usar sistema básico de alertas
-    // Esta función es genérica y se mantiene.
     if (type === 'error') {
         alert('❌ ' + message);
     } else if (type === 'warning') {
@@ -589,20 +570,6 @@ function showMessage(message, type = 'info') {
         alert('ℹ️ ' + message);
     }
 }
-
-// Función auxiliar para escapar HTML, necesaria para evitar XSS si los nombres de productos/categorías pueden contener HTML.
-// Se puede colocar en un archivo de utilidades global si es necesario en otros JS.
-function htmlspecialchars(text) {
-    const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-    };
-    return text.replace(/[&<>"']/g, m => map[m]);
-}
-
 
 // ===== MOBILE MENU =====
 function toggleMobileSidebar() {
