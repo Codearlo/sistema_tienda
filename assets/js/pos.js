@@ -12,9 +12,7 @@ const POSState = {
     selectedCategory: null,
     paymentMethod: 'cash',
     cashReceived: 0,
-    includeIgv: true, // Estado para controlar el IGV
-    // suspendedSales: [], // Ya no se necesita si no hay ventas suspendidas
-    // currentSuspendedSaleId: null // Ya no se necesita si no hay ventas suspendidas
+    includeIgv: true, // Nuevo estado para controlar el IGV
 };
 
 // ===== INICIALIZACIÓN =====
@@ -22,7 +20,6 @@ function initializePOS() {
     console.log('Inicializando POS...');
     
     // Usar datos del PHP
-    // Asegúrate de que 'products', 'categories', 'customers' estén definidos en el script PHP antes de este JS
     if (typeof products !== 'undefined') {
         POSState.products = products;
     }
@@ -32,10 +29,9 @@ function initializePOS() {
     if (typeof customers !== 'undefined') {
         POSState.customers = customers;
     }
-    // La variable initialSuspendedSales debe eliminarse completamente del PHP que carga este JS
-    // if (typeof initialSuspendedSales !== 'undefined') { 
-    //     POSState.suspendedSales = initialSuspendedSales;
-    // }
+    if (typeof initialSuspendedSales !== 'undefined') {
+        POSState.suspendedSales = initialSuspendedSales;
+    }
     
     // Inicializar reloj
     updateClock();
@@ -99,8 +95,8 @@ function loadCategories() {
     
     POSState.categories.forEach(category => {
         html += `
-            <button class="category-btn <span class="math-inline">\{POSState\.selectedCategory \=\=\= category\.id ? 'active' \: ''\}" 
-onclick\="filterByCategory\(</span>{category.id})">
+            <button class="category-btn ${POSState.selectedCategory === category.id ? 'active' : ''}" 
+                    onclick="filterByCategory(${category.id})">
                 <i class="fas fa-tag"></i>
                 ${category.name}
             </button>
@@ -151,8 +147,8 @@ function loadProducts() {
                 }
             </div>
             <div class="product-info">
-                <h4 class="product-name"><span class="math-inline">\{product\.name\}</h4\>
-<p class\="product\-category"\></span>{product.category_name || 'Sin categoría'}</p>
+                <h4 class="product-name">${product.name}</h4>
+                <p class="product-category">${product.category_name || 'Sin categoría'}</p>
                 <div class="product-price">S/ ${parseFloat(product.selling_price).toFixed(2)}</div>
                 <div class="product-stock ${product.current_stock <= 5 ? 'low-stock' : ''}">
                     Stock: ${product.current_stock || 0}
@@ -252,21 +248,21 @@ function updateCartDisplay() {
             <div class="cart-item">
                 <div class="item-info">
                     <h4 class="item-name">${item.name}</h4>
-                    <p class="item-price">S/ <span class="math-inline">\{item\.price\.toFixed\(2\)\}</p\>
-</div\>
-<div class\="item\-controls"\>
-<button class\="qty\-btn" onclick\="updateQuantity\(</span>{item.product_id}, <span class="math-inline">\{item\.quantity \- 1\}\)"\>
-<i class\="fas fa\-minus"\></i\>
-</button\>
-<span class\="item\-quantity"\></span>{item.quantity}</span>
+                    <p class="item-price">S/ ${item.price.toFixed(2)}</p>
+                </div>
+                <div class="item-controls">
+                    <button class="qty-btn" onclick="updateQuantity(${item.product_id}, ${item.quantity - 1})">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <span class="item-quantity">${item.quantity}</span>
                     <button class="qty-btn" onclick="updateQuantity(${item.product_id}, ${item.quantity + 1})">
                         <i class="fas fa-plus"></i>
                     </button>
                 </div>
                 <div class="item-total">
-                    S/ <span class="math-inline">\{item\.subtotal\.toFixed\(2\)\}
-</div\>
-<button class\="remove\-btn" onclick\="removeFromCart\(</span>{item.product_id})">
+                    S/ ${item.subtotal.toFixed(2)}
+                </div>
+                <button class="remove-btn" onclick="removeFromCart(${item.product_id})">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
@@ -554,7 +550,7 @@ function updateClock() {
     
     // Divide la fecha y la hora si es necesario o muestra como una sola línea
     // const parts = dateTimeString.split(', ');
-    // timeElement.innerHTML = `<span class="math-inline">\{parts\[0\]\}<br\></span>{parts[1]}`;
+    // timeElement.innerHTML = `${parts[0]}<br>${parts[1]}`;
     timeElement.innerHTML = dateTimeString;
 }
 
