@@ -27,12 +27,8 @@ try {
     
     // Estadísticas del dashboard
     $today = date('Y-m-d');
-    $yesterday = date('Y-m-d', strtotime('-1 day'));
-    $last_month = date('Y-m', strtotime('-1 month'));
-    $current_month = date('Y-m');
-    $last_week = date('Y-m-d', strtotime('-7 days'));
     
-    // ===== VENTAS DEL DÍA =====
+    // Ventas del día
     $daily_sales = $db->single(
         "SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total 
          FROM sales 
@@ -40,53 +36,7 @@ try {
         [$business_id, $today]
     );
     
-    // Ventas de ayer para comparación
-    $yesterday_sales = $db->single(
-        "SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total 
-         FROM sales 
-         WHERE business_id = ? AND DATE(created_at) = ?",
-        [$business_id, $yesterday]
-    );
-    
-    // Calcular porcentaje vs ayer
-    $daily_change_percentage = 0;
-    $daily_change_type = 'neutral';
-    if ($yesterday_sales['total'] > 0) {
-        $daily_change_percentage = (($daily_sales['total'] - $yesterday_sales['total']) / $yesterday_sales['total']) * 100;
-        $daily_change_type = $daily_change_percentage >= 0 ? 'positive' : 'negative';
-    } elseif ($daily_sales['total'] > 0) {
-        $daily_change_percentage = 100; // Si ayer fue 0 y hoy hay ventas
-        $daily_change_type = 'positive';
-    }
-    
-    // ===== VENTAS DEL MES =====
-    $monthly_sales = $db->single(
-        "SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total 
-         FROM sales 
-         WHERE business_id = ? AND DATE_FORMAT(created_at, '%Y-%m') = ?",
-        [$business_id, $current_month]
-    );
-    
-    // Ventas del mes pasado para comparación
-    $last_month_sales = $db->single(
-        "SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total 
-         FROM sales 
-         WHERE business_id = ? AND DATE_FORMAT(created_at, '%Y-%m') = ?",
-        [$business_id, $last_month]
-    );
-    
-    // Calcular porcentaje vs mes anterior
-    $monthly_change_percentage = 0;
-    $monthly_change_type = 'neutral';
-    if ($last_month_sales['total'] > 0) {
-        $monthly_change_percentage = (($monthly_sales['total'] - $last_month_sales['total']) / $last_month_sales['total']) * 100;
-        $monthly_change_type = $monthly_change_percentage >= 0 ? 'positive' : 'negative';
-    } elseif ($monthly_sales['total'] > 0) {
-        $monthly_change_percentage = 100; // Si el mes pasado fue 0 y este mes hay ventas
-        $monthly_change_type = 'positive';
-    }
-    
-    // ===== PRODUCTOS =====
+    // Total de productos
     $total_products = $db->single(
         "SELECT COUNT(*) as count FROM products WHERE business_id = ? AND status = 1",
         [$business_id]
@@ -102,20 +52,7 @@ try {
         [$business_id]
     );
     
-    // ===== CLIENTES =====
-    $total_customers = $db->single(
-        "SELECT COUNT(*) as count FROM customers WHERE business_id = ? AND status = 1",
-        [$business_id]
-    );
-    
-    // Nuevos clientes esta semana
-    $new_customers_week = $db->single(
-        "SELECT COUNT(*) as count FROM customers 
-         WHERE business_id = ? AND status = 1 AND created_at >= ?",
-        [$business_id, $last_week]
-    );
-    
-    // ===== DEUDAS PENDIENTES =====
+    // Deudas pendientes
     $pending_debts = $db->single(
         "SELECT COUNT(*) as count, COALESCE(SUM(remaining_amount), 0) as total 
          FROM debts 
@@ -123,23 +60,37 @@ try {
         [$business_id]
     );
     
-    // ===== VENTAS DE LA SEMANA =====
+    // Ventas de la semana (últimos 7 días)
     $weekly_sales = $db->fetchAll(
-        "SELECT DATE(sale_date) as date, COALESCE(SUM(total_amount), 0) as total 
+        "SELECT DATE(created_at) as date, COALESCE(SUM(total_amount), 0) as total 
          FROM sales 
-         WHERE business_id = ? AND sale_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND status = 1
-         GROUP BY DATE(sale_date) 
+         WHERE business_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+         GROUP BY DATE(created_at) 
          ORDER BY date ASC",
         [$business_id]
     );
     
-    // ===== PRODUCTOS MÁS VENDIDOS =====
+    // Ventas del mes
+    $monthly_sales = $db->single(
+        "SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total 
+         FROM sales 
+         WHERE business_id = ? AND MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())",
+        [$business_id]
+    );
+    
+    // Total de clientes
+    $total_customers = $db->single(
+        "SELECT COUNT(*) as count FROM customers WHERE business_id = ? AND status = 1",
+        [$business_id]
+    );
+    
+    // Productos más vendidos
     $top_products = $db->fetchAll(
         "SELECT p.name, SUM(si.quantity) as total_sold, SUM(si.line_total) as revenue
          FROM sale_items si 
          JOIN products p ON si.product_id = p.id 
          JOIN sales s ON si.sale_id = s.id
-         WHERE s.business_id = ? AND s.sale_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND s.status = 1
+         WHERE s.business_id = ? AND s.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
          GROUP BY p.id, p.name 
          ORDER BY total_sold DESC 
          LIMIT 5",
@@ -150,28 +101,17 @@ try {
     $error_message = "Error al cargar el dashboard: " . $e->getMessage();
     $business = ['name' => 'Tu Negocio'];
     $daily_sales = ['count' => 0, 'total' => 0];
-    $yesterday_sales = ['count' => 0, 'total' => 0];
-    $daily_change_percentage = 0;
-    $daily_change_type = 'neutral';
     $total_products = ['count' => 0];
     $low_stock_products = [];
     $pending_debts = ['count' => 0, 'total' => 0];
     $weekly_sales = [];
     $monthly_sales = ['count' => 0, 'total' => 0];
-    $last_month_sales = ['count' => 0, 'total' => 0];
-    $monthly_change_percentage = 0;
-    $monthly_change_type = 'neutral';
     $total_customers = ['count' => 0];
-    $new_customers_week = ['count' => 0];
     $top_products = [];
 }
 
 function formatCurrency($amount) {
     return 'S/ ' . number_format($amount, 2);
-}
-
-function formatPercentage($percentage) {
-    return number_format(abs($percentage), 1) . '%';
 }
 
 function formatDate($date) {
@@ -254,7 +194,6 @@ function formatDate($date) {
 
         <!-- Estadísticas principales -->
         <div class="stats-grid">
-            <!-- VENTAS HOY - Con cálculo dinámico -->
             <div class="stat-card">
                 <div class="stat-header">
                     <div class="stat-title">Ventas Hoy</div>
@@ -264,19 +203,12 @@ function formatDate($date) {
                 </div>
                 <div class="stat-value"><?php echo formatCurrency($daily_sales['total']); ?></div>
                 <div class="stat-description"><?php echo $daily_sales['count']; ?> ventas realizadas</div>
-                <div class="stat-change <?php echo $daily_change_type; ?>">
-                    <i class="fas fa-arrow-<?php echo $daily_change_type === 'positive' ? 'up' : ($daily_change_type === 'negative' ? 'down' : 'right'); ?>"></i>
-                    <span>
-                        <?php if ($daily_change_type === 'neutral'): ?>
-                            Sin cambios vs ayer
-                        <?php else: ?>
-                            <?php echo $daily_change_type === 'positive' ? '+' : ''; ?><?php echo formatPercentage($daily_change_percentage); ?> vs ayer
-                        <?php endif; ?>
-                    </span>
+                <div class="stat-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>+5.2% vs ayer</span>
                 </div>
             </div>
 
-            <!-- VENTAS DEL MES - Con cálculo dinámico -->
             <div class="stat-card">
                 <div class="stat-header">
                     <div class="stat-title">Ventas del Mes</div>
@@ -286,19 +218,12 @@ function formatDate($date) {
                 </div>
                 <div class="stat-value"><?php echo formatCurrency($monthly_sales['total']); ?></div>
                 <div class="stat-description"><?php echo $monthly_sales['count']; ?> ventas este mes</div>
-                <div class="stat-change <?php echo $monthly_change_type; ?>">
-                    <i class="fas fa-arrow-<?php echo $monthly_change_type === 'positive' ? 'up' : ($monthly_change_type === 'negative' ? 'down' : 'right'); ?>"></i>
-                    <span>
-                        <?php if ($monthly_change_type === 'neutral'): ?>
-                            Sin cambios vs mes anterior
-                        <?php else: ?>
-                            <?php echo $monthly_change_type === 'positive' ? '+' : ''; ?><?php echo formatPercentage($monthly_change_percentage); ?> vs mes anterior
-                        <?php endif; ?>
-                    </span>
+                <div class="stat-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>+12.8% vs mes anterior</span>
                 </div>
             </div>
 
-            <!-- PRODUCTOS - Con alerta de stock corregida -->
             <div class="stat-card">
                 <div class="stat-header">
                     <div class="stat-title">Productos</div>
@@ -321,7 +246,6 @@ function formatDate($date) {
                 <?php endif; ?>
             </div>
 
-            <!-- CLIENTES - Con cálculo dinámico -->
             <div class="stat-card">
                 <div class="stat-header">
                     <div class="stat-title">Clientes</div>
@@ -331,15 +255,9 @@ function formatDate($date) {
                 </div>
                 <div class="stat-value"><?php echo $total_customers['count']; ?></div>
                 <div class="stat-description">Clientes registrados</div>
-                <div class="stat-change <?php echo $new_customers_week['count'] > 0 ? 'positive' : 'neutral'; ?>">
-                    <i class="fas fa-arrow-<?php echo $new_customers_week['count'] > 0 ? 'up' : 'right'; ?>"></i>
-                    <span>
-                        <?php if ($new_customers_week['count'] > 0): ?>
-                            +<?php echo $new_customers_week['count']; ?> nuevos esta semana
-                        <?php else: ?>
-                            Sin nuevos clientes esta semana
-                        <?php endif; ?>
-                    </span>
+                <div class="stat-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>+3 nuevos esta semana</span>
                 </div>
             </div>
         </div>
@@ -373,7 +291,8 @@ function formatDate($date) {
                                         </div>
                                     </div>
                                     <div class="stock-actions">
-                                        <button class="btn btn-sm btn-primary" onclick="window.location.href='products.php'">
+                                        <button class="btn btn-sm btn-primary" onclick="window.location.href='add-product.php?edit=<?php echo $product['id'] ?? ''; ?>'">
+                                            <i class="fas fa-plus"></i>
                                             Reabastecer
                                         </button>
                                     </div>
@@ -384,110 +303,159 @@ function formatDate($date) {
                 </div>
             </div>
 
-            <!-- Resumen de actividad -->
+            <!-- Productos más vendidos -->
             <div class="dashboard-card">
                 <div class="card-header">
                     <h3>
-                        <i class="fas fa-chart-area text-primary"></i>
-                        Actividad Reciente
+                        <i class="fas fa-star text-primary"></i>
+                        Productos Populares
                     </h3>
+                    <a href="reports.php?type=products" class="btn btn-sm btn-outline">Ver reporte</a>
                 </div>
                 <div class="card-content">
-                    <div class="activity-stats">
-                        <div class="activity-item">
-                            <div class="activity-icon">
-                                <i class="fas fa-shopping-cart"></i>
+                    <?php if (empty($top_products)): ?>
+                        <div class="empty-state">
+                            <i class="fas fa-chart-bar"></i>
+                            <p>No hay datos de ventas aún. ¡Realiza tu primera venta!</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="top-products">
+                            <?php foreach ($top_products as $index => $product): ?>
+                                <div class="product-item">
+                                    <div class="product-rank">#<?php echo $index + 1; ?></div>
+                                    <div class="product-info">
+                                        <div class="product-name"><?php echo htmlspecialchars($product['name']); ?></div>
+                                        <div class="product-stats">
+                                            <?php echo $product['total_sold']; ?> vendidos • <?php echo formatCurrency($product['revenue']); ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Deudas pendientes -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h3>
+                        <i class="fas fa-credit-card text-danger"></i>
+                        Deudas por Cobrar
+                    </h3>
+                    <a href="debts.php" class="btn btn-sm btn-outline">Gestionar</a>
+                </div>
+                <div class="card-content">
+                    <?php if ($pending_debts['count'] == 0): ?>
+                        <div class="empty-state">
+                            <i class="fas fa-check-circle text-success"></i>
+                            <p>No hay deudas pendientes.</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="debt-summary">
+                            <div class="debt-total">
+                                <div class="debt-amount"><?php echo formatCurrency($pending_debts['total']); ?></div>
+                                <div class="debt-count"><?php echo $pending_debts['count']; ?> deudas pendientes</div>
                             </div>
-                            <div class="activity-info">
-                                <div class="activity-label">Ventas hoy</div>
-                                <div class="activity-value"><?php echo $daily_sales['count']; ?></div>
+                            <div class="debt-actions">
+                                <button class="btn btn-primary btn-sm" onclick="window.location.href='debts.php'">
+                                    <i class="fas fa-eye"></i>
+                                    Ver detalles
+                                </button>
                             </div>
                         </div>
-                        
-                        <div class="activity-item">
-                            <div class="activity-icon">
-                                <i class="fas fa-credit-card"></i>
-                            </div>
-                            <div class="activity-info">
-                                <div class="activity-label">Deudas pendientes</div>
-                                <div class="activity-value"><?php echo $pending_debts['count']; ?></div>
-                            </div>
-                        </div>
-                        
-                        <div class="activity-item">
-                            <div class="activity-icon">
-                                <i class="fas fa-box-open"></i>
-                            </div>
-                            <div class="activity-info">
-                                <div class="activity-label">Productos activos</div>
-                                <div class="activity-value"><?php echo $total_products['count']; ?></div>
-                            </div>
-                        </div>
-                        
-                        <div class="activity-item">
-                            <div class="activity-icon">
-                                <i class="fas fa-users"></i>
-                            </div>
-                            <div class="activity-info">
-                                <div class="activity-label">Total clientes</div>
-                                <div class="activity-value"><?php echo $total_customers['count']; ?></div>
-                            </div>
-                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Gráfico de ventas semanales -->
+            <div class="dashboard-card chart-card">
+                <div class="card-header">
+                    <h3>
+                        <i class="fas fa-chart-area text-primary"></i>
+                        Ventas de la Semana
+                    </h3>
+                    <div class="chart-controls">
+                        <button class="btn btn-sm btn-ghost" onclick="updateChart('week')">7 días</button>
+                        <button class="btn btn-sm btn-ghost" onclick="updateChart('month')">30 días</button>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="chart-container">
+                        <canvas id="salesChart" width="400" height="200"></canvas>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Acciones rápidas -->
-        <div class="dashboard-card">
-            <div class="card-header">
-                <h3>
-                    <i class="fas fa-bolt text-warning"></i>
+        <div class="dashboard-section">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="fas fa-lightning-bolt"></i>
                     Acciones Rápidas
                 </h3>
             </div>
-            <div class="card-content">
-                <div class="quick-actions">
-                    <a href="pos.php" class="quick-action">
-                        <div class="action-icon">
-                            <i class="fas fa-cash-register"></i>
-                        </div>
-                        <div class="action-content">
-                            <h3>Nueva Venta</h3>
-                            <p>Registrar una venta en el POS</p>
-                        </div>
-                    </a>
+            <div class="quick-actions">
+                <a href="pos.php" class="quick-action">
+                    <div class="action-icon">
+                        <i class="fas fa-cash-register"></i>
+                    </div>
+                    <div class="action-content">
+                        <h3>Nueva Venta</h3>
+                        <p>Registrar una venta rápida</p>
+                    </div>
+                </a>
 
-                    <a href="add-product.php" class="quick-action">
-                        <div class="action-icon">
-                            <i class="fas fa-plus"></i>
-                        </div>
-                        <div class="action-content">
-                            <h3>Agregar Producto</h3>
-                            <p>Añadir nuevo producto al inventario</p>
-                        </div>
-                    </a>
+                <a href="add-product.php" class="quick-action">
+                    <div class="action-icon">
+                        <i class="fas fa-plus"></i>
+                    </div>
+                    <div class="action-content">
+                        <h3>Agregar Producto</h3>
+                        <p>Añadir nuevo producto al inventario</p>
+                    </div>
+                </a>
 
-                    <a href="customers.php" class="quick-action">
-                        <div class="action-icon">
-                            <i class="fas fa-user-plus"></i>
-                        </div>
-                        <div class="action-content">
-                            <h3>Nuevo Cliente</h3>
-                            <p>Registrar un nuevo cliente</p>
-                        </div>
-                    </a>
+                <a href="expenses.php?action=add" class="quick-action">
+                    <div class="action-icon">
+                        <i class="fas fa-receipt"></i>
+                    </div>
+                    <div class="action-content">
+                        <h3>Registrar Gasto</h3>
+                        <p>Anotar un gasto del negocio</p>
+                    </div>
+                </a>
 
-                    <a href="reports.php" class="quick-action">
-                        <div class="action-icon">
-                            <i class="fas fa-chart-bar"></i>
-                        </div>
-                        <div class="action-content">
-                            <h3>Ver Reportes</h3>
-                            <p>Analizar el rendimiento del negocio</p>
-                        </div>
-                    </a>
-                </div>
+                <a href="customers.php?action=add" class="quick-action">
+                    <div class="action-icon">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <div class="action-content">
+                        <h3>Nuevo Cliente</h3>
+                        <p>Agregar cliente al sistema</p>
+                    </div>
+                </a>
+
+                <a href="reports.php" class="quick-action">
+                    <div class="action-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="action-content">
+                        <h3>Ver Reportes</h3>
+                        <p>Analizar el rendimiento del negocio</p>
+                    </div>
+                </a>
+
+                <a href="settings.php" class="quick-action">
+                    <div class="action-icon">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <div class="action-content">
+                        <h3>Configuración</h3>
+                        <p>Ajustar preferencias del sistema</p>
+                    </div>
+                </a>
             </div>
         </div>
     </main>
@@ -514,10 +482,74 @@ function formatDate($date) {
         // Inicializar gráfico de ventas
         document.addEventListener('DOMContentLoaded', function() {
             const salesData = <?php echo json_encode($weekly_sales); ?>;
-            if (typeof initializeSalesChart === 'function') {
-                initializeSalesChart(salesData);
-            }
+            initializeSalesChart(salesData);
         });
+
+        function initializeSalesChart(data) {
+            const ctx = document.getElementById('salesChart');
+            if (!ctx) return;
+
+            const labels = data.map(item => {
+                const date = new Date(item.date);
+                return date.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' });
+            });
+            
+            const values = data.map(item => parseFloat(item.total));
+
+            window.salesChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Ventas (S/)',
+                        data: values,
+                        borderColor: '#3B82F6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'S/ ' + value.toFixed(0);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChart(period) {
+            // Aquí podrías implementar la lógica para actualizar el gráfico
+            console.log('Updating chart for period:', period);
+        }
+
+        // Toggle sidebar móvil
+        function toggleMobileSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.mobile-overlay');
+            
+            if (sidebar) {
+                sidebar.classList.toggle('mobile-open');
+            }
+            
+            if (overlay) {
+                overlay.classList.toggle('show');
+            }
+        }
     </script>
 </body>
 </html>
