@@ -261,10 +261,86 @@ function handlePostSuspendedSale($db, $business_id) {
 }
 
 function handleGetSuspendedSale($db, $business_id) {
-    // Mantener tu código existente aquí
+    debugLog("Iniciando handleGetSuspendedSale");
+
+    $sale_id = $_GET['id'] ?? null;
+
+    if (!$sale_id) {
+        debugLog("ERROR: ID de venta suspendida no proporcionado para GET");
+        sendJsonResponse(false, 'ID de venta suspendida no proporcionado', null, 400);
+    }
+
+    try {
+        $suspended_sale = $db->single("
+            SELECT * FROM suspended_sales 
+            WHERE id = ? AND business_id = ? AND status = 'active'
+        ", [$sale_id, $business_id]);
+
+        if (!$suspended_sale) {
+            debugLog("Venta suspendida no encontrada o inactiva", ['sale_id' => $sale_id]);
+            sendJsonResponse(false, 'Venta suspendida no encontrada o ya completada', null, 404);
+        }
+
+        $items = $db->fetchAll("
+            SELECT * FROM suspended_sale_items 
+            WHERE suspended_sale_id = ?
+        ", [$sale_id]);
+
+        $suspended_sale['items'] = $items;
+        debugLog("Venta suspendida obtenida con éxito", ['sale_id' => $sale_id, 'items_count' => count($items)]);
+        sendJsonResponse(true, 'Venta suspendida obtenida con éxito', $suspended_sale);
+
+    } catch (Exception $e) {
+        debugLog("ERROR en handleGetSuspendedSale", [
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
+        ]);
+        sendJsonResponse(false, 'Error al obtener la venta suspendida: ' . $e->getMessage(), null, 500);
+    }
 }
 
 function handleDeleteSuspendedSale($db, $business_id) {
-    // Mantener tu código existente aquí
+    debugLog("Iniciando handleDeleteSuspendedSale");
+
+    $sale_id = $_GET['id'] ?? null;
+
+    if (!$sale_id) {
+        debugLog("ERROR: ID de venta suspendida no proporcionado para DELETE");
+        sendJsonResponse(false, 'ID de venta suspendida no proporcionado', null, 400);
+    }
+
+    try {
+        $db->beginTransaction();
+
+        // Eliminar los ítems de la venta suspendida
+        $stmt_items = $db->prepare("DELETE FROM suspended_sale_items WHERE suspended_sale_id = ?");
+        $stmt_items->execute([$sale_id]);
+        debugLog("Ítems de venta suspendida eliminados", ['sale_id' => $sale_id, 'rows_affected' => $stmt_items->rowCount()]);
+
+        // Eliminar la venta suspendida
+        $stmt_sale = $db->prepare("DELETE FROM suspended_sales WHERE id = ? AND business_id = ?");
+        $stmt_sale->execute([$sale_id, $business_id]);
+
+        if ($stmt_sale->rowCount() === 0) {
+            $db->rollBack();
+            debugLog("Venta suspendida no encontrada para eliminar", ['sale_id' => $sale_id]);
+            sendJsonResponse(false, 'Venta suspendida no encontrada o no tienes permisos para eliminarla', null, 404);
+        }
+
+        $db->commit();
+        debugLog("Venta suspendida eliminada con éxito", ['sale_id' => $sale_id]);
+        sendJsonResponse(true, 'Venta suspendida eliminada con éxito', ['id' => $sale_id]);
+
+    } catch (Exception $e) {
+        if ($db && $db->inTransaction()) {
+            $db->rollBack();
+        }
+        debugLog("ERROR en handleDeleteSuspendedSale", [
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
+        ]);
+        sendJsonResponse(false, 'Error al eliminar la venta suspendida: ' . $e->getMessage(), null, 500);
+    }
 }
-?>
