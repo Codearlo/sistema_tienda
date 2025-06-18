@@ -29,9 +29,9 @@ function initializePOS() {
     if (typeof customers !== 'undefined') {
         POSState.customers = customers;
     }
-    if (typeof initialSuspendedSales !== 'undefined') {
-        POSState.suspendedSales = initialSuspendedSales;
-    }
+    // if (typeof initialSuspendedSales !== 'undefined') { // [Eliminado]
+    //     POSState.suspendedSales = initialSuspendedSales; // [Eliminado]
+    // }
     
     // Inicializar reloj
     updateClock();
@@ -95,8 +95,8 @@ function loadCategories() {
     
     POSState.categories.forEach(category => {
         html += `
-            <button class="category-btn ${POSState.selectedCategory === category.id ? 'active' : ''}" 
-                    onclick="filterByCategory(${category.id})">
+            <button class="category-btn <span class="math-inline">\{POSState\.selectedCategory \=\=\= category\.id ? 'active' \: ''\}" 
+onclick\="filterByCategory\(</span>{category.id})">
                 <i class="fas fa-tag"></i>
                 ${category.name}
             </button>
@@ -147,8 +147,8 @@ function loadProducts() {
                 }
             </div>
             <div class="product-info">
-                <h4 class="product-name">${product.name}</h4>
-                <p class="product-category">${product.category_name || 'Sin categoría'}</p>
+                <h4 class="product-name"><span class="math-inline">\{product\.name\}</h4\>
+<p class\="product\-category"\></span>{product.category_name || 'Sin categoría'}</p>
                 <div class="product-price">S/ ${parseFloat(product.selling_price).toFixed(2)}</div>
                 <div class="product-stock ${product.current_stock <= 5 ? 'low-stock' : ''}">
                     Stock: ${product.current_stock || 0}
@@ -248,21 +248,21 @@ function updateCartDisplay() {
             <div class="cart-item">
                 <div class="item-info">
                     <h4 class="item-name">${item.name}</h4>
-                    <p class="item-price">S/ ${item.price.toFixed(2)}</p>
-                </div>
-                <div class="item-controls">
-                    <button class="qty-btn" onclick="updateQuantity(${item.product_id}, ${item.quantity - 1})">
-                        <i class="fas fa-minus"></i>
-                    </button>
-                    <span class="item-quantity">${item.quantity}</span>
+                    <p class="item-price">S/ <span class="math-inline">\{item\.price\.toFixed\(2\)\}</p\>
+</div\>
+<div class\="item\-controls"\>
+<button class\="qty\-btn" onclick\="updateQuantity\(</span>{item.product_id}, <span class="math-inline">\{item\.quantity \- 1\}\)"\>
+<i class\="fas fa\-minus"\></i\>
+</button\>
+<span class\="item\-quantity"\></span>{item.quantity}</span>
                     <button class="qty-btn" onclick="updateQuantity(${item.product_id}, ${item.quantity + 1})">
                         <i class="fas fa-plus"></i>
                     </button>
                 </div>
                 <div class="item-total">
-                    S/ ${item.subtotal.toFixed(2)}
-                </div>
-                <button class="remove-btn" onclick="removeFromCart(${item.product_id})">
+                    S/ <span class="math-inline">\{item\.subtotal\.toFixed\(2\)\}
+</div\>
+<button class\="remove\-btn" onclick\="removeFromCart\(</span>{item.product_id})">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
@@ -463,17 +463,17 @@ async function completeTransaction() {
     };
     
     try {
-        const response = await API.post('/ventas.php', saleData);
+        const response = await API.post('/ventas.php', saleData); //
         
         if (response.success) {
             showTransactionComplete(response.data);
             clearCart();
             showMessage('Venta completada exitosamente', 'success');
-            // Si la venta se completó y venía de una suspendida, actualizar la lista
-            if (POSState.currentSuspendedSaleId) {
-                removeSuspendedSaleFromList(POSState.currentSuspendedSaleId);
-                POSState.currentSuspendedSaleId = null; // Resetear
-            }
+            // Si la venta se completó y venía de una suspendida, actualizar la lista // [Eliminado]
+            // if (POSState.currentSuspendedSaleId) { // [Eliminado]
+            //     removeSuspendedSaleFromList(POSState.currentSuspendedSaleId); // [Eliminado]
+            //     POSState.currentSuspendedSaleId = null; // Resetear // [Eliminado]
+            // } // [Eliminado]
             // Recargar productos para reflejar el stock actualizado (asumiendo que backend lo maneja)
             loadProducts(); 
 
@@ -527,7 +527,7 @@ function clearCart() {
     POSState.cart = [];
     POSState.cashReceived = 0;
     POSState.includeIgv = true; // Resetear el estado del IGV al limpiar el carrito
-    POSState.currentSuspendedSaleId = null; // Asegurarse de limpiar el ID de venta suspendida
+    POSState.currentSuspendedSaleId = null; // Asegurarse de limpiar el ID de venta suspendida [Eliminado]
 
     document.getElementById('cashReceived').value = '';
     document.getElementById('customerSelect').value = '';
@@ -550,7 +550,7 @@ function updateClock() {
     
     // Divide la fecha y la hora si es necesario o muestra como una sola línea
     // const parts = dateTimeString.split(', ');
-    // timeElement.innerHTML = `${parts[0]}<br>${parts[1]}`;
+    // timeElement.innerHTML = `<span class="math-inline">\{parts\[0\]\}<br\></span>{parts[1]}`;
     timeElement.innerHTML = dateTimeString;
 }
 
