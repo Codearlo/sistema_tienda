@@ -11,7 +11,8 @@ const POSState = {
     customers: [],
     selectedCategory: null,
     paymentMethod: 'cash',
-    cashReceived: 0
+    cashReceived: 0,
+    includeIgv: true // Nuevo estado para controlar el IGV
 };
 
 // ===== INICIALIZACIÓN =====
@@ -42,6 +43,9 @@ function initializePOS() {
     updateCartDisplay();
     updateTotals();
     setupPaymentMethods();
+
+    // Inicializar estado del botón IGV
+    updateIgvButtonState();
     
     console.log('POS inicializado correctamente');
 }
@@ -269,7 +273,16 @@ function updateCartDisplay() {
 // ===== CÁLCULOS =====
 function updateTotals() {
     const subtotal = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
-    const tax = subtotal * 0.18; // IGV 18%
+    let tax = 0;
+    const igvRow = document.getElementById('igvRow');
+
+    if (POSState.includeIgv) {
+        tax = subtotal * 0.18; // IGV 18%
+        if (igvRow) igvRow.style.display = 'flex'; // Mostrar fila de IGV
+    } else {
+        if (igvRow) igvRow.style.display = 'none'; // Ocultar fila de IGV
+    }
+    
     const total = subtotal + tax;
     
     document.getElementById('subtotal').textContent = `S/ ${subtotal.toFixed(2)}`;
@@ -289,6 +302,28 @@ function updateTotals() {
         cartSummary.style.display = 'none';
         paymentSection.style.display = 'none';
         completeBtn.disabled = true;
+    }
+}
+
+// Función para alternar el IGV
+function toggleIgv() {
+    POSState.includeIgv = !POSState.includeIgv;
+    updateIgvButtonState();
+    updateTotals();
+    showMessage(POSState.includeIgv ? 'IGV incluido' : 'IGV no incluido', 'info');
+}
+
+// Actualizar el estado visual del botón IGV
+function updateIgvButtonState() {
+    const toggleIgvBtn = document.getElementById('toggleIgvBtn');
+    if (toggleIgvBtn) {
+        if (POSState.includeIgv) {
+            toggleIgvBtn.classList.add('active'); // Opcional: añadir clase 'active' para estilos visuales
+            toggleIgvBtn.textContent = 'IGV (18%) Incluido';
+        } else {
+            toggleIgvBtn.classList.remove('active');
+            toggleIgvBtn.textContent = 'IGV (18%) No Incluido';
+        }
     }
 }
 
@@ -332,7 +367,10 @@ function selectPaymentMethod(method) {
 
 function calculateChange() {
     const cashReceived = parseFloat(document.getElementById('cashReceived').value) || 0;
-    const total = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0) * 1.18;
+    let total = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
+    if (POSState.includeIgv) {
+        total *= 1.18;
+    }
     
     POSState.cashReceived = cashReceived;
     
@@ -390,23 +428,35 @@ async function completeTransaction() {
     }
     
     if (POSState.paymentMethod === 'cash') {
-        const total = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0) * 1.18;
+        let total = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
+        if (POSState.includeIgv) {
+            total *= 1.18;
+        }
+
         if (POSState.cashReceived < total) {
             showMessage('El monto recibido es insuficiente', 'warning');
             return;
         }
     }
     
+    const subtotal = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
+    let tax = 0;
+    let total = subtotal;
+
+    if (POSState.includeIgv) {
+        tax = subtotal * 0.18;
+        total = subtotal + tax;
+    }
+
     const saleData = {
         customer_id: document.getElementById('customerSelect').value || null,
         payment_method: POSState.paymentMethod,
         items: POSState.cart,
-        subtotal: POSState.cart.reduce((sum, item) => sum + item.subtotal, 0),
-        tax: POSState.cart.reduce((sum, item) => sum + item.subtotal, 0) * 0.18,
-        total: POSState.cart.reduce((sum, item) => sum + item.subtotal, 0) * 1.18,
+        subtotal: subtotal,
+        tax: tax,
+        total: total,
         cash_received: POSState.cashReceived,
-        change_amount: POSState.paymentMethod === 'cash' ? 
-            POSState.cashReceived - (POSState.cart.reduce((sum, item) => sum + item.subtotal, 0) * 1.18) : 0
+        change_amount: POSState.paymentMethod === 'cash' ? (POSState.cashReceived - total) : 0
     };
     
     try {
@@ -464,12 +514,14 @@ function newTransaction() {
 function clearCart() {
     POSState.cart = [];
     POSState.cashReceived = 0;
+    POSState.includeIgv = true; // Resetear el estado del IGV al limpiar el carrito
     
     document.getElementById('cashReceived').value = '';
     document.getElementById('customerSelect').value = '';
     
     updateCartDisplay();
     updateTotals();
+    updateIgvButtonState(); // Actualizar el botón del IGV
 }
 
 function updateClock() {

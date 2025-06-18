@@ -77,7 +77,6 @@ function formatCurrency($amount) {
     
     <main class="main-content">
         <div class="pos-container">
-            <!-- Header -->
             <header class="pos-header">
                 <div class="pos-title">
                     <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">
@@ -106,11 +105,8 @@ function formatCurrency($amount) {
                 </div>
             </header>
 
-            <!-- Main POS Layout -->
             <div class="pos-main">
-                <!-- Left Panel - Products -->
                 <div class="pos-left">
-                    <!-- Search Section -->
                     <div class="product-search-section">
                         <div class="search-input-group">
                             <i class="fas fa-search search-icon"></i>
@@ -122,21 +118,16 @@ function formatCurrency($amount) {
                         </div>
                     </div>
 
-                    <!-- Quick Categories -->
                     <div class="categories-quick">
                         <h3>Categorías</h3>
                         <div class="categories-grid" id="categoriesGrid">
-                            <!-- Categories will be loaded here -->
-                        </div>
+                            </div>
                     </div>
 
-                    <!-- Products Grid -->
                     <div class="products-section">
                         <div class="products-grid-pos" id="productsGrid">
-                            <!-- Products will be loaded here -->
-                        </div>
+                            </div>
                         
-                        <!-- Empty state -->
                         <div class="empty-state" id="emptyProducts" style="display: none;">
                             <i class="fas fa-box-open fa-3x"></i>
                             <h3>No hay productos</h3>
@@ -148,15 +139,15 @@ function formatCurrency($amount) {
                     </div>
                 </div>
 
-                <!-- Right Panel - Cart -->
                 <div class="pos-right">
-                    <!-- Cart Header -->
                     <div class="cart-header">
                         <h2><i class="fas fa-shopping-cart"></i> Carrito de Compras</h2>
                         <span class="cart-count" id="cartCount">0 productos</span>
+                        <button class="btn btn-sm btn-outline igv-toggle-btn" id="toggleIgvBtn" onclick="toggleIgv()">
+                            <i class="fas fa-percent"></i> IGV (18%)
+                        </button>
                     </div>
 
-                    <!-- Customer Section -->
                     <div class="customer-section">
                         <label for="customerSelect">Cliente:</label>
                         <select id="customerSelect" class="form-select">
@@ -169,7 +160,6 @@ function formatCurrency($amount) {
                         </select>
                     </div>
 
-                    <!-- Cart Items -->
                     <div class="cart-items" id="cartItems">
                         <div class="empty-state">
                             <i class="fas fa-shopping-cart fa-2x"></i>
@@ -178,13 +168,12 @@ function formatCurrency($amount) {
                         </div>
                     </div>
 
-                    <!-- Cart Summary -->
                     <div class="cart-summary" id="cartSummary" style="display: none;">
                         <div class="summary-row">
                             <span>Subtotal:</span>
                             <span id="subtotal">S/ 0.00</span>
                         </div>
-                        <div class="summary-row">
+                        <div class="summary-row" id="igvRow">
                             <span>IGV (18%):</span>
                             <span id="tax">S/ 0.00</span>
                         </div>
@@ -194,7 +183,6 @@ function formatCurrency($amount) {
                         </div>
                     </div>
 
-                    <!-- Payment Section -->
                     <div class="payment-section" id="paymentSection" style="display: none;">
                         <h3>Método de Pago</h3>
                         <div class="payment-methods">
@@ -222,7 +210,6 @@ function formatCurrency($amount) {
                         </div>
                     </div>
 
-                    <!-- POS Actions -->
                     <div class="pos-actions">
                         <button class="btn btn-outline btn-block" onclick="holdTransaction()">
                             <i class="fas fa-pause"></i>
@@ -238,7 +225,6 @@ function formatCurrency($amount) {
         </div>
     </main>
 
-    <!-- Modals -->
     <div class="modal" id="transactionModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -246,8 +232,7 @@ function formatCurrency($amount) {
                 <button class="modal-close" onclick="closeTransactionModal()">&times;</button>
             </div>
             <div class="modal-body" id="transactionDetails">
-                <!-- Transaction details will be shown here -->
-            </div>
+                </div>
             <div class="modal-footer">
                 <button class="btn btn-outline" onclick="printReceipt()">
                     <i class="fas fa-print"></i> Imprimir
@@ -259,7 +244,6 @@ function formatCurrency($amount) {
         </div>
     </div>
 
-    <!-- Scripts -->
     <script src="assets/js/notifications.js"></script>
     <script src="assets/js/api.js"></script>
     <script src="assets/js/pos.js"></script>

@@ -331,6 +331,10 @@
   padding: var(--spacing-lg);
   border-bottom: 1px solid var(--gray-200);
   background-color: var(--gray-50);
+  display: flex; /* Asegurar flexbox para alinear el nuevo botón */
+  justify-content: space-between; /* Espaciar elementos */
+  align-items: center; /* Alinear verticalmente */
+  flex-wrap: wrap; /* Permitir que los elementos se envuelvan en pantallas pequeñas */
 }
 
 .cart-header h2 {
@@ -347,7 +351,26 @@
   font-size: var(--text-sm);
   color: var(--gray-600);
   font-weight: 400;
+  margin-left: auto; /* Empujar el contador a la derecha */
 }
+
+/* Estilos para el botón de alternar IGV */
+.igv-toggle-btn {
+    margin-top: var(--spacing-sm); /* Espacio superior para separarlo del título */
+    margin-left: auto; /* Centrarlo si está solo o empujarlo a la derecha */
+    white-space: nowrap; /* Evitar que el texto se rompa */
+}
+
+.igv-toggle-btn.active {
+  background-color: var(--primary-600);
+  color: white;
+  border-color: var(--primary-600);
+}
+.igv-toggle-btn.active:hover {
+  background-color: var(--primary-700);
+  border-color: var(--primary-700);
+}
+
 
 /* Sección de cliente */
 .customer-section {
@@ -707,6 +730,26 @@
     gap: var(--spacing-md);
     height: auto;
     padding: var(--spacing-md);
+  }
+
+  .cart-header {
+    flex-direction: column; /* Apilar elementos en vertical */
+    align-items: flex-start; /* Alinear a la izquierda */
+  }
+
+  .cart-header h2 {
+    margin-bottom: var(--spacing-sm); /* Espacio debajo del título del carrito */
+  }
+
+  .cart-count {
+    margin-left: 0; /* Anular margin-left: auto para que no se separe */
+    margin-bottom: var(--spacing-sm); /* Espacio debajo del contador */
+  }
+
+  .igv-toggle-btn {
+    margin-left: 0; /* Anular margin-left: auto */
+    width: 100%; /* Ocupar todo el ancho */
+    justify-content: center; /* Centrar contenido del botón */
   }
   
   .pos-main {
