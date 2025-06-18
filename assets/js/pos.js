@@ -13,8 +13,6 @@ const POSState = {
     paymentMethod: 'cash',
     cashReceived: 0,
     includeIgv: true, // Nuevo estado para controlar el IGV
-    suspendedSales: [], // Nuevo estado para las ventas suspendidas
-    currentSuspendedSaleId: null // ID de la venta suspendida que se está reanudando
 };
 
 // ===== INICIALIZACIÓN =====
@@ -462,7 +460,6 @@ async function completeTransaction() {
         total: total,
         cash_received: POSState.cashReceived,
         change_amount: POSState.paymentMethod === 'cash' ? (POSState.cashReceived - total) : 0,
-        suspended_sale_id: POSState.currentSuspendedSaleId // Enviar ID de venta suspendida si aplica
     };
     
     try {
@@ -522,191 +519,6 @@ function closeTransactionModal() {
 function newTransaction() {
     closeTransactionModal();
     clearCart();
-}
-
-
-
-async function holdTransaction() {
-    console.log('🔍 Iniciando holdTransaction()');
-    
-    if (POSState.cart.length === 0) {
-        showMessage('No hay productos en el carrito para suspender la venta.', 'warning');
-        return;
-    }
-
-    const subtotal = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
-    let tax = 0;
-    let total = subtotal;
-
-    if (POSState.includeIgv) {
-        tax = subtotal * 0.18;
-        total = subtotal + tax;
-    }
-
-    const suspendedSaleData = {
-        customer_id: document.getElementById('customerSelect').value || null,
-        items: POSState.cart,
-        subtotal: subtotal,
-        tax: tax,
-        total: total,
-        includeIgv: POSState.includeIgv
-    };
-
-    console.log('📦 Datos a enviar:', suspendedSaleData);
-    console.log('🎯 URL de destino:', API.baseURL + '/suspended_sales.php');
-
-    try {
-        console.log('🌐 Enviando petición...');
-        // Modificación: Eliminar el parámetro 'debug=1' de la URL de la API
-        const response = await API.post('/suspended_sales.php', suspendedSaleData);
-        console.log('✅ Respuesta recibida:', response);
-        
-        if (response.success) {
-            showMessage('Venta suspendida exitosamente. Nº de Venta Suspendida: ' + response.data.sale_number, 'success');
-            POSState.suspendedSales.unshift(response.data);
-            clearCart();
-        } else {
-            console.error('❌ Error en respuesta:', response);
-            showMessage(response.message || 'Error al suspender la venta', 'error');
-        }
-    } catch (error) {
-        console.error('💥 Error capturado:', error);
-        console.error('📊 Detalles del error:', {
-            name: error.name,
-            message: error.message,
-            stack: error.stack
-        });
-        showMessage('Error de conexión al suspender venta: ' + error.message, 'error');
-    }
-}
-
-function openSuspendedSalesModal() {
-    const modal = document.getElementById('suspendedSalesModal');
-    if (modal) {
-        renderSuspendedSalesList(); // Renderizar la lista cada vez que se abre
-        modal.style.display = 'flex';
-    }
-}
-
-function closeSuspendedSalesModal() {
-    const modal = document.getElementById('suspendedSalesModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
-
-function renderSuspendedSalesList() {
-    const listContainer = document.getElementById('suspendedSalesList');
-    if (!listContainer) return;
-
-    if (POSState.suspendedSales.length === 0) {
-        listContainer.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-box-open fa-2x"></i>
-                <p>No hay ventas suspendidas.</p>
-            </div>
-        `;
-        return;
-    }
-
-    const html = POSState.suspendedSales.map(sale => {
-        const customer = POSState.customers.find(c => c.id == sale.customer_id);
-        const customerName = customer ? customer.name : 'Cliente General';
-        const saleDate = new Date(sale.created_at).toLocaleString('es-PE', {
-            day: '2-digit', month: '2-digit', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
-        });
-
-        return `
-            <div class="suspended-sale-item" data-sale-id="${sale.id}">
-                <div class="sale-info">
-                    <h4>Venta Suspendida #${sale.sale_number || sale.id}</h4>
-                    <p>Cliente: ${customerName}</p>
-                    <p>Total Estimado: S/ ${parseFloat(sale.total).toFixed(2)}</p>
-                    <p>Fecha: ${saleDate}</p>
-                </div>
-                <div class="sale-actions">
-                    <button class="btn btn-primary btn-sm" onclick="resumeSuspendedSale(${sale.id})">
-                        <i class="fas fa-play"></i> Reanudar
-                    </button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteSuspendedSale(${sale.id})">
-                        <i class="fas fa-trash"></i> Eliminar
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    listContainer.innerHTML = html;
-}
-
-async function resumeSuspendedSale(saleId) {
-    try {
-        const response = await API.get(`/suspended_sales.php?id=${saleId}`);
-        
-        if (response.success && response.data) {
-            const suspendedSale = response.data;
-            
-            // Limpiar el carrito actual antes de cargar la venta suspendida
-            clearCart(); 
-
-            // Cargar los items de la venta suspendida al carrito
-            POSState.cart = suspendedSale.items.map(item => ({
-                product_id: item.product_id,
-                name: item.product_name,
-                price: parseFloat(item.price),
-                quantity: parseInt(item.quantity),
-                subtotal: parseFloat(item.subtotal)
-            }));
-
-            // Establecer el cliente si existe
-            if (suspendedSale.customer_id) {
-                document.getElementById('customerSelect').value = suspendedSale.customer_id;
-            }
-
-            // Establecer el estado del IGV (asumiendo que se guardó, o por defecto)
-            POSState.includeIgv = suspendedSale.include_igv !== undefined ? suspendedSale.include_igv : true;
-
-            POSState.currentSuspendedSaleId = saleId; // Guardar el ID de la venta suspendida reanudada
-
-            updateCartDisplay();
-            updateTotals();
-            updateIgvButtonState();
-            closeSuspendedSalesModal();
-            showMessage(`Venta suspendida #${suspendedSale.sale_number} reanudada.`, 'success');
-
-        } else {
-            showMessage(response.message || 'Error al reanudar la venta suspendida', 'error');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        showMessage('Error de conexión al reanudar venta', 'error');
-    }
-}
-
-async function deleteSuspendedSale(saleId) {
-    if (!confirm('¿Estás seguro de que quieres eliminar esta venta suspendida? Esta acción no se puede deshacer.')) {
-        return;
-    }
-
-    try {
-        const response = await API.delete(`/suspended_sales.php?id=${saleId}`);
-        
-        if (response.success) {
-            showMessage('Venta suspendida eliminada exitosamente.', 'success');
-            removeSuspendedSaleFromList(saleId);
-            renderSuspendedSalesList(); // Volver a renderizar la lista
-        } else {
-            showMessage(response.message || 'Error al eliminar la venta suspendida', 'error');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        showMessage('Error de conexión al eliminar venta', 'error');
-    }
-}
-
-function removeSuspendedSaleFromList(saleId) {
-    POSState.suspendedSales = POSState.suspendedSales.filter(sale => sale.id != saleId);
 }
 
 

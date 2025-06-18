@@ -47,7 +47,6 @@ function handlePostSale($db, $business_id, $user_id) {
     $total_amount = $input['total'] ?? 0; // Este es el total final del carrito
     $cash_received = $input['cash_received'] ?? 0;
     $change_amount = $input['change_amount'] ?? 0;
-    $suspended_sale_id = $input['suspended_sale_id'] ?? null; // ID de la venta suspendida
     $include_igv_frontend = $input['includeIgv'] ?? true; // Estado de IGV del frontend
 
     // Calcular amount_paid y amount_due para la tabla `sales`
