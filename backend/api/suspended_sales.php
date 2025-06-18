@@ -1,189 +1,217 @@
 <?php
-// Versión de diagnóstico para suspended_sales.php
+/**
+ * API para manejo de ventas suspendidas
+ * Versión mejorada con mejor manejo de errores y diagnósticos
+ */
+
+// Configuración de errores para desarrollo
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', 0); // No mostrar errores en output para no romper JSON
 ini_set('log_errors', 1);
 
-session_start();
-
-// Función para registrar información de depuración
-function debugLog($message, $data = null) {
-    $logEntry = "[" . date('Y-m-d H:i:s') . "] SUSPENDED_SALES_DEBUG: " . $message;
-    if ($data !== null) {
-        $logEntry .= " | DATA: " . json_encode($data);
-    }
-    error_log($logEntry);
+// Iniciar sesión si no está iniciada
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
-// Función para enviar respuestas JSON con más información
-function sendJsonResponse($success, $message, $data = null, $statusCode = 200, $debug = null) {
+// Función para logging de depuración
+function debugLog($message, $data = null) {
+    $logMessage = "[" . date('Y-m-d H:i:s') . "] SUSPENDED_SALES: " . $message;
+    if ($data !== null) {
+        $logMessage .= " | " . json_encode($data);
+    }
+    error_log($logMessage);
+}
+
+// Función mejorada para respuestas JSON
+function sendJsonResponse($success, $message, $data = null, $statusCode = 200) {
+    // Limpiar cualquier output previo que pueda estar causando problemas
+    if (ob_get_length()) {
+        ob_clean();
+    }
+    
     header('Content-Type: application/json');
     http_response_code($statusCode);
     
     $response = [
-        'success' => $success, 
-        'message' => $message, 
-        'data' => $data
+        'success' => $success,
+        'message' => $message,
+        'data' => $data,
+        'timestamp' => date('Y-m-d H:i:s')
     ];
-    
-    // En modo desarrollo, incluir información de depuración
-    if ($debug && (isset($_GET['debug']) || $_SERVER['HTTP_HOST'] === 'localhost')) {
-        $response['debug'] = $debug;
-    }
     
     echo json_encode($response);
     exit();
 }
 
-debugLog("Iniciando suspended_sales.php");
+debugLog("Iniciando suspended_sales.php", ['method' => $_SERVER['REQUEST_METHOD']]);
 
-// Verificar que los archivos necesarios existan
-$databasePath = '../config/database.php';
-$authPath = '../includes/auth.php';
-
-if (!file_exists($databasePath)) {
-    debugLog("ERROR: No se encontró database.php en: " . realpath(dirname(__FILE__)) . '/' . $databasePath);
-    sendJsonResponse(false, 'Error de configuración: archivo de base de datos no encontrado', null, 500);
-}
-
-if (!file_exists($authPath)) {
-    debugLog("ERROR: No se encontró auth.php en: " . realpath(dirname(__FILE__)) . '/' . $authPath);
-    sendJsonResponse(false, 'Error de configuración: archivo de autenticación no encontrado', null, 500);
-}
-
-require_once $databasePath;
-require_once $authPath;
-
-debugLog("Archivos cargados correctamente");
-
-// Verificar función isAuthenticated
-if (!function_exists('isAuthenticated')) {
-    debugLog("ERROR: La función isAuthenticated() no está definida");
-    sendJsonResponse(false, 'Error de configuración: función de autenticación no disponible', null, 500);
-}
-
-// Verificar autenticación
-if (!isAuthenticated()) {
-    debugLog("ERROR: Usuario no autenticado", [
-        'session_user_id' => $_SESSION['user_id'] ?? 'not_set',
-        'session_business_id' => $_SESSION['business_id'] ?? 'not_set'
-    ]);
-    sendJsonResponse(false, 'Acceso denegado', null, 401);
-}
-
-debugLog("Usuario autenticado correctamente", [
-    'user_id' => $_SESSION['user_id'],
-    'business_id' => $_SESSION['business_id']
-]);
-
-// Verificar conexión a base de datos
 try {
+    // Verificar que los archivos de configuración existan
+    $configFiles = [
+        '../config/database.php' => realpath(__DIR__ . '/../config/database.php'),
+        '../includes/auth.php' => realpath(__DIR__ . '/../includes/auth.php')
+    ];
+    
+    foreach ($configFiles as $file => $realPath) {
+        if (!$realPath || !file_exists($realPath)) {
+            debugLog("ERROR: Archivo de configuración no encontrado", ['file' => $file, 'realPath' => $realPath]);
+            sendJsonResponse(false, "Error de configuración: archivo {$file} no encontrado", null, 500);
+        }
+    }
+    
+    // Incluir archivos necesarios
+    require_once '../config/database.php';
+    require_once '../includes/auth.php';
+    
+    debugLog("Archivos de configuración cargados correctamente");
+    
+    // Verificar que la función isAuthenticated esté disponible
+    if (!function_exists('isAuthenticated')) {
+        debugLog("ERROR: Función isAuthenticated no definida");
+        sendJsonResponse(false, 'Error de configuración: función de autenticación no disponible', null, 500);
+    }
+    
+    // Verificar autenticación
+    if (!isAuthenticated()) {
+        debugLog("ERROR: Usuario no autenticado", [
+            'user_id' => $_SESSION['user_id'] ?? 'no_definido',
+            'business_id' => $_SESSION['business_id'] ?? 'no_definido'
+        ]);
+        sendJsonResponse(false, 'Acceso denegado. Por favor, inicia sesión nuevamente.', null, 401);
+    }
+    
+    debugLog("Usuario autenticado", [
+        'user_id' => $_SESSION['user_id'],
+        'business_id' => $_SESSION['business_id']
+    ]);
+    
+    // Verificar conexión a base de datos
+    if (!function_exists('getDB')) {
+        debugLog("ERROR: Función getDB no disponible");
+        sendJsonResponse(false, 'Error de configuración de base de datos', null, 500);
+    }
+    
     $db = getDB();
+    if (!$db) {
+        debugLog("ERROR: No se pudo establecer conexión con la base de datos");
+        sendJsonResponse(false, 'Error de conexión a base de datos', null, 500);
+    }
+    
     debugLog("Conexión a base de datos establecida");
+    
+    $business_id = $_SESSION['business_id'];
+    $method = $_SERVER['REQUEST_METHOD'];
+    
+    debugLog("Procesando solicitud", ['method' => $method, 'business_id' => $business_id]);
+    
+    // Enrutar según método HTTP
+    switch ($method) {
+        case 'POST':
+            handlePostSuspendedSale($db, $business_id);
+            break;
+        case 'GET':
+            handleGetSuspendedSale($db, $business_id);
+            break;
+        case 'DELETE':
+            handleDeleteSuspendedSale($db, $business_id);
+            break;
+        default:
+            debugLog("ERROR: Método HTTP no permitido", ['method' => $method]);
+            sendJsonResponse(false, 'Método no permitido', null, 405);
+            break;
+    }
+
 } catch (Exception $e) {
-    debugLog("ERROR: Error al conectar con la base de datos: " . $e->getMessage());
-    sendJsonResponse(false, 'Error de conexión a base de datos: ' . $e->getMessage(), null, 500);
-}
-
-$business_id = $_SESSION['business_id'];
-$method = $_SERVER['REQUEST_METHOD'];
-
-debugLog("Procesando request", [
-    'method' => $method,
-    'business_id' => $business_id
-]);
-
-switch ($method) {
-    case 'POST':
-        handlePostSuspendedSale($db, $business_id);
-        break;
-    case 'GET':
-        handleGetSuspendedSale($db, $business_id);
-        break;
-    case 'DELETE':
-        handleDeleteSuspendedSale($db, $business_id);
-        break;
-    default:
-        debugLog("ERROR: Método no permitido: " . $method);
-        sendJsonResponse(false, 'Método no permitido', null, 405);
-        break;
+    debugLog("ERROR: Excepción no capturada", [
+        'message' => $e->getMessage(),
+        'file' => $e->getFile(),
+        'line' => $e->getLine()
+    ]);
+    sendJsonResponse(false, 'Error interno del servidor: ' . $e->getMessage(), null, 500);
 }
 
 function handlePostSuspendedSale($db, $business_id) {
     debugLog("Iniciando handlePostSuspendedSale");
     
-    // Leer entrada
-    $rawInput = file_get_contents('php://input');
-    debugLog("Raw input recibido", ['length' => strlen($rawInput), 'content' => substr($rawInput, 0, 500)]);
-    
-    $input = json_decode($rawInput, true);
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        debugLog("ERROR: Error al decodificar JSON: " . json_last_error_msg());
-        sendJsonResponse(false, 'Error al procesar datos JSON', null, 400);
-    }
-    
-    debugLog("JSON decodificado correctamente", $input);
-
-    if (!isset($input['items']) || !is_array($input['items']) || empty($input['items'])) {
-        debugLog("ERROR: No se encontraron items válidos");
-        sendJsonResponse(false, 'No se encontraron artículos en la venta suspendida.', null, 400);
-    }
-
-    $customer_id = $input['customer_id'] ?? null;
-    $subtotal = $input['subtotal'] ?? 0;
-    $tax = $input['tax'] ?? 0;
-    $total = $input['total'] ?? 0;
-    $include_igv = $input['includeIgv'] ?? 1;
-
-    debugLog("Datos extraídos", [
-        'customer_id' => $customer_id,
-        'subtotal' => $subtotal,
-        'tax' => $tax,
-        'total' => $total,
-        'include_igv' => $include_igv,
-        'items_count' => count($input['items'])
-    ]);
-
     try {
-        // Verificar que las tablas existan antes de continuar
-        $tablesCheck = $db->query("SHOW TABLES LIKE 'suspended_sales'");
-        if (empty($tablesCheck)) {
-            debugLog("ERROR: La tabla suspended_sales no existe");
-            sendJsonResponse(false, 'Error: tabla suspended_sales no encontrada', null, 500);
+        // Obtener y validar datos de entrada
+        $rawInput = file_get_contents('php://input');
+        debugLog("Input recibido", ['length' => strlen($rawInput)]);
+        
+        if (empty($rawInput)) {
+            sendJsonResponse(false, 'No se recibieron datos', null, 400);
         }
         
-        $tablesCheck = $db->query("SHOW TABLES LIKE 'suspended_sale_items'");
-        if (empty($tablesCheck)) {
-            debugLog("ERROR: La tabla suspended_sale_items no existe");
-            sendJsonResponse(false, 'Error: tabla suspended_sale_items no encontrada', null, 500);
+        $input = json_decode($rawInput, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            debugLog("ERROR: Error al decodificar JSON", ['error' => json_last_error_msg()]);
+            sendJsonResponse(false, 'Error al procesar datos JSON: ' . json_last_error_msg(), null, 400);
         }
-
+        
+        debugLog("Datos decodificados correctamente", $input);
+        
+        // Validar estructura de datos
+        if (!isset($input['items']) || !is_array($input['items']) || empty($input['items'])) {
+            debugLog("ERROR: Items no válidos o vacíos");
+            sendJsonResponse(false, 'No se encontraron artículos válidos en la venta suspendida', null, 400);
+        }
+        
+        // Extraer datos
+        $customer_id = $input['customer_id'] ?? null;
+        $subtotal = floatval($input['subtotal'] ?? 0);
+        $tax = floatval($input['tax'] ?? 0);
+        $total = floatval($input['total'] ?? 0);
+        $include_igv = isset($input['includeIgv']) ? ($input['includeIgv'] ? 1 : 0) : 1;
+        
+        debugLog("Datos procesados", [
+            'customer_id' => $customer_id,
+            'subtotal' => $subtotal,
+            'tax' => $tax,
+            'total' => $total,
+            'include_igv' => $include_igv,
+            'items_count' => count($input['items'])
+        ]);
+        
+        // Verificar que las tablas existan
+        $tables = ['suspended_sales', 'suspended_sale_items'];
+        foreach ($tables as $table) {
+            $result = $db->query("SHOW TABLES LIKE '{$table}'");
+            if (empty($result)) {
+                debugLog("ERROR: Tabla no existe", ['table' => $table]);
+                sendJsonResponse(false, "Error: la tabla {$table} no existe en la base de datos", null, 500);
+            }
+        }
+        
         debugLog("Tablas verificadas, iniciando transacción");
+        
+        // Iniciar transacción
         $db->beginTransaction();
-
-        $sale_number = 'SUSP-' . uniqid();
-        debugLog("Número de venta generado: " . $sale_number);
-
+        
+        // Generar número de venta único
+        $sale_number = 'SUSP-' . date('YmdHis') . '-' . uniqid();
+        
+        // Insertar venta suspendida
         $stmt = $db->prepare("
             INSERT INTO suspended_sales (
                 business_id, sale_number, customer_id, subtotal, tax, total, include_igv, created_at, status
             ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), 'active')
         ");
         
-        $executeResult = $stmt->execute([
+        $result = $stmt->execute([
             $business_id, $sale_number, $customer_id, $subtotal, $tax, $total, $include_igv
         ]);
         
-        if (!$executeResult) {
-            debugLog("ERROR: Error al insertar en suspended_sales", $stmt->errorInfo());
-            throw new Exception('Error al insertar venta suspendida');
+        if (!$result) {
+            throw new Exception('Error al insertar venta suspendida: ' . implode(', ', $stmt->errorInfo()));
         }
-
+        
         $suspended_sale_id = $db->lastInsertId();
-        debugLog("Venta suspendida creada con ID: " . $suspended_sale_id);
-
+        debugLog("Venta suspendida creada", ['id' => $suspended_sale_id, 'sale_number' => $sale_number]);
+        
+        // Insertar items
         foreach ($input['items'] as $index => $item) {
-            debugLog("Procesando item " . ($index + 1), $item);
+            debugLog("Procesando item", ['index' => $index, 'item' => $item]);
             
             $stmt = $db->prepare("
                 INSERT INTO suspended_sale_items (
@@ -191,7 +219,7 @@ function handlePostSuspendedSale($db, $business_id) {
                 ) VALUES (?, ?, ?, ?, ?, ?)
             ");
             
-            $executeResult = $stmt->execute([
+            $result = $stmt->execute([
                 $suspended_sale_id, 
                 $item['product_id'], 
                 $item['name'], 
@@ -200,39 +228,43 @@ function handlePostSuspendedSale($db, $business_id) {
                 $item['subtotal']
             ]);
             
-            if (!$executeResult) {
-                debugLog("ERROR: Error al insertar item " . ($index + 1), $stmt->errorInfo());
-                throw new Exception('Error al insertar item de venta suspendida');
+            if (!$result) {
+                throw new Exception("Error al insertar item {$index}: " . implode(', ', $stmt->errorInfo()));
             }
         }
-
+        
+        // Confirmar transacción
         $db->commit();
         debugLog("Transacción completada exitosamente");
         
-        sendJsonResponse(true, 'Venta suspendida creada con éxito.', [
-            'id' => $suspended_sale_id, 
-            'sale_number' => $sale_number, 
-            'total' => $total, 
+        // Enviar respuesta exitosa
+        sendJsonResponse(true, 'Venta suspendida creada con éxito', [
+            'id' => $suspended_sale_id,
+            'sale_number' => $sale_number,
+            'total' => $total,
             'created_at' => date('Y-m-d H:i:s'),
             'customer_id' => $customer_id,
             'include_igv' => $include_igv
         ]);
-
+        
     } catch (Exception $e) {
-        $db->rollBack();
-        debugLog("ERROR: Excepción capturada: " . $e->getMessage());
-        sendJsonResponse(false, 'Error al suspender la venta: ' . $e->getMessage(), null, 500, [
-            'exception' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
+        if ($db && $db->inTransaction()) {
+            $db->rollBack();
+        }
+        debugLog("ERROR en handlePostSuspendedSale", [
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
         ]);
+        sendJsonResponse(false, 'Error al suspender la venta: ' . $e->getMessage(), null, 500);
     }
 }
 
 function handleGetSuspendedSale($db, $business_id) {
-    // ... mantener código existente pero agregar debugLog donde sea necesario
+    // Mantener tu código existente aquí
 }
 
 function handleDeleteSuspendedSale($db, $business_id) {
-    // ... mantener código existente pero agregar debugLog donde sea necesario
+    // Mantener tu código existente aquí
 }
 ?>

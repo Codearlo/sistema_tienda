@@ -46,14 +46,12 @@ if (!defined('STATUS_INACTIVE')) {
 if (!defined('STATUS_DELETED')) {
     define('STATUS_DELETED', -1);
 }
-?>
 
-<?php
-// ... código existente ...
 
 /**
  * Verificar si el usuario está autenticado
- * @return bool
+ * Esta función verifica que todas las variables de sesión necesarias estén presentes
+ * @return bool true si está autenticado, false si no
  */
 function isAuthenticated() {
     // Verificar que la sesión esté iniciada
@@ -61,22 +59,33 @@ function isAuthenticated() {
         session_start();
     }
     
-    // Verificar que existan las variables de sesión necesarias
-    return isset($_SESSION['user_id']) && 
-           isset($_SESSION['business_id']) && 
-           !empty($_SESSION['user_id']) && 
-           !empty($_SESSION['business_id']);
+    // Verificar que existan las variables de sesión críticas
+    $hasUserId = isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
+    $hasBusinessId = isset($_SESSION['business_id']) && !empty($_SESSION['business_id']);
+    
+    // Opcional: verificar tiempo de sesión para mayor seguridad
+    $sessionValid = true;
+    if (isset($_SESSION['logged_in_at'])) {
+        $maxInactiveTime = 30 * 60; // 30 minutos
+        $sessionValid = (time() - $_SESSION['logged_in_at']) <= $maxInactiveTime;
+    }
+    
+    // Retornar true solo si todas las verificaciones pasan
+    return $hasUserId && $hasBusinessId && $sessionValid;
 }
 
 /**
- * Requerir autenticación (para APIs)
- * Envía respuesta JSON si no está autenticado
+ * Función auxiliar para APIs que necesiten verificación de autenticación
+ * Envía respuesta JSON y termina ejecución si no está autenticado
  */
-function requireAuthenticationJSON() {
+function requireAuthenticationForAPI() {
     if (!isAuthenticated()) {
         header('Content-Type: application/json');
         http_response_code(401);
-        echo json_encode(['success' => false, 'message' => 'No autorizado']);
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Sesión no válida. Por favor, inicia sesión nuevamente.'
+        ]);
         exit();
     }
 }
