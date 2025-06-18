@@ -1,6 +1,6 @@
 <?php
 /**
- * CLASE DE BASE DE DATOS OPTIMIZADA
+ * CLASE DE BASE DE DATOS OPTIMIZADA - CORREGIDA
  * Archivo: backend/config/database.php
  */
 
@@ -40,6 +40,18 @@ class Database {
     
     public function getPDO() {
         return $this->pdo;
+    }
+    
+    /**
+     * Verificar si la conexión está activa
+     */
+    public function isConnected() {
+        try {
+            $this->pdo->query('SELECT 1');
+            return true;
+        } catch (PDOException $e) {
+            return false;
+        }
     }
     
     /**
