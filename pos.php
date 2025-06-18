@@ -268,7 +268,14 @@ function formatCurrency($amount) {
         // Initialize POS data
         const categories = <?php echo json_encode($categories); ?>;
         const customers = <?php echo json_encode($customers); ?>;
-        const products = <?php echo json_encode($products); ?>;
+        const products = <?php
+            $formatted_products = [];
+            foreach ($products as $product) {
+                $product['current_stock'] = $product['stock_quantity']; // Asignar stock_quantity a current_stock
+                $formatted_products[] = $product;
+            }
+            echo json_encode($formatted_products);
+        ?>;
         
         // Initialize POS when DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
