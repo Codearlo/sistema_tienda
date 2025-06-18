@@ -526,30 +526,36 @@ function newTransaction() {
 
 // ===== FUNCIONALIDAD DE SUSPENDER VENTA =====
 async function holdTransaction() {
+    // Primero validamos que haya productos en el carrito
     if (POSState.cart.length === 0) {
         showMessage('No hay productos en el carrito para suspender la venta.', 'warning');
         return;
     }
 
+    // Calculamos los totales usando la misma lógica que el resto del sistema
     const subtotal = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
     let tax = 0;
     let total = subtotal;
 
+    // Aplicamos IGV si está habilitado
     if (POSState.includeIgv) {
         tax = subtotal * 0.18;
         total = subtotal + tax;
     }
 
+    // Aquí está la corrección principal: agregar includeIgv al objeto
     const suspendedSaleData = {
         customer_id: document.getElementById('customerSelect').value || null,
         items: POSState.cart,
         subtotal: subtotal,
         tax: tax,
-        total: total
+        total: total,
+        includeIgv: POSState.includeIgv  // ✅ ESTA ES LA LÍNEA FALTANTE
     };
 
     try {
-        const response = await API.post('/suspended_sales.php', suspendedSaleData); // Nuevo endpoint para suspender ventas
+        // Realizamos la petición al endpoint correcto
+        const response = await API.post('/suspended_sales.php', suspendedSaleData);
         
         if (response.success) {
             showMessage('Venta suspendida exitosamente. Nº de Venta Suspendida: ' + response.data.sale_number, 'success');
