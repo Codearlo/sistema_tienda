@@ -125,21 +125,21 @@ try {
     
     // ===== VENTAS DE LA SEMANA =====
     $weekly_sales = $db->fetchAll(
-        "SELECT DATE(created_at) as date, COALESCE(SUM(total_amount), 0) as total 
+        "SELECT DATE(sale_date) as date, COALESCE(SUM(total_amount), 0) as total 
          FROM sales 
-         WHERE business_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-         GROUP BY DATE(created_at) 
+         WHERE business_id = ? AND sale_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND status = 1
+         GROUP BY DATE(sale_date) 
          ORDER BY date ASC",
         [$business_id]
     );
     
     // ===== PRODUCTOS MÁS VENDIDOS =====
     $top_products = $db->fetchAll(
-        "SELECT p.name, SUM(si.quantity) as total_sold, SUM(si.total_price) as revenue
+        "SELECT p.name, SUM(si.quantity) as total_sold, SUM(si.line_total) as revenue
          FROM sale_items si 
          JOIN products p ON si.product_id = p.id 
          JOIN sales s ON si.sale_id = s.id
-         WHERE s.business_id = ? AND s.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+         WHERE s.business_id = ? AND s.sale_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND s.status = 1
          GROUP BY p.id, p.name 
          ORDER BY total_sold DESC 
          LIMIT 5",
