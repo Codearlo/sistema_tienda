@@ -196,11 +196,14 @@ ini_set('display_startup_errors', 0); // NO mostrar errores de inicio en la sali
 ini_set('log_errors', 1); // Asegurarse de que los errores se registren
 ini_set('error_log', BASE_PATH . '/logs/php_error.log'); // Ruta del archivo de log
 
-// ===== CONFIGURACIÓN DE SESIÓN =====
-ini_set('session.cookie_httponly', 1);
-ini_set('session.use_only_cookies', 1);
-ini_set('session.cookie_secure', isset($_SERVER['HTTPS']));
-ini_set('session.gc_maxlifetime', SESSION_LIFETIME);
+// Modificación: Solo intentar cambiar la configuración de sesión si la sesión NO está activa.
+// Esto evita las advertencias "Session ini settings cannot be changed when a session is active".
+if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.cookie_httponly', 1);
+    ini_set('session.use_only_cookies', 1);
+    ini_set('session.cookie_secure', isset($_SERVER['HTTPS']));
+    ini_set('session.gc_maxlifetime', SESSION_LIFETIME);
+}
 
 // ===== AUTOLOADER =====
 spl_autoload_register(function ($className) {
@@ -220,7 +223,7 @@ spl_autoload_register(function ($className) {
     }
 });
 
-// ===== CARGAR DEPENDENCIAS =====
+// ===== CARGAR DEPENDENCIAS (Mantener estas cargas al final) =====
 $dbFile = __DIR__ . '/database.php';
 if (file_exists($dbFile)) {
     require_once $dbFile;
