@@ -61,7 +61,7 @@ try {
     
     // Incluir archivos necesarios con rutas corregidas
     require_once '../config/database.php';
-    require_once '../../includes/auth.php';  // Ruta corregida
+    require_once '../includes/auth.php';  // Ruta corregida
     
     debugLog("Archivos de configuración cargados correctamente");
     
