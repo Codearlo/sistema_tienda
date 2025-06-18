@@ -27,20 +27,20 @@ try {
     $today = date('Y-m-d');
     $this_month = date('Y-m');
     
-    // 1. Ventas del día - CORREGIDO
+    // 1. Ventas del día - ORIGINAL
     $sales_today = $db->single(
         "SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total 
          FROM sales 
-         WHERE business_id = ? AND DATE(sale_date) = ? AND status = 1",
+         WHERE business_id = ? AND DATE(created_at) = ?",
         [$business_id, $today]
     );
     
-    // 2. Ventas del mes - CORREGIDO
+    // 2. Ventas del mes - ORIGINAL
     $sales_month = $db->single(
         "SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total 
          FROM sales 
-         WHERE business_id = ? AND DATE_FORMAT(sale_date, '%Y-%m') = ? AND status = 1",
-        [$business_id, $this_month]
+         WHERE business_id = ? AND MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())",
+        [$business_id]
     );
     
     // 3. Total de productos activos - CORREGIDO
@@ -73,20 +73,20 @@ try {
         [$business_id]
     );
     
-    // 7. Ventas recientes (últimas 10) - CORREGIDO
+    // 7. Ventas recientes (últimas 10) - ORIGINAL
     $recent_sales = $db->fetchAll(
         "SELECT 
             s.id,
             s.sale_number,
-            s.sale_date,
+            s.created_at as sale_date,
             s.total_amount,
             s.payment_status,
             CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as customer_name,
             (SELECT COUNT(*) FROM sale_items WHERE sale_id = s.id) as item_count
          FROM sales s
          LEFT JOIN customers c ON s.customer_id = c.id
-         WHERE s.business_id = ? AND s.status = 1
-         ORDER BY s.sale_date DESC, s.id DESC
+         WHERE s.business_id = ?
+         ORDER BY s.created_at DESC, s.id DESC
          LIMIT 10",
         [$business_id]
     );
@@ -109,21 +109,20 @@ try {
         [$business_id]
     );
     
-    // 9. Gráfico de ventas (últimos 7 días) - CORREGIDO
+    // 9. Gráfico de ventas (últimos 7 días) - ORIGINAL
     $sales_chart = $db->fetchAll(
         "SELECT 
-            DATE(sale_date) as date,
+            DATE(created_at) as date,
             COALESCE(SUM(total_amount), 0) as total
          FROM sales 
          WHERE business_id = ? 
-         AND sale_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-         AND status = 1
-         GROUP BY DATE(sale_date)
+         AND created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+         GROUP BY DATE(created_at)
          ORDER BY date ASC",
         [$business_id]
     );
     
-    // 10. Productos más vendidos del mes - CORREGIDO
+    // 10. Productos más vendidos del mes - ORIGINAL
     $top_products = $db->fetchAll(
         "SELECT 
             p.name, 
@@ -133,29 +132,29 @@ try {
          JOIN products p ON si.product_id = p.id 
          JOIN sales s ON si.sale_id = s.id
          WHERE s.business_id = ? 
-         AND DATE_FORMAT(s.sale_date, '%Y-%m') = ? 
-         AND s.status = 1
+         AND s.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
          GROUP BY p.id, p.name 
          ORDER BY total_sold DESC 
          LIMIT 5",
-        [$business_id, $this_month]
+        [$business_id]
     );
     
-    // 11. Comparaciones de rendimiento
+    // 11. Comparaciones de rendimiento - ORIGINAL
     $yesterday = date('Y-m-d', strtotime('-1 day'));
     $yesterday_sales = $db->single(
         "SELECT COALESCE(SUM(total_amount), 0) as total 
          FROM sales 
-         WHERE business_id = ? AND DATE(sale_date) = ? AND status = 1",
+         WHERE business_id = ? AND DATE(created_at) = ?",
         [$business_id, $yesterday]
     );
     
-    $last_month = date('Y-m', strtotime('-1 month'));
+    $last_month_start = date('Y-m-01', strtotime('-1 month'));
+    $last_month_end = date('Y-m-t', strtotime('-1 month'));
     $last_month_sales = $db->single(
         "SELECT COALESCE(SUM(total_amount), 0) as total 
          FROM sales 
-         WHERE business_id = ? AND DATE_FORMAT(sale_date, '%Y-%m') = ? AND status = 1",
-        [$business_id, $last_month]
+         WHERE business_id = ? AND DATE(created_at) BETWEEN ? AND ?",
+        [$business_id, $last_month_start, $last_month_end]
     );
     
     // Nuevos clientes esta semana

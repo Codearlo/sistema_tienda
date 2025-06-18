@@ -29,20 +29,20 @@ try {
     $today = date('Y-m-d');
     $this_month = date('Y-m');
     
-    // Ventas del día - Corregido
+    // Ventas del día - ORIGINAL
     $daily_sales = $db->single(
         "SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total 
          FROM sales 
-         WHERE business_id = ? AND DATE(sale_date) = ? AND status = 1",
+         WHERE business_id = ? AND DATE(created_at) = ?",
         [$business_id, $today]
     );
     
-    // Ventas del mes - Corregido
+    // Ventas del mes - ORIGINAL
     $monthly_sales = $db->single(
         "SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total 
          FROM sales 
-         WHERE business_id = ? AND DATE_FORMAT(sale_date, '%Y-%m') = ? AND status = 1",
-        [$business_id, $this_month]
+         WHERE business_id = ? AND MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())",
+        [$business_id]
     );
     
     // Total de productos activos
@@ -75,35 +75,35 @@ try {
         [$business_id]
     );
     
-    // Ventas de la semana (últimos 7 días)
+    // Ventas de la semana (últimos 7 días) - ORIGINAL
     $weekly_sales = $db->fetchAll(
-        "SELECT DATE(sale_date) as date, COALESCE(SUM(total_amount), 0) as total 
+        "SELECT DATE(created_at) as date, COALESCE(SUM(total_amount), 0) as total 
          FROM sales 
-         WHERE business_id = ? AND sale_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND status = 1
-         GROUP BY DATE(sale_date) 
+         WHERE business_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+         GROUP BY DATE(created_at) 
          ORDER BY date ASC",
         [$business_id]
     );
     
-    // Productos más vendidos del mes
+    // Productos más vendidos del mes - ORIGINAL
     $top_products = $db->fetchAll(
         "SELECT p.name, SUM(si.quantity) as total_sold, SUM(si.line_total) as revenue
          FROM sale_items si 
          JOIN products p ON si.product_id = p.id 
          JOIN sales s ON si.sale_id = s.id
-         WHERE s.business_id = ? AND DATE_FORMAT(s.sale_date, '%Y-%m') = ? AND s.status = 1
+         WHERE s.business_id = ? AND s.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
          GROUP BY p.id, p.name 
          ORDER BY total_sold DESC 
          LIMIT 5",
-        [$business_id, $this_month]
+        [$business_id]
     );
     
-    // Calcular comparaciones
+    // Calcular comparaciones - ORIGINAL
     $yesterday = date('Y-m-d', strtotime('-1 day'));
     $yesterday_sales = $db->single(
         "SELECT COALESCE(SUM(total_amount), 0) as total 
          FROM sales 
-         WHERE business_id = ? AND DATE(sale_date) = ? AND status = 1",
+         WHERE business_id = ? AND DATE(created_at) = ?",
         [$business_id, $yesterday]
     );
     
@@ -115,13 +115,14 @@ try {
         $daily_change = 100;
     }
     
-    // Mes anterior
-    $last_month = date('Y-m', strtotime('-1 month'));
+    // Mes anterior - ORIGINAL
+    $last_month_start = date('Y-m-01', strtotime('-1 month'));
+    $last_month_end = date('Y-m-t', strtotime('-1 month'));
     $last_month_sales = $db->single(
         "SELECT COALESCE(SUM(total_amount), 0) as total 
          FROM sales 
-         WHERE business_id = ? AND DATE_FORMAT(sale_date, '%Y-%m') = ? AND status = 1",
-        [$business_id, $last_month]
+         WHERE business_id = ? AND DATE(created_at) BETWEEN ? AND ?",
+        [$business_id, $last_month_start, $last_month_end]
     );
     
     // Porcentaje vs mes anterior
