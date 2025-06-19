@@ -1,4 +1,3 @@
-codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/pos.php
 <?php
 session_start();
 
