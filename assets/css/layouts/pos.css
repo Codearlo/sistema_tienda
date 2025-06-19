@@ -261,8 +261,9 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 }
 
 .products-grid-pos {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); /* Ajustar tamaño de tarjetas de producto */
+    /* Modificaciones para formato lineal */
+    display: flex; /* Cambiado de grid a flex */
+    flex-direction: column; /* Apilar elementos verticalmente */
     gap: var(--spacing-sm); /* Espacio más pequeño */
     padding: var(--spacing-md); /* Padding ajustado */
     overflow-y: auto;
@@ -276,13 +277,14 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     padding: var(--spacing-sm); /* Padding ajustado */
     cursor: pointer;
     transition: var(--transition-fast);
-    text-align: center;
+    text-align: left; /* Alinear texto a la izquierda en formato lineal */
     position: relative;
-    min-height: 150px; /* Altura mínima de la tarjeta */
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    min-height: auto; /* Eliminar altura mínima para adaptarse al contenido */
+    display: flex; /* Usar flex para el contenido de la tarjeta */
+    align-items: center; /* Alinear verticalmente los elementos de la tarjeta */
+    gap: var(--spacing-md); /* Espacio entre imagen y texto */
     box-shadow: var(--shadow-xs); /* Sombra por defecto */
+    width: 100%; /* Ocupar todo el ancho disponible */
 }
 
 .product-card:hover {
@@ -304,9 +306,9 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 }
 
 .product-image {
-    width: 56px; /* Tamaño de imagen */
-    height: 56px;
-    margin: 0 auto var(--spacing-xs); /* Margen más pequeño */
+    width: 64px; /* Tamaño de imagen ligeramente más grande para la lista */
+    height: 64px;
+    margin: 0; /* Eliminar margen automático */
     background-color: var(--gray-100);
     border-radius: var(--border-radius-md); /* Bordes redondeados */
     display: flex;
@@ -329,49 +331,72 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     width: 100%;
     height: 100%;
     color: var(--gray-400);
-    font-size: 20px; /* Tamaño de icono */
+    font-size: 24px; /* Icono más grande */
+}
+
+.product-details {
+    flex-grow: 1; /* Permitir que los detalles ocupen el espacio restante */
 }
 
 .product-name {
     font-weight: 600;
     color: var(--gray-900);
-    margin-bottom: var(--spacing-xs);
-    font-size: var(--text-sm);
+    margin: 0 0 4px 0; /* Margen más pequeño */
+    font-size: var(--text-base); /* Tamaño de fuente un poco más grande */
     line-height: 1.3;
-    flex-grow: 1; /* Permite que el nombre ocupe espacio */
-    overflow: hidden; /* Ocultar texto largo */
-    text-overflow: ellipsis; /* Puntos suspensivos */
-    white-space: nowrap; /* No romper línea */
+    white-space: normal; /* Permitir que el texto se rompa en varias líneas */
+    overflow: visible; /* Mostrar todo el texto */
+    text-overflow: unset; /* Desactivar puntos suspensivos */
 }
 
 .product-category {
-    font-size: var(--text-xs);
+    font-size: var(--text-sm); /* Tamaño de fuente un poco más grande */
     color: var(--gray-500);
-    margin-bottom: var(--spacing-xs);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    margin-bottom: 4px; /* Margen más pequeño */
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
 }
 
 .product-price {
     font-family: var(--font-mono);
     font-weight: 700;
     color: var(--primary-600);
-    font-size: var(--text-base); /* Precio un poco más pequeño */
-    margin-bottom: var(--spacing-xs);
+    font-size: var(--text-lg); /* Precio más grande */
+    margin: 0; /* Eliminar margen */
 }
 
 .product-stock {
-    font-size: 0.7rem; /* Stock más pequeño */
+    font-size: var(--text-xs); /* Stock más pequeño */
     color: var(--gray-500);
     font-family: var(--font-mono);
-    margin-top: 2px;
+    margin-top: 4px; /* Margen superior */
 }
 
 .product-stock.low-stock {
     color: var(--warning-600);
     font-weight: 600;
 }
+
+.product-card .add-to-cart-btn {
+    /* Estilos del botón ADD */
+    background-color: var(--primary-500);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-xs) var(--spacing-sm); /* Padding ajustado */
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    margin-left: auto; /* Empujar el botón a la derecha */
+    flex-shrink: 0; /* Evitar que el botón se encoja */
+}
+
+.product-card .add-to-cart-btn:hover {
+    background-color: var(--primary-600);
+}
+
 
 /* ===== RIGHT PANEL - CARRITO ===== */
 .pos-right {
@@ -999,7 +1024,8 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     }
     
     .products-grid-pos {
-        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); /* Reducir aún más el tamaño de las tarjetas */
+        /* En pantallas pequeñas, volvemos a una columna si es necesario, pero mantenemos flex */
+        flex-direction: column; /* Asegurar que se apilen */
         padding: var(--spacing-sm);
         gap: var(--spacing-xs);
     }
@@ -1024,8 +1050,10 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     }
 
     .product-card {
-        min-height: 140px; /* Altura mínima ajustada */
+        min-height: auto; /* Quitar min-height para mejor adaptación */
         padding: var(--spacing-xs);
+        flex-direction: row; /* Mantener horizontal en móvil si hay espacio */
+        text-align: left;
     }
     .product-image {
         width: 48px;
@@ -1062,7 +1090,7 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
         padding: 0 var(--spacing-xs) var(--spacing-xs) var(--spacing-xs);
     }
     .products-grid-pos {
-        grid-template-columns: 1fr; /* Una columna para productos */
+        flex-direction: column; /* Asegurar una columna en pantallas muy pequeñas */
         gap: var(--spacing-sm);
     }
     .categories-grid {
@@ -1073,6 +1101,14 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
         align-items: stretch; /* Estirar botones */
     }
     .pos-header-actions .btn {
+        width: 100%;
+    }
+    .product-card {
+        flex-direction: column; /* Apilar elementos de la tarjeta en vertical si no hay espacio horizontal */
+        text-align: center;
+    }
+    .product-card .add-to-cart-btn {
+        margin-left: 0; /* Centrar el botón si se apilan los elementos */
         width: 100%;
     }
 }
