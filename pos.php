@@ -1,3 +1,4 @@
+codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/pos.php
 <?php
 session_start();
 
@@ -77,36 +78,24 @@ function formatCurrency($amount) {
     
     <main class="main-content">
         <div class="pos-container">
-            <header class="pos-header">
-                <div class="pos-title">
-                    <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <div class="pos-logo">
-                        <i class="fas fa-cash-register"></i>
-                    </div>
-                    <h1>Punto de Venta</h1>
-                </div>
-                
-                <div class="pos-header-actions">
-                    <button class="btn btn-outline" onclick="clearCart()">
-                        <i class="fas fa-trash"></i>
-                        Limpiar
-                    </button>
-                    <button class="btn btn-success" onclick="completeTransaction()" id="completeBtn" disabled>
-                        <i class="fas fa-check"></i>
-                        Completar Venta
-                    </button>
-                    
-                    <div class="user-info">
-                        <span><?php echo htmlspecialchars($_SESSION['user_name']); ?></span>
-                        <div class="current-time" id="currentTime"></div>
-                    </div>
-                </div>
-            </header>
-
             <div class="pos-main">
                 <div class="pos-left">
+                    <div class="pos-left-header">
+                        <div class="pos-title">
+                            <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">
+                                <i class="fas fa-bars"></i>
+                            </button>
+                            <div class="pos-logo">
+                                <i class="fas fa-cash-register"></i>
+                            </div>
+                            <h1>Punto de Venta</h1>
+                        </div>
+                        <div class="user-info">
+                            <span><?php echo htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['first_name'] ?? 'Usuario'); ?></span>
+                            <div class="current-time" id="currentTime"></div>
+                        </div>
+                    </div>
+
                     <div class="product-search-section">
                         <div class="search-input-group">
                             <i class="fas fa-search search-icon"></i>
@@ -211,11 +200,15 @@ function formatCurrency($amount) {
                     </div>
 
                     <div class="pos-actions">
-                        <button class="btn btn-primary btn-block" onclick="printReceipt()">
-                            <i class="fas fa-print"></i>
-                            Imprimir Último Recibo
+                        <button class="btn btn-outline" onclick="clearCart()">
+                            <i class="fas fa-trash"></i>
+                            Limpiar Carrito
                         </button>
-                    </div>
+                        <button class="btn btn-success" onclick="completeTransaction()" id="completeBtn" disabled>
+                            <i class="fas fa-check"></i>
+                            Completar Venta
+                        </button>
+                        </div>
                 </div>
             </div>
         </div>
