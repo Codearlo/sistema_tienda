@@ -165,11 +165,13 @@ class APIClient {
     
     // Ventas
     async getSales(filters = {}) {
-        return await this.get('/ventas.php', filters);
+        // CAMBIO: Apunta a sales.php en lugar de ventas.php
+        return await this.get('/sales.php', filters); 
     }
     
     async createSale(data) {
-        return await this.post('/ventas.php', data);
+        // CAMBIO: Apunta a sales.php en lugar de ventas.php
+        return await this.post('/sales.php', data);
     }
     
     // Categorías
