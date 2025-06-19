@@ -14,7 +14,7 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 /* Ajuste del main-content para el POS */
 .main-content {
     flex: 1; /* Permite que el main-content ocupe el espacio restante */
-    margin-left: var(--sidebar-width); /* Espacio para la sidebar */
+    /* margin-left: var(--sidebar-width); /* REMOVIDO: Sidebar se superpone intencionalmente */
     transition: margin-left 0.3s ease;
     padding: 0; /* Elimina el padding del main-content aquí para que pos-container lo maneje */
     max-width: none; /* Elimina la restricción de ancho máximo */
@@ -25,9 +25,9 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 }
 
 /* Cuando la sidebar está colapsada */
-.sidebar.collapsed + .main-content {
-    margin-left: 70px; /* Ancho de la sidebar colapsada */
-}
+/* .sidebar.collapsed + .main-content {
+    margin-left: 70px; 
+} */ /* REMOVIDO: Sidebar se superpone intencionalmente */
 
 
 .pos-container {
@@ -47,10 +47,6 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     border: none;
     box-shadow: none;
 }
-
-/* .pos-title, .pos-header-actions {
-    display: none; 
-} */ /* Estos estilos ya no son necesarios si .pos-header tiene display: none */
 
 
 /* ===== MAIN LAYOUT - GRID PARA PANELES ===== */
@@ -87,6 +83,11 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     border-bottom: 1px solid var(--gray-200);
     border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
     flex-shrink: 0; /* No permitir que se encoja */
+    /* Añadido para el diseño de la imagen */
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .pos-left-header .pos-title { /* Contenedor del logo y título */
@@ -159,6 +160,11 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     border-bottom: 1px solid var(--gray-200);
     background-color: var(--gray-50);
     flex-shrink: 0; /* Evitar que se encoja */
+    /* Añadido para el diseño de la imagen */
+    box-shadow: var(--shadow-xs);
+    position: sticky;
+    top: 70px; /* Debajo del pos-left-header */
+    z-index: 9;
 }
 
 .search-input-group {
@@ -219,6 +225,11 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     border-bottom: 1px solid var(--gray-200);
     background-color: var(--gray-50);
     flex-shrink: 0; /* Evitar que se encoja */
+    /* Añadido para el diseño de la imagen */
+    box-shadow: var(--shadow-xs);
+    position: sticky;
+    top: calc(70px + 64px); /* Debajo del search section */
+    z-index: 8;
 }
 
 .categories-quick h3 {
@@ -308,6 +319,9 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     gap: var(--spacing-md);
     box-shadow: var(--shadow-xs);
     width: 100%;
+    /* Ajustes para hacerlos menos altos */
+    height: 80px; /* Altura fija para cada tarjeta de producto */
+    box-sizing: border-box; /* Incluir padding en la altura */
 }
 
 .product-card:hover {
@@ -359,26 +373,28 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 
 .product-details {
     flex-grow: 1;
+    display: flex; /* Añadido para controlar el layout interno de los detalles */
+    flex-direction: column; /* Apilar nombre, categoría, stock */
+    justify-content: center; /* Centrar verticalmente */
+    height: 100%; /* Ocupar altura disponible */
 }
 
 .product-name {
     font-weight: 600;
     color: var(--gray-900);
-    margin: 0 0 4px 0;
+    margin: 0; /* Reiniciar margen */
     font-size: var(--text-base);
     line-height: 1.3;
-    white-space: normal;
+    white-space: nowrap; /* Mostrar en una sola línea */
     overflow: hidden;
     text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+    /* Eliminado display -webkit-box, -webkit-line-clamp: 2 para una sola línea */
 }
 
 .product-category {
     font-size: var(--text-sm);
     color: var(--gray-500);
-    margin-bottom: 4px;
+    margin: 0; /* Reiniciar margen */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -389,19 +405,25 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     font-weight: 700;
     color: var(--primary-600);
     font-size: var(--text-lg);
-    margin: 0;
+    margin-left: auto; /* Empujar el precio a la derecha */
+    flex-shrink: 0; /* Evitar que se encoja */
+    padding-left: var(--spacing-md); /* Espacio entre stock y precio */
 }
 
 .product-stock {
     font-size: var(--text-xs);
     color: var(--gray-500);
     font-family: var(--font-mono);
-    margin-top: 4px;
+    margin-top: 0; /* Reiniciar margen */
 }
 
-.product-stock.low-stock {
-    color: var(--warning-600);
-    font-weight: 600;
+/* Modificar la visualización de product-stock y add-to-cart-btn dentro de product-card */
+.product-card .product-info-bottom { /* Nuevo contenedor para stock y add btn */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%; /* Ocupar todo el ancho */
+    margin-top: var(--spacing-xs); /* Espacio arriba */
 }
 
 .product-card .add-to-cart-btn {
@@ -414,7 +436,7 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     font-weight: 600;
     cursor: pointer;
     transition: var(--transition-fast);
-    margin-left: auto;
+    margin-left: auto; /* Empujar el botón a la derecha */
     flex-shrink: 0;
 }
 
@@ -793,6 +815,8 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     min-height: 150px;
     background-color: white;
     border-radius: var(--border-radius-lg);
+    /* Centrar contenido cuando es un empty state */
+    flex-grow: 1; /* Permitir que ocupe el espacio */
 }
 
 .empty-state i {
