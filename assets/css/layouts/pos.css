@@ -6,25 +6,39 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 .pos-page {
     background-color: var(--gray-100);
     min-height: 100vh;
-    overflow: hidden;
+    overflow: hidden; /* Oculta el scroll de la página principal */
     display: flex;
     font-family: 'Inter', sans-serif;
 }
 
+/* Ajuste del main-content para el POS */
+.main-content {
+    flex: 1; /* Permite que el main-content ocupe el espacio restante */
+    margin-left: var(--sidebar-width); /* Espacio para la sidebar */
+    transition: margin-left 0.3s ease;
+    padding: 0; /* Elimina el padding del main-content aquí para que pos-container lo maneje */
+    max-width: none; /* Elimina la restricción de ancho máximo */
+    margin-right: 0; /* Elimina margen derecho */
+    min-height: 100vh; /* Asegura que ocupe toda la altura */
+}
+
+/* Cuando la sidebar está colapsada */
+.sidebar.collapsed + .main-content {
+    margin-left: 70px; /* Ancho de la sidebar colapsada */
+}
+
+
 .pos-container {
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    flex: 1;
-    margin-left: 70px;
-    transition: margin-left var(--transition-normal);
+    height: 100vh; /* Ocupa el 100% del alto del main-content */
+    width: 100%; /* Ocupa el 100% del ancho disponible en main-content */
     background-color: var(--gray-50);
 }
 
-/* ===== HEADER (REMOVED VISUALLY - LOGICALLY HANDLED BY pos-main HEIGHT) ===== */
+/* ===== HEADER (REMOVED VISUALLY - LOGICALLY HANDLED BY pos-main HEADER) ===== */
 .pos-header {
-    /* Este header ya no será visible, pero sus estilos pueden permanecer sin afectar si su display es none o su altura 0 */
-    display: none; /* Ocultar completamente el header */
+    display: none; /* Ocultar completamente el header global si no se usa */
     height: 0;
     padding: 0;
     margin: 0;
@@ -32,24 +46,21 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     box-shadow: none;
 }
 
-.pos-title, .pos-header-actions {
-    display: none; /* Asegurar que los contenidos del header también se oculten */
-}
-
-/* ===== MOBILE MENU BUTTON (Relocated to pos-main header) ===== */
-/* El botón de menú móvil se moverá al nuevo header de pos-main para ser visible */
+/* .pos-title, .pos-header-actions {
+    display: none; 
+} */ /* Estos estilos ya no son necesarios si .pos-header tiene display: none */
 
 
-/* ===== MAIN LAYOUT ===== */
+/* ===== MAIN LAYOUT - GRID PARA PANELES ===== */
 .pos-main {
     display: grid;
     grid-template-columns: 1fr 400px; /* Productos a la izquierda, Carrito a la derecha */
-    flex: 1;
+    flex: 1; /* Permite que ocupe el espacio restante en el pos-container */
     overflow: hidden; /* Esto es clave para que solo los paneles internos tengan scroll */
-    height: 100vh; /* Ocupar el 100% del alto de la ventana */
+    height: 100%; /* Ocupar el 100% del alto del pos-container */
     padding: var(--spacing-md); /* Padding alrededor de los paneles */
     gap: var(--spacing-md); /* Espacio entre paneles */
-    box-sizing: border-box; /* Incluir padding en la altura */
+    box-sizing: border-box;
 }
 
 /* ===== LEFT PANEL - PRODUCTOS ===== */
@@ -57,21 +68,29 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     background-color: white;
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* Contenedor general sin scroll */
+    overflow: hidden; /* Contenedor general del panel izquierdo, sin scroll aquí */
     border: 1px solid var(--gray-200);
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-sm);
     height: 100%; /* Ocupar el 100% del alto disponible en la grilla */
 }
 
-.pos-left-header { /* Nuevo header para el panel de productos */
+/* Nuevo Header para el panel de productos (simula el header superior) */
+.pos-left-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: var(--spacing-md) var(--spacing-lg);
-    background-color: var(--gray-50);
+    background-color: white; /* Fondo blanco como en la imagen */
     border-bottom: 1px solid var(--gray-200);
-    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0; /* Bordes redondeados superiores */
+    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+    flex-shrink: 0; /* No permitir que se encoja */
+}
+
+.pos-left-header .pos-title { /* Contenedor del logo y título */
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
 }
 
 .pos-left-header h1 {
@@ -79,6 +98,17 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     font-weight: 700;
     color: var(--gray-900);
     margin: 0;
+}
+
+.pos-left-header .pos-logo {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-600);
+    font-size: 1.5rem;
 }
 
 .pos-left-header .user-info {
@@ -102,12 +132,31 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     font-size: var(--text-xs);
 }
 
+/* MOBILE MENU BUTTON - Visible en el nuevo header */
+.pos-left-header .mobile-menu-btn {
+    display: block; /* Siempre visible en este header */
+    background: none;
+    border: none;
+    color: var(--gray-600);
+    cursor: pointer;
+    padding: var(--spacing-xs);
+    border-radius: var(--border-radius-md);
+    transition: var(--transition-fast);
+    margin-right: var(--spacing-sm);
+}
+
+.pos-left-header .mobile-menu-btn:hover {
+    background-color: var(--gray-100);
+    color: var(--gray-800);
+}
+
+
+/* SECCIONES INTERNAS DEL PANEL IZQUIERDO */
 .product-search-section {
     padding: var(--spacing-md) var(--spacing-lg);
     border-bottom: 1px solid var(--gray-200);
     background-color: var(--gray-50);
-    display: flex;
-    align-items: center;
+    flex-shrink: 0; /* Evitar que se encoja */
 }
 
 .search-input-group {
@@ -167,6 +216,7 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     padding: var(--spacing-md) var(--spacing-lg);
     border-bottom: 1px solid var(--gray-200);
     background-color: var(--gray-50);
+    flex-shrink: 0; /* Evitar que se encoja */
 }
 
 .categories-quick h3 {
@@ -226,16 +276,15 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 }
 
 .products-section {
-    flex: 1;
+    flex: 1; /* Permite que la sección de productos ocupe el espacio restante en el pos-left */
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* Contenedor de la sección de productos */
+    overflow: hidden; /* Oculta el scroll de esta sección, el scroll es para products-grid-pos */
 }
 
 .products-grid-pos {
-    /* Modificaciones para formato lineal */
     display: flex;
-    flex-direction: column; /* Apilar elementos verticalmente */
+    flex-direction: column; /* Lista lineal */
     gap: var(--spacing-sm);
     padding: var(--spacing-md);
     overflow-y: auto; /* Habilitar scroll solo para los productos */
@@ -317,10 +366,10 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     font-size: var(--text-base);
     line-height: 1.3;
     white-space: normal;
-    overflow: hidden; /* Permitir que el texto se trunque si es demasiado largo para varias líneas */
+    overflow: hidden;
     text-overflow: ellipsis;
-    display: -webkit-box; /* Para multilínea ellipsis */
-    -webkit-line-clamp: 2; /* Limitar a 2 líneas */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
 }
 
@@ -328,7 +377,7 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     font-size: var(--text-sm);
     color: var(--gray-500);
     margin-bottom: 4px;
-    white-space: nowrap; /* Asegurar que la categoría no se rompa */
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -372,7 +421,7 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 }
 
 
-/* ===== RIGHT PANEL - CARRITO (Sticky/Fixed) ===== */
+/* ===== RIGHT PANEL - CARRITO (Fixed/Sticky) ===== */
 .pos-right {
     background-color: white;
     display: flex;
@@ -380,11 +429,13 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     border: 1px solid var(--gray-200);
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-sm);
-    /* Hacer el carrito sticky/fixed */
-    position: sticky; /* O position: fixed; con top/bottom/width */
-    top: var(--spacing-md); /* Ajustar según el padding del .pos-main */
-    height: calc(100vh - (2 * var(--spacing-md))); /* Altura para que quepa en el viewport menos el padding del pos-main */
-    overflow: hidden; /* Asegurar que el scroll interno del carrito funcione */
+    
+    /* Configuración para que sea fijo */
+    position: sticky; /* Sticky se adapta mejor dentro de un grid */
+    top: var(--spacing-md); /* Alineado con el top del pos-main padding */
+    height: calc(100vh - (2 * var(--spacing-md))); /* Ocupa el 100% de la altura del viewport menos el padding top/bottom de pos-main */
+    overflow: hidden; /* Asegura que el scroll sea interno si es necesario */
+    flex-shrink: 0; /* Evita que se encoja en flexbox */
 }
 
 /* Header del carrito */
@@ -397,7 +448,7 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     align-items: center;
     flex-wrap: wrap;
     position: relative;
-    flex-shrink: 0; /* No permitir que se encoja */
+    flex-shrink: 0;
 }
 
 .cart-header h2 {
@@ -491,7 +542,7 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 
 /* Items del carrito (con scroll) */
 .cart-items {
-    flex: 1; /* Permitir que ocupe el espacio restante y habilite el scroll */
+    flex: 1; /* Permite que ocupe el espacio restante y habilite el scroll */
     overflow-y: auto; /* Habilitar scroll solo para los items del carrito */
     padding: var(--spacing-md) var(--spacing-lg);
     background-color: var(--gray-50);
@@ -592,7 +643,7 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     padding: var(--spacing-md) var(--spacing-lg);
     border-top: 1px solid var(--gray-200);
     background-color: white;
-    flex-shrink: 0; /* No permitir que se encoja */
+    flex-shrink: 0;
 }
 
 .summary-row {
@@ -617,7 +668,7 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     padding: var(--spacing-md) var(--spacing-lg);
     border-top: 1px solid var(--gray-200);
     background-color: white;
-    flex-shrink: 0; /* No permitir que se encoja */
+    flex-shrink: 0;
 }
 
 .payment-section h3 {
@@ -714,13 +765,13 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 
 /* Acciones del POS (fijas en la parte inferior del carrito) */
 .pos-actions {
-    padding: var(--spacing-md) var(--spacing-lg); /* Padding ajustado */
+    padding: var(--spacing-md) var(--spacing-lg);
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
     border-top: 1px solid var(--gray-200);
     background-color: white;
-    flex-shrink: 0; /* No permitir que se encoja */
+    flex-shrink: 0;
 }
 .pos-actions .btn {
     padding: var(--spacing-sm) var(--spacing-md);
@@ -931,13 +982,12 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
-    .pos-container {
-        margin-left: 0;
+    .main-content {
+        margin-left: 0; /* Sidebar se superpone en móvil, main-content no necesita margen */
     }
     
-    /* El header principal ahora se maneja dentro de pos-left-header */
     .pos-left-header .mobile-menu-btn {
-        display: block; /* Mostrar el botón de menú móvil */
+        display: block; /* Siempre visible en este header */
     }
     
     .pos-main {
@@ -1014,14 +1064,11 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 }
 
 @media (max-width: 768px) {
-    .pos-header { /* Asegurar que no afecte */
-        display: none;
-    }
     .pos-left-header {
         flex-direction: column;
         align-items: flex-start;
         padding: var(--spacing-sm) var(--spacing-md);
-        border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0; /* Asegurar redondeo */
+        border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
     }
     .pos-left-header h1 {
         margin-bottom: var(--spacing-xs);
@@ -1040,6 +1087,7 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     }
     
     .products-grid-pos {
+        flex-direction: column;
         padding: var(--spacing-sm);
         gap: var(--spacing-xs);
     }
@@ -1054,7 +1102,7 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     }
 
     .pos-actions {
-        padding: var(--spacing-md); /* Reducir padding en acciones */
+        padding: var(--spacing-md);
     }
 }
 
@@ -1104,10 +1152,49 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
         font-size: 0.7rem;
     }
     .pos-right {
-        border-radius: var(--border-radius-md); /* Ajustar redondeo en móviles */
+        border-radius: var(--border-radius-md);
     }
     .cart-header, .customer-section, .cart-items, .cart-summary, .payment-section, .pos-actions {
         padding-left: var(--spacing-sm);
         padding-right: var(--spacing-sm);
     }
+}
+
+/* Scrollbar Styling for POS specific elements */
+.products-grid-pos::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.products-grid-pos::-webkit-scrollbar-track {
+    background: var(--gray-100);
+    border-radius: 10px;
+}
+
+.products-grid-pos::-webkit-scrollbar-thumb {
+    background: var(--gray-300);
+    border-radius: 10px;
+}
+
+.products-grid-pos::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-400);
+}
+
+.cart-items::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.cart-items::-webkit-scrollbar-track {
+    background: var(--gray-100);
+    border-radius: 10px;
+}
+
+.cart-items::-webkit-scrollbar-thumb {
+    background: var(--gray-300);
+    border-radius: 10px;
+}
+
+.cart-items::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-400);
 }
