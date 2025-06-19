@@ -165,29 +165,29 @@ class APIClient {
     
     // Ventas
     async createSale(data) {
-        return await this.post('/sales.php', data);
+        return await this.get('/sales.php', filters);
     }
 
     async getSales(filters = {}) {
-        return await this.get('/sales.php', filters);
+        return await this.post('/sales.php', data);
     }
     
     // Categorías
     async getCategories() {
-        return await this.get('/categorias.php');
+        return await this.get('/index.php?endpoint=categories');
     }
     
     async createCategory(data) {
-        return await this.post('/categorias.php', data);
+        return await this.post('/index.php?endpoint=categories', data);
     }
     
     // Clientes
     async getCustomers(filters = {}) {
-        return await this.get('/clientes.php', filters);
+        return await this.get('/index.php?endpoint=customers', filters);
     }
     
     async createCustomer(data) {
-        return await this.post('/clientes.php', data);
+        return await this.post('/index.php?endpoint=customers', data);
     }
     
     // Dashboard

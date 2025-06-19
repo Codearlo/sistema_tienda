@@ -476,24 +476,19 @@ async function completeTransaction() {
         tax: tax,
         total: total,
         cash_received: POSState.cashReceived,
-        change_amount: POSState.paymentMethod === 'cash' ? (POSState.cashReceived - total) : 0,
+        change_amount: POSState.paymentMethod === 'cash' ? 
+            (POSState.cashReceived - total) : 0,
     };
     
     try {
-        const response = await API.post('/index.php?endpoint=sales', saleData);
+        // ✅ USAR sales.php directamente (no ventas.php)
+        const response = await API.post('/sales.php', saleData);
         
         if (response.success) {
             showTransactionComplete(response.data);
             clearCart();
             showMessage('Venta completada exitosamente', 'success');
-            // La lógica de ventas suspendidas eliminada de aquí
-            // if (POSState.currentSuspendedSaleId) {
-            //     removeSuspendedSaleFromList(POSState.currentSuspendedSaleId);
-            //     POSState.currentSuspendedSaleId = null; // Resetear
-            // }
-            // Recargar productos para reflejar el stock actualizado (asumiendo que backend lo maneja)
             loadProducts(); 
-
         } else {
             showMessage(response.message || 'Error al procesar la venta', 'error');
         }
