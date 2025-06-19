@@ -480,7 +480,7 @@ async function completeTransaction() {
     };
     
     try {
-        const response = await API.post('/sales.php', saleData);
+        const response = await API.post('/ventas.php', saleData);
         
         if (response.success) {
             showTransactionComplete(response.data);
