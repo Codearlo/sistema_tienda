@@ -1,25 +1,15 @@
 <?php
 session_start();
 
-require_once 'includes/onboarding_middleware.php';
-
-// Verificar que el usuario haya completado el onboarding
-requireOnboarding();
-
-require_once 'backend/config/database.php';
-require_once 'includes/cache_control.php';
-
-// ===== VERIFICACIÓN DE AUTENTICACIÓN =====
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
     exit();
 }
 
-// ===== CONFIGURACIÓN Y CARGA DE DATOS =====
-$error_message = null;
-$categories = [];
-$customers = [];
-$products = [];
+require_once 'backend/config/database.php';
+require_once 'includes/cache_control.php';
+
+$error_message = '';
 
 try {
     $db = getDB();
@@ -29,14 +19,15 @@ try {
     $categories = $db->fetchAll("
         SELECT * FROM categories 
         WHERE business_id = ? AND status = 1 
-        ORDER BY name
+        ORDER BY name ASC
     ", [$business_id]);
     
     // Cargar clientes
     $customers = $db->fetchAll("
-        SELECT id, CONCAT(first_name, ' ', last_name) as name 
+        SELECT id, first_name, last_name, email, phone 
         FROM customers 
-        WHERE business_id = ? AND status = 1 
+        WHERE business_id = ? 
+        AND status = 1 
         ORDER BY first_name
     ", [$business_id]);
     
@@ -142,9 +133,9 @@ function formatCurrency($amount) {
                 <div class="pos-right">
                     <div class="cart-header">
                         <h2><i class="fas fa-shopping-cart"></i> Carrito de Compras</h2>
-                        <span class="cart-count" id="cartCount">0 productos</span>
-                        <button class="btn btn-sm btn-outline igv-toggle-btn" id="toggleIgvBtn" onclick="toggleIgv()">
-                            <i class="fas fa-percent"></i> IGV (18%)
+                        <span class="cart-count">0 productos</span>
+                        <button class="btn btn-sm btn-outline igv-toggle-btn" id="igvToggleBtn" onclick="toggleIgv()">
+                            <i class="fas fa-check"></i> IGV (18%) Incluido
                         </button>
                     </div>
 
@@ -154,36 +145,36 @@ function formatCurrency($amount) {
                             <option value="">Cliente general</option>
                             <?php foreach ($customers as $customer): ?>
                                 <option value="<?php echo $customer['id']; ?>">
-                                    <?php echo htmlspecialchars($customer['name']); ?>
+                                    <?php echo htmlspecialchars($customer['first_name'] . ' ' . $customer['last_name']); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
 
                     <div class="cart-items" id="cartItems">
-                        <div class="empty-state">
-                            <i class="fas fa-shopping-cart fa-2x"></i>
+                        <div class="empty-cart">
+                            <i class="fas fa-shopping-cart fa-3x"></i>
                             <h3>El carrito está vacío</h3>
                             <p>Agregue productos para comenzar</p>
                         </div>
                     </div>
 
-                    <div class="cart-summary" id="cartSummary" style="display: none;">
-                        <div class="summary-row">
-                            <span>Subtotal:</span>
-                            <span id="subtotal">S/ 0.00</span>
+                    <div class="cart-totals">
+                        <div class="total-row">
+                            <span class="total-label">Subtotal:</span>
+                            <span class="total-amount" id="subtotalAmount">S/ 0.00</span>
                         </div>
-                        <div class="summary-row" id="igvRow">
-                            <span>IGV (18%):</span>
-                            <span id="tax">S/ 0.00</span>
+                        <div class="total-row">
+                            <span class="total-label">IGV (18%):</span>
+                            <span class="total-amount" id="taxAmount">S/ 0.00</span>
                         </div>
-                        <div class="summary-row total">
-                            <span>Total:</span>
-                            <span id="total">S/ 0.00</span>
+                        <div class="total-row">
+                            <span class="total-label">Total:</span>
+                            <span class="total-amount" id="totalAmount">S/ 0.00</span>
                         </div>
                     </div>
 
-                    <div class="payment-section" id="paymentSection" style="display: none;">
+                    <div class="payment-section">
                         <h3>Método de Pago</h3>
                         <div class="payment-methods">
                             <button class="payment-method active" data-method="cash">
@@ -198,20 +189,35 @@ function formatCurrency($amount) {
                                 <i class="fas fa-exchange-alt"></i>
                                 Transferencia
                             </button>
+                            <button class="payment-method" data-method="other">
+                                <i class="fas fa-ellipsis-h"></i>
+                                Otro
+                            </button>
                         </div>
 
-                        <div class="cash-payment" id="cashPayment">
-                            <label>Monto recibido:</label>
-                            <input type="number" class="form-input" id="cashReceived" 
+                        <div class="cash-input-group" id="cashSection">
+                            <label for="cashReceived">Monto recibido:</label>
+                            <input type="number" id="cashReceived" class="cash-input" 
                                    placeholder="0.00" step="0.01" min="0">
-                            <div class="change-amount" id="changeAmount" style="display: none;">
-                                Vuelto: <span id="changeValue">S/ 0.00</span>
-                            </div>
                         </div>
+
+                        <div class="change-display" id="changeAmount">S/ 0.00</div>
                     </div>
 
-                    <div class="pos-actions">
-                        <button class="btn btn-primary btn-block" onclick="printReceipt()">
+                    <div class="cart-actions">
+                        <button class="btn-complete-sale" onclick="completeTransaction()" id="completeBtn" disabled>
+                            <i class="fas fa-check"></i>
+                            Completar Venta
+                        </button>
+                        
+                        <div class="cart-secondary-actions">
+                            <button class="btn-secondary-action" onclick="clearCart()">
+                                <i class="fas fa-trash"></i>
+                                Limpiar
+                            </button>
+                        </div>
+                        
+                        <button class="btn btn-ghost" onclick="printReceipt()">
                             <i class="fas fa-print"></i>
                             Imprimir Último Recibo
                         </button>
@@ -221,7 +227,8 @@ function formatCurrency($amount) {
         </div>
     </main>
 
-    <div class="modal" id="transactionModal">
+    <!-- MODAL OCULTO POR DEFECTO -->
+    <div class="modal" id="transactionModal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Venta Completada</h3>
