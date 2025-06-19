@@ -105,49 +105,7 @@ function loadCategories() {
 }
 
 function loadProducts() {
-    const grid = document.getElementById('productsGrid');
-    if (!grid) return;
-    
-    let filteredProducts = POSState.products;
-    
-    // Filtrar por categoría
-    if (POSState.selectedCategory) {
-        filteredProducts = filteredProducts.filter(p => p.category_id == POSState.selectedCategory);
-    }
-    
-    // Filtrar por búsqueda
-    const searchTerm = document.getElementById('productSearch')?.value?.toLowerCase();
-    if (searchTerm) {
-        filteredProducts = filteredProducts.filter(p => 
-            p.name.toLowerCase().includes(searchTerm) ||
-            (p.barcode && p.barcode.toLowerCase().includes(searchTerm))
-        );
-    }
-    
-    let html = '';
-    filteredProducts.forEach(product => {
-        const inStock = (product.stock_quantity || 0) > 0;
-        const stockClass = inStock ? '' : 'out-of-stock';
-        
-        html += `
-            <div class="product-card ${stockClass}" onclick="addToCart(${product.id})">
-                <div class="product-image">
-                    ${product.image_url ? 
-                        `<img src="${product.image_url}" alt="${product.name}">` :
-                        '<i class="fas fa-box"></i>'
-                    }
-                </div>
-                <div class="product-info">
-                    <h4>${product.name}</h4>
-                    <p class="product-price">S/ ${parseFloat(product.selling_price).toFixed(2)}</p>
-                    <p class="product-stock">Stock: ${product.stock_quantity || 0}</p>
-                </div>
-                ${!inStock ? '<div class="stock-badge">Sin Stock</div>' : ''}
-            </div>
-        `;
-    });
-    
-    grid.innerHTML = html || '<p class="no-results">No se encontraron productos</p>';
+                loadProducts(); 
 }
 
 function handleProductSearch() {
@@ -518,16 +476,50 @@ function printReceipt() {
 }
 
 // ===== FUNCIONES ADICIONALES DEL POS =====
-async function loadProducts() {
-    try {
-        const response = await API.getProducts();
-        if (response.success) {
-            POSState.products = response.products || response.data;
-            loadProducts();
-        }
-    } catch (error) {
-        console.error('Error cargando productos:', error);
+function renderProducts() {
+    const grid = document.getElementById('productsGrid');
+    if (!grid) return;
+    
+    let filteredProducts = POSState.products;
+    
+    // Filtrar por categoría
+    if (POSState.selectedCategory) {
+        filteredProducts = filteredProducts.filter(p => p.category_id == POSState.selectedCategory);
     }
+    
+    // Filtrar por búsqueda
+    const searchTerm = document.getElementById('productSearch')?.value?.toLowerCase();
+    if (searchTerm) {
+        filteredProducts = filteredProducts.filter(p => 
+            p.name.toLowerCase().includes(searchTerm) ||
+            (p.barcode && p.barcode.toLowerCase().includes(searchTerm))
+        );
+    }
+    
+    let html = '';
+    filteredProducts.forEach(product => {
+        const inStock = (product.stock_quantity || 0) > 0;
+        const stockClass = inStock ? '' : 'out-of-stock';
+        
+        html += `
+            <div class="product-card ${stockClass}" onclick="addToCart(${product.id})">
+                <div class="product-image">
+                    ${product.image_url ? 
+                        `<img src="${product.image_url}" alt="${product.name}">` :
+                        '<i class="fas fa-box"></i>'
+                    }
+                </div>
+                <div class="product-info">
+                    <h4>${product.name}</h4>
+                    <p class="product-price">S/ ${parseFloat(product.selling_price).toFixed(2)}</p>
+                    <p class="product-stock">Stock: ${product.stock_quantity || 0}</p>
+                </div>
+                ${!inStock ? '<div class="stock-badge">Sin Stock</div>' : ''}
+            </div>
+        `;
+    });
+    
+    grid.innerHTML = html || '<p class="no-results">No se encontraron productos</p>';
 }
 
 // Función para recargar productos desde el servidor
@@ -536,7 +528,7 @@ async function refreshProducts() {
         const response = await API.getProducts();
         if (response.success) {
             POSState.products = response.products || response.data;
-            loadProducts();
+            renderProducts();
             showMessage('Productos actualizados', 'success');
         }
     } catch (error) {
