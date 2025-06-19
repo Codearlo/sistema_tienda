@@ -441,7 +441,6 @@ function clearFilters() {
 }
 
 // ===== TRANSACCIONES =====
-// En assets/js/pos.js - función completeTransaction()
 async function completeTransaction() {
     if (POSState.cart.length === 0) {
         showMessage('El carrito está vacío', 'warning');
