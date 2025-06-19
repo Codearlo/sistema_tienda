@@ -12,7 +12,10 @@ const POSState = {
     selectedCategory: null,
     paymentMethod: 'cash',
     cashReceived: 0,
-    includeIgv: true,
+    includeIgv: true, // Nuevo estado para controlar el IGV
+    // Las propiedades relacionadas con ventas suspendidas ya no son necesarias aquí.
+    // suspendedSales: [],
+    // currentSuspendedSaleId: null,
 };
 
 // ===== INICIALIZACIÓN =====
@@ -23,13 +26,8 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializePOS() {
     console.log('Inicializando POS...');
     
-    // Limpiar cualquier modal que pueda estar abierto
-    const modal = document.getElementById('transactionModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-    
     // Usar datos del PHP
+    // Asegúrate de que 'products', 'categories', 'customers' estén definidos globalmente por el PHP antes de que este script se ejecute.
     if (typeof products !== 'undefined') {
         POSState.products = products;
     }
@@ -39,6 +37,10 @@ function initializePOS() {
     if (typeof customers !== 'undefined') {
         POSState.customers = customers;
     }
+    // Eliminar completamente la referencia a initialSuspendedSales, ya que se asume que el PHP no la define más.
+    // if (typeof initialSuspendedSales !== 'undefined') {
+    //     POSState.suspendedSales = initialSuspendedSales;
+    // }
     
     // Inicializar reloj
     updateClock();
@@ -80,11 +82,11 @@ function setupEventListeners() {
         cashInput.addEventListener('input', calculateChange);
     }
     
-    // Botón IGV
-    const igvBtn = document.getElementById('igvToggleBtn');
-    if (igvBtn) {
-        igvBtn.addEventListener('click', toggleIgv);
-    }
+    // Métodos de pago
+    const paymentMethods = document.querySelectorAll('.payment-method');
+    paymentMethods.forEach(btn => {
+        btn.addEventListener('click', () => selectPaymentMethod(btn.dataset.method));
+    });
 }
 
 // ===== MANEJO DE PRODUCTOS =====
@@ -93,26 +95,37 @@ function loadCategories() {
     if (!grid) return;
     
     let html = `
-        <button class="category-btn ${!POSState.selectedCategory ? 'active' : ''}" onclick="filterByCategory(null)">
+        <button class="category-btn ${!POSState.selectedCategory ? 'active' : ''}" 
+                onclick="filterByCategory(null)">
+            <i class="fas fa-th"></i>
             Todos
         </button>
     `;
     
-    POSState.categories.forEach(category => {
-        html += `
-            <button class="category-btn ${POSState.selectedCategory == category.id ? 'active' : ''}" 
-                    onclick="filterByCategory(${category.id})">
-                ${htmlspecialchars(category.name)}
-            </button>
-        `;
-    });
+    // Asegurarse de que categories es un array y tiene elementos
+    if (Array.isArray(POSState.categories)) {
+        POSState.categories.forEach(category => {
+            // La imagen muestra un problema con el onclick, posiblemente por cómo se está construyendo el HTML.
+            // Asegurémonos de que el valor de category.name esté correctamente escapado si se imprime en el HTML de otra manera,
+            // pero para el onclick solo necesitamos el ID.
+            html += `
+                <button class="category-btn ${POSState.selectedCategory === category.id ? 'active' : ''}" 
+                        onclick="filterByCategory(${category.id})">
+                    <i class="fas fa-tag"></i>
+                    ${htmlspecialchars(category.name)}
+                </button>
+            `;
+        });
+    } else {
+        console.warn("POSState.categories no es un array o está vacío.");
+    }
     
     grid.innerHTML = html;
 }
 
 function loadProducts() {
     const grid = document.getElementById('productsGrid');
-    const empty = document.getElementById('emptyProducts');
+    const emptyState = document.getElementById('emptyProducts');
     
     if (!grid) return;
     
@@ -124,56 +137,276 @@ function loadProducts() {
     }
     
     // Filtrar por búsqueda
-    const searchTerm = document.getElementById('productSearch')?.value?.toLowerCase();
+    const searchTerm = document.getElementById('productSearch')?.value.toLowerCase() || '';
     if (searchTerm) {
         filteredProducts = filteredProducts.filter(p => 
-            p.name.toLowerCase().includes(searchTerm) || 
+            p.name.toLowerCase().includes(searchTerm) ||
+            (p.sku && p.sku.toLowerCase().includes(searchTerm)) ||
             (p.barcode && p.barcode.toLowerCase().includes(searchTerm))
         );
     }
     
     if (filteredProducts.length === 0) {
         grid.style.display = 'none';
-        empty.style.display = 'flex';
+        emptyState.style.display = 'flex';
         return;
     }
     
-    empty.style.display = 'none';
-    grid.style.display = 'flex';
+    grid.style.display = 'grid';
+    emptyState.style.display = 'none';
     
-    let html = '';
-    filteredProducts.forEach(product => {
-        const isOutOfStock = product.stock_quantity <= 0;
-        const isLowStock = product.stock_quantity <= (product.min_stock || 5);
-        
-        html += `
-            <div class="product-card ${isOutOfStock ? 'out-of-stock' : ''}" 
-                 onclick="${isOutOfStock ? '' : `addToCart(${product.id})`}">
-                <div class="product-image">
-                    ${product.image_url ? 
-                        `<img src="${product.image_url}" alt="${htmlspecialchars(product.name)}">` : 
-                        '<div class="product-placeholder"><i class="fas fa-box"></i></div>'
-                    }
-                </div>
-                
-                <div class="product-info">
-                    <h4 class="product-name">${htmlspecialchars(product.name)}</h4>
-                    <p class="product-category">${htmlspecialchars(product.category_name || 'Sin categoría')}</p>
-                    
-                    <div class="product-details">
-                        <div class="product-price">S/ ${parseFloat(product.selling_price).toFixed(2)}</div>
-                        <div class="product-stock ${isLowStock ? 'low-stock' : ''}">
-                            Stock: ${product.stock_quantity}
-                        </div>
-                    </div>
+    const html = filteredProducts.map(product => `
+        <div class="product-card" onclick="addToCart(${product.id})">
+            <div class="product-image">
+                ${product.image ? 
+                    `<img src="${htmlspecialchars(product.image)}" alt="${htmlspecialchars(product.name)}">` :
+                    '<div class="product-placeholder"><i class="fas fa-box"></i></div>'
+                }
+            </div>
+            <div class="product-info">
+                <h4 class="product-name">${htmlspecialchars(product.name)}</h4>
+                <p class="product-category">${htmlspecialchars(product.category_name || 'Sin categoría')}</p>
+                <div class="product-price">S/ ${parseFloat(product.selling_price).toFixed(2)}</div>
+                <div class="product-stock ${product.current_stock <= 5 ? 'low-stock' : ''}">
+                    Stock: ${product.current_stock || 0}
                 </div>
             </div>
-        `;
-    });
+        </div>
+    `).join('');
     
     grid.innerHTML = html;
 }
 
+// ===== MANEJO DEL CARRITO =====
+function addToCart(productId) {
+    const product = POSState.products.find(p => p.id == productId);
+    if (!product) {
+        showMessage('Producto no encontrado', 'error');
+        return;
+    }
+    
+    // Verificar stock
+    const currentQuantity = POSState.cart.reduce((sum, item) => 
+        item.product_id === productId ? sum + item.quantity : sum, 0);
+    
+    if (currentQuantity >= (product.current_stock || 0)) {
+        showMessage('Stock insuficiente', 'warning');
+        return;
+    }
+    
+    // Buscar si ya existe en el carrito
+    const existingItem = POSState.cart.find(item => item.product_id === productId);
+    
+    if (existingItem) {
+        existingItem.quantity += 1;
+        existingItem.subtotal = existingItem.quantity * existingItem.price;
+    } else {
+        POSState.cart.push({
+            product_id: productId,
+            name: product.name,
+            price: parseFloat(product.selling_price),
+            quantity: 1,
+            subtotal: parseFloat(product.selling_price)
+        });
+    }
+    
+    updateCartDisplay();
+    updateTotals();
+    showMessage(`${product.name} agregado al carrito`, 'success');
+}
+
+function removeFromCart(productId) {
+    POSState.cart = POSState.cart.filter(item => item.product_id !== productId);
+    updateCartDisplay();
+    updateTotals();
+}
+
+function updateQuantity(productId, newQuantity) {
+    const item = POSState.cart.find(item => item.product_id === productId);
+    if (!item) return;
+    
+    if (newQuantity <= 0) {
+        removeFromCart(productId);
+        return;
+    }
+    
+    // Verificar stock
+    const product = POSState.products.find(p => p.id == productId);
+    if (newQuantity > (product.current_stock || 0)) {
+        showMessage('Stock insuficiente', 'warning');
+        return;
+    }
+    
+    item.quantity = newQuantity;
+    item.subtotal = item.quantity * item.price;
+    
+    updateCartDisplay();
+    updateTotals();
+}
+
+function updateCartDisplay() {
+    const cartItems = document.getElementById('cartItems');
+    const cartCount = document.getElementById('cartCount');
+    
+    if (!cartItems) return;
+    
+    if (POSState.cart.length === 0) {
+        cartItems.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-shopping-cart fa-2x"></i>
+                <h3>El carrito está vacío</h3>
+                <p>Agregue productos para comenzar</p>
+            </div>
+        `;
+        cartCount.textContent = '0 productos';
+        document.getElementById('customerSelect').value = ''; // Limpiar cliente
+    } else {
+        const html = POSState.cart.map(item => `
+            <div class="cart-item">
+                <div class="item-info">
+                    <h4 class="item-name">${htmlspecialchars(item.name)}</h4>
+                    <p class="item-price">S/ ${item.price.toFixed(2)}</p>
+                </div>
+                <div class="item-controls">
+                    <button class="qty-btn" onclick="updateQuantity(${item.product_id}, ${item.quantity - 1})">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <span class="item-quantity">${item.quantity}</span>
+                    <button class="qty-btn" onclick="updateQuantity(${item.product_id}, ${item.quantity + 1})">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <div class="item-total">
+                    S/ ${item.subtotal.toFixed(2)}
+                </div>
+                <button class="remove-btn" onclick="removeFromCart(${item.product_id})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `).join('');
+        
+        cartItems.innerHTML = html;
+        cartCount.textContent = `${POSState.cart.length} productos`;
+    }
+}
+
+// ===== CÁLCULOS =====
+function updateTotals() {
+    const subtotal = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
+    let tax = 0;
+    const igvRow = document.getElementById('igvRow');
+
+    if (POSState.includeIgv) {
+        tax = subtotal * 0.18; // IGV 18%
+        if (igvRow) igvRow.style.display = 'flex'; // Mostrar fila de IGV
+    } else {
+        if (igvRow) igvRow.style.display = 'none'; // Ocultar fila de IGV
+    }
+    
+    const total = subtotal + tax;
+    
+    document.getElementById('subtotal').textContent = `S/ ${subtotal.toFixed(2)}`;
+    document.getElementById('tax').textContent = `S/ ${tax.toFixed(2)}`;
+    document.getElementById('total').textContent = `S/ ${total.toFixed(2)}`;
+    
+    // Mostrar/ocultar secciones
+    const cartSummary = document.getElementById('cartSummary');
+    const paymentSection = document.getElementById('paymentSection');
+    const completeBtn = document.getElementById('completeBtn');
+    
+    if (POSState.cart.length > 0) {
+        cartSummary.style.display = 'block';
+        paymentSection.style.display = 'block';
+        completeBtn.disabled = false;
+    } else {
+        cartSummary.style.display = 'none';
+        paymentSection.style.display = 'none';
+        completeBtn.disabled = true;
+    }
+}
+
+// Función para alternar el IGV
+function toggleIgv() {
+    POSState.includeIgv = !POSState.includeIgv;
+    updateIgvButtonState();
+    updateTotals();
+    showMessage(POSState.includeIgv ? 'IGV incluido' : 'IGV no incluido', 'info');
+}
+
+// Actualizar el estado visual del botón IGV
+function updateIgvButtonState() {
+    const toggleIgvBtn = document.getElementById('toggleIgvBtn');
+    if (toggleIgvBtn) {
+        if (POSState.includeIgv) {
+            toggleIgvBtn.classList.add('active'); // Opcional: añadir clase 'active' para estilos visuales
+            toggleIgvBtn.textContent = 'IGV (18%) Incluido';
+        } else {
+            toggleIgvBtn.classList.remove('active');
+            toggleIgvBtn.textContent = 'IGV (18%) No Incluido';
+        }
+    }
+}
+
+// ===== MÉTODOS DE PAGO =====
+function setupPaymentMethods() {
+    const methods = document.querySelectorAll('.payment-method');
+    methods.forEach(method => {
+        method.addEventListener('click', () => {
+            methods.forEach(m => m.classList.remove('active'));
+            method.classList.add('active');
+            POSState.paymentMethod = method.dataset.method;
+            
+            // Mostrar/ocultar sección de efectivo
+            const cashPayment = document.getElementById('cashPayment');
+            if (POSState.paymentMethod === 'cash') {
+                cashPayment.style.display = 'block';
+            } else {
+                cashPayment.style.display = 'none';
+            }
+        });
+    });
+}
+
+function selectPaymentMethod(method) {
+    POSState.paymentMethod = method;
+    
+    // Actualizar botones
+    document.querySelectorAll('.payment-method').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[data-method="${method}"]`).classList.add('active');
+    
+    // Mostrar/ocultar sección de efectivo
+    const cashPayment = document.getElementById('cashPayment');
+    if (method === 'cash') {
+        cashPayment.style.display = 'block';
+    } else {
+        cashPayment.style.display = 'none';
+    }
+}
+
+function calculateChange() {
+    const cashReceived = parseFloat(document.getElementById('cashReceived').value) || 0;
+    let total = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
+    if (POSState.includeIgv) {
+        total *= 1.18;
+    }
+    
+    POSState.cashReceived = cashReceived;
+    
+    const changeAmount = document.getElementById('changeAmount');
+    const changeValue = document.getElementById('changeValue');
+    
+    if (cashReceived >= total && cashReceived > 0) {
+        const change = cashReceived - total;
+        changeValue.textContent = `S/ ${change.toFixed(2)}`;
+        changeAmount.style.display = 'block';
+    } else {
+        changeAmount.style.display = 'none';
+    }
+}
+
+// ===== BÚSQUEDA Y FILTROS =====
 function handleProductSearch() {
     loadProducts();
     
@@ -207,253 +440,6 @@ function clearFilters() {
     loadProducts();
 }
 
-// ===== CARRITO DE COMPRAS =====
-function addToCart(productId) {
-    const product = POSState.products.find(p => p.id == productId);
-    if (!product) return;
-    
-    const existingItem = POSState.cart.find(item => item.product_id == productId);
-    
-    if (existingItem) {
-        if (existingItem.quantity >= product.stock_quantity) {
-            showMessage('No hay suficiente stock disponible', 'warning');
-            return;
-        }
-        existingItem.quantity += 1;
-        existingItem.subtotal = existingItem.quantity * existingItem.unit_price;
-    } else {
-        POSState.cart.push({
-            product_id: productId,
-            name: product.name,
-            unit_price: parseFloat(product.selling_price),
-            quantity: 1,
-            subtotal: parseFloat(product.selling_price),
-            image_url: product.image_url
-        });
-    }
-    
-    updateCartDisplay();
-    updateTotals();
-}
-
-function updateCartQuantity(productId, newQuantity) {
-    const item = POSState.cart.find(item => item.product_id == productId);
-    const product = POSState.products.find(p => p.id == productId);
-    
-    if (!item || !product) return;
-    
-    if (newQuantity <= 0) {
-        removeFromCart(productId);
-        return;
-    }
-    
-    if (newQuantity > product.stock_quantity) {
-        showMessage('No hay suficiente stock disponible', 'warning');
-        return;
-    }
-    
-    item.quantity = newQuantity;
-    item.subtotal = item.quantity * item.unit_price;
-    
-    updateCartDisplay();
-    updateTotals();
-}
-
-function removeFromCart(productId) {
-    POSState.cart = POSState.cart.filter(item => item.product_id != productId);
-    updateCartDisplay();
-    updateTotals();
-}
-
-function updateCartDisplay() {
-    const cartItems = document.getElementById('cartItems');
-    const cartCount = document.querySelector('.cart-count');
-    
-    if (!cartItems) return;
-    
-    const totalItems = POSState.cart.reduce((sum, item) => sum + item.quantity, 0);
-    cartCount.textContent = `${totalItems} productos`;
-    
-    if (POSState.cart.length === 0) {
-        cartItems.innerHTML = `
-            <div class="empty-cart">
-                <i class="fas fa-shopping-cart fa-3x"></i>
-                <h3>El carrito está vacío</h3>
-                <p>Agregue productos para comenzar</p>
-            </div>
-        `;
-        return;
-    }
-    
-    let html = '';
-    POSState.cart.forEach(item => {
-        html += `
-            <div class="cart-item">
-                <div class="cart-item-image">
-                    ${item.image_url ? 
-                        `<img src="${item.image_url}" alt="${htmlspecialchars(item.name)}">` : 
-                        '<i class="fas fa-box"></i>'
-                    }
-                </div>
-                
-                <div class="cart-item-info">
-                    <h4 class="cart-item-name">${htmlspecialchars(item.name)}</h4>
-                    <p class="cart-item-price">S/ ${item.unit_price.toFixed(2)} c/u</p>
-                </div>
-                
-                <div class="cart-item-controls">
-                    <div class="quantity-controls">
-                        <button class="quantity-btn" onclick="updateCartQuantity(${item.product_id}, ${item.quantity - 1})">
-                            <i class="fas fa-minus"></i>
-                        </button>
-                        <input type="number" class="quantity-input" value="${item.quantity}" 
-                               onchange="updateCartQuantity(${item.product_id}, parseInt(this.value))">
-                        <button class="quantity-btn" onclick="updateCartQuantity(${item.product_id}, ${item.quantity + 1})">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                    </div>
-                    
-                    <button class="remove-item-btn" onclick="removeFromCart(${item.product_id})">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    });
-    
-    cartItems.innerHTML = html;
-}
-
-// ===== CÁLCULOS =====
-function updateTotals() {
-    const subtotal = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
-    let tax = 0;
-    const igvRow = document.getElementById('igvRow');
-
-    if (POSState.includeIgv) {
-        tax = subtotal * 0.18; // IGV 18%
-        if (igvRow) igvRow.style.display = 'flex'; // Mostrar fila de IGV
-    } else {
-        if (igvRow) igvRow.style.display = 'none'; // Ocultar fila de IGV
-    }
-    
-    const total = subtotal + tax;
-    
-    const subtotalEl = document.getElementById('subtotal');
-    const taxEl = document.getElementById('tax');
-    const totalEl = document.getElementById('total');
-    
-    if (subtotalEl) subtotalEl.textContent = `S/ ${subtotal.toFixed(2)}`;
-    if (taxEl) taxEl.textContent = `S/ ${tax.toFixed(2)}`;
-    if (totalEl) totalEl.textContent = `S/ ${total.toFixed(2)}`;
-    
-    // Mostrar/ocultar secciones
-    const cartSummary = document.getElementById('cartSummary');
-    const paymentSection = document.getElementById('paymentSection');
-    const completeBtn = document.getElementById('completeBtn');
-    
-    if (POSState.cart.length > 0) {
-        if (cartSummary) cartSummary.style.display = 'block';
-        if (paymentSection) paymentSection.style.display = 'block';
-        if (completeBtn) completeBtn.disabled = false;
-    } else {
-        if (cartSummary) cartSummary.style.display = 'none';
-        if (paymentSection) paymentSection.style.display = 'none';
-        if (completeBtn) completeBtn.disabled = true;
-    }
-    
-    // Recalcular cambio si es pago en efectivo
-    if (POSState.paymentMethod === 'cash') {
-        calculateChange();
-    }
-}
-
-// ===== IGV MANAGEMENT =====
-function toggleIgv() {
-    POSState.includeIgv = !POSState.includeIgv;
-    updateIgvButtonState();
-    updateTotals();
-    showMessage(POSState.includeIgv ? 'IGV incluido' : 'IGV no incluido', 'info');
-}
-
-function updateIgvButtonState() {
-    const toggleIgvBtn = document.getElementById('igvToggleBtn');
-    if (toggleIgvBtn) {
-        if (POSState.includeIgv) {
-            toggleIgvBtn.classList.add('active');
-            toggleIgvBtn.innerHTML = '<i class="fas fa-check"></i> IGV (18%) Incluido';
-        } else {
-            toggleIgvBtn.classList.remove('active');
-            toggleIgvBtn.innerHTML = '<i class="fas fa-times"></i> Sin IGV';
-        }
-    }
-}
-
-// ===== MÉTODOS DE PAGO =====
-function setupPaymentMethods() {
-    const methods = document.querySelectorAll('.payment-method');
-    methods.forEach(method => {
-        method.addEventListener('click', () => {
-            methods.forEach(m => m.classList.remove('active'));
-            method.classList.add('active');
-            POSState.paymentMethod = method.dataset.method;
-            
-            // Mostrar/ocultar sección de efectivo
-            const cashPayment = document.getElementById('cashPayment');
-            if (POSState.paymentMethod === 'cash') {
-                if (cashPayment) cashPayment.style.display = 'block';
-            } else {
-                if (cashPayment) cashPayment.style.display = 'none';
-            }
-        });
-    });
-}
-
-function selectPaymentMethod(method) {
-    POSState.paymentMethod = method;
-    
-    // Actualizar botones
-    document.querySelectorAll('.payment-method').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    const selectedBtn = document.querySelector(`[data-method="${method}"]`);
-    if (selectedBtn) selectedBtn.classList.add('active');
-    
-    // Mostrar/ocultar sección de efectivo
-    const cashPayment = document.getElementById('cashPayment');
-    if (method === 'cash') {
-        if (cashPayment) cashPayment.style.display = 'block';
-    } else {
-        if (cashPayment) cashPayment.style.display = 'none';
-    }
-}
-
-function calculateChange() {
-    const cashInput = document.getElementById('cashReceived');
-    if (!cashInput) return;
-    
-    const cashReceived = parseFloat(cashInput.value) || 0;
-    let total = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
-    if (POSState.includeIgv) {
-        total *= 1.18;
-    }
-    
-    POSState.cashReceived = cashReceived;
-    
-    const changeAmount = document.getElementById('changeAmount');
-    const changeValue = document.getElementById('changeValue');
-    
-    if (changeAmount && changeValue) {
-        if (cashReceived >= total && cashReceived > 0) {
-            const change = cashReceived - total;
-            changeValue.textContent = `S/ ${change.toFixed(2)}`;
-            changeAmount.style.display = 'block';
-        } else {
-            changeAmount.style.display = 'none';
-        }
-    }
-}
-
 // ===== TRANSACCIONES =====
 async function completeTransaction() {
     if (POSState.cart.length === 0) {
@@ -483,7 +469,7 @@ async function completeTransaction() {
     }
 
     const saleData = {
-        customer_id: document.getElementById('customerSelect')?.value || null,
+        customer_id: document.getElementById('customerSelect').value || null,
         payment_method: POSState.paymentMethod,
         items: POSState.cart,
         subtotal: subtotal,
@@ -495,6 +481,7 @@ async function completeTransaction() {
     };
     
     try {
+        // ✅ USAR sales.php directamente (no ventas.php)
         const response = await API.post('/sales.php', saleData);
         
         if (response.success) {
@@ -512,27 +499,16 @@ async function completeTransaction() {
 }
 
 function showTransactionComplete(saleData) {
-    if (!saleData || !saleData.sale_number) {
-        console.error('Datos de venta inválidos:', saleData);
-        return;
-    }
-    
     const modal = document.getElementById('transactionModal');
     const details = document.getElementById('transactionDetails');
-    
-    if (!modal || !details) {
-        console.error('Modal de transacción no encontrado');
-        return;
-    }
     
     details.innerHTML = `
         <div class="transaction-summary">
             <h4>Venta #${saleData.sale_number}</h4>
             <p><strong>Fecha:</strong> ${new Date().toLocaleString()}</p>
-            <p><strong>Total:</strong> S/ ${parseFloat(saleData.total || 0).toFixed(2)}</p>
+            <p><strong>Total:</strong> S/ ${saleData.total}</p>
             <p><strong>Método de pago:</strong> ${getPaymentMethodName(saleData.payment_method)}</p>
-            ${saleData.change_amount && saleData.change_amount > 0 ?
-                `<p><strong>Vuelto:</strong> S/ ${parseFloat(saleData.change_amount).toFixed(2)}</p>` : ''}
+            ${saleData.change_amount > 0 ? `<p><strong>Vuelto:</strong> S/ ${saleData.change_amount.toFixed(2)}</p>` : ''}
         </div>
     `;
     
@@ -549,10 +525,7 @@ function getPaymentMethodName(method) {
 }
 
 function closeTransactionModal() {
-    const modal = document.getElementById('transactionModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
+    document.getElementById('transactionModal').style.display = 'none';
 }
 
 function newTransaction() {
@@ -560,21 +533,21 @@ function newTransaction() {
     clearCart();
 }
 
+
 // ===== UTILIDADES =====
 function clearCart() {
     POSState.cart = [];
     POSState.cashReceived = 0;
-    POSState.includeIgv = true;
+    POSState.includeIgv = true; // Resetear el estado del IGV al limpiar el carrito
+    // La propiedad currentSuspendedSaleId ya no es necesaria.
+    // POSState.currentSuspendedSaleId = null; 
 
-    const cashInput = document.getElementById('cashReceived');
-    const customerSelect = document.getElementById('customerSelect');
-    
-    if (cashInput) cashInput.value = '';
-    if (customerSelect) customerSelect.value = '';
+    document.getElementById('cashReceived').value = '';
+    document.getElementById('customerSelect').value = '';
     
     updateCartDisplay();
     updateTotals();
-    updateIgvButtonState();
+    updateIgvButtonState(); // Actualizar el botón del IGV
 }
 
 function updateClock() {
@@ -587,6 +560,10 @@ function updateClock() {
         hour: '2-digit', minute: '2-digit', second: '2-digit'
     };
     const dateTimeString = now.toLocaleDateString('es-PE', options);
+    
+    // Divide la fecha y la hora si es necesario o muestra como una sola línea
+    // const parts = dateTimeString.split(', ');
+    // timeElement.innerHTML = `${parts[0]}<br>${parts[1]}`;
     timeElement.innerHTML = dateTimeString;
 }
 
@@ -595,6 +572,8 @@ function printReceipt() {
 }
 
 function showMessage(message, type = 'info') {
+    // Usar sistema básico de alertas
+    // Esta función es genérica y se mantiene.
     if (type === 'error') {
         alert('❌ ' + message);
     } else if (type === 'warning') {
@@ -606,8 +585,9 @@ function showMessage(message, type = 'info') {
     }
 }
 
+// Función auxiliar para escapar HTML, necesaria para evitar XSS si los nombres de productos/categorías pueden contener HTML.
+// Se puede colocar en un archivo de utilidades global si es necesario en otros JS.
 function htmlspecialchars(text) {
-    if (!text) return '';
     const map = {
         '&': '&amp;',
         '<': '&lt;',
@@ -615,8 +595,9 @@ function htmlspecialchars(text) {
         '"': '&quot;',
         "'": '&#039;'
     };
-    return text.toString().replace(/[&<>"']/g, m => map[m]);
+    return text.replace(/[&<>"']/g, m => map[m]);
 }
+
 
 // ===== MOBILE MENU =====
 function toggleMobileSidebar() {
