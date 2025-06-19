@@ -1,6 +1,6 @@
 <?php
 /**
- * API DE VENTAS
+ * API DE VENTAS - Compatible con estructura real de BD
  * Archivo: backend/api/sales.php
  */
 
@@ -68,7 +68,7 @@ function handlePostSale($db, $business_id, $user_id) {
             sendJsonResponse(false, 'No se encontraron artículos en la venta', null, 400);
         }
 
-        // Extraer datos del input
+        // Extraer datos del input - ✅ AJUSTADO A TU ESTRUCTURA
         $customer_id = !empty($input['customer_id']) ? intval($input['customer_id']) : null;
         $payment_method = $input['payment_method'] ?? 'cash';
         $subtotal = floatval($input['subtotal'] ?? 0);
@@ -93,14 +93,14 @@ function handlePostSale($db, $business_id, $user_id) {
         $sale_number = 'VTA-' . date('YmdHis') . '-' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
         $sale_date = date('Y-m-d H:i:s');
 
-        // Datos para insertar en la tabla sales
+        // ✅ DATOS AJUSTADOS A TU ESTRUCTURA REAL DE TABLA `sales`
         $saleData = [
             'business_id' => $business_id,
-            'user_id' => $user_id,
             'customer_id' => $customer_id,
+            'user_id' => $user_id,
             'sale_number' => $sale_number,
             'sale_date' => $sale_date,
-            'subtotal_amount' => $subtotal,
+            'subtotal' => $subtotal,              // ✅ 'subtotal' no 'subtotal_amount'
             'tax_amount' => $tax_amount,
             'discount_amount' => 0.00,
             'total_amount' => $total_amount,
@@ -108,8 +108,6 @@ function handlePostSale($db, $business_id, $user_id) {
             'payment_status' => 'paid',
             'amount_paid' => $payment_method === 'cash' ? $cash_received : $total_amount,
             'amount_due' => 0.00,
-            'cash_received' => $payment_method === 'cash' ? $cash_received : 0,
-            'change_amount' => $change_amount,
             'notes' => null,
             'receipt_printed' => 0,
             'status' => 1,
@@ -117,17 +115,17 @@ function handlePostSale($db, $business_id, $user_id) {
             'updated_at' => $sale_date
         ];
 
-        // Insertar venta principal usando el método del proyecto
+        // Insertar venta principal
         $sale_id = $db->insert('sales', $saleData);
 
         if (!$sale_id) {
             throw new Exception('Error al crear la venta principal');
         }
 
-        // Procesar items de la venta
+        // Procesar items de la venta - ✅ AJUSTADO A TU ESTRUCTURA
         foreach ($input['items'] as $item) {
             $product_id = intval($item['product_id']);
-            $quantity = intval($item['quantity']);
+            $quantity = floatval($item['quantity']); // ✅ decimal(10,3) en tu BD
             $unit_price = floatval($item['price']);
             $item_subtotal = floatval($item['subtotal']);
 
@@ -137,8 +135,8 @@ function handlePostSale($db, $business_id, $user_id) {
             }
 
             // Obtener datos del producto
-            $product = $db->fetch(
-                "SELECT name, sku, purchase_price FROM products WHERE id = ? AND business_id = ?",
+            $product = $db->single(
+                "SELECT name, sku, cost_price FROM products WHERE id = ? AND business_id = ?",
                 [$product_id, $business_id]
             );
 
@@ -146,23 +144,24 @@ function handlePostSale($db, $business_id, $user_id) {
                 throw new Exception("Producto con ID {$product_id} no encontrado");
             }
 
-            // Calcular impuesto del item
-            $item_tax = $item_subtotal * 0.18; // 18% IGV
-            $item_total = $item_subtotal + $item_tax;
+            // Calcular impuesto y total del item
+            $item_tax_rate = 18.00; // 18% IGV
+            $item_tax_amount = ($item_subtotal * $item_tax_rate) / 100;
+            $line_total = $item_subtotal + $item_tax_amount;
 
-            // Datos del item de venta
+            // ✅ DATOS AJUSTADOS A TU ESTRUCTURA REAL DE TABLA `sale_items`
             $itemData = [
                 'sale_id' => $sale_id,
                 'product_id' => $product_id,
                 'product_name' => $product['name'],
                 'product_sku' => $product['sku'] ?? '',
-                'quantity' => $quantity,
+                'quantity' => $quantity,              // ✅ decimal(10,3)
                 'unit_price' => $unit_price,
-                'cost_price' => floatval($product['purchase_price'] ?? 0),
+                'cost_price' => floatval($product['cost_price'] ?? 0),
                 'discount_amount' => 0.00,
-                'tax_rate' => 18.00,
-                'tax_amount' => $item_tax,
-                'line_total' => $item_total,
+                'tax_rate' => $item_tax_rate,
+                'tax_amount' => $item_tax_amount,
+                'line_total' => $line_total,
                 'created_at' => $sale_date
             ];
 
@@ -173,47 +172,27 @@ function handlePostSale($db, $business_id, $user_id) {
                 throw new Exception('Error al insertar item de venta');
             }
 
-            // Actualizar stock del producto
+            // Actualizar stock del producto - ✅ USANDO TU ESTRUCTURA
             $updated = $db->execute(
                 "UPDATE products SET stock_quantity = stock_quantity - ?, updated_at = ? WHERE id = ? AND business_id = ?",
                 [$quantity, $sale_date, $product_id, $business_id]
             );
 
-            if (!$updated) {
+            if ($updated === false) {
                 throw new Exception("Error al actualizar stock del producto {$product_id}");
-            }
-
-            // Registrar movimiento de inventario (si la tabla existe)
-            try {
-                $movementData = [
-                    'business_id' => $business_id,
-                    'product_id' => $product_id,
-                    'movement_type' => 'sale',
-                    'quantity' => -$quantity, // Negativo para salida
-                    'reference_type' => 'sale',
-                    'reference_id' => $sale_id,
-                    'user_id' => $user_id,
-                    'notes' => "Venta #{$sale_number}",
-                    'created_at' => $sale_date
-                ];
-
-                $db->insert('inventory_movements', $movementData);
-            } catch (Exception $e) {
-                // Si la tabla inventory_movements no existe, continuar sin error
-                error_log("Warning: No se pudo registrar movimiento de inventario: " . $e->getMessage());
             }
         }
 
         // Confirmar transacción
         $db->commit();
 
-        // Respuesta exitosa
+        // ✅ RESPUESTA EXITOSA CON DATOS COMPATIBLES CON TU FRONTEND
         sendJsonResponse(true, 'Venta registrada exitosamente', [
             'sale_id' => $sale_id,
             'sale_number' => $sale_number,
             'total' => $total_amount,
             'payment_method' => $payment_method,
-            'change_amount' => $change_amount
+            'change_amount' => $change_amount  // El frontend espera este campo
         ], 201);
 
     } catch (Exception $e) {
@@ -253,7 +232,7 @@ function handleGetSales($db, $business_id) {
 
         $whereClause = implode(' AND ', $whereConditions);
 
-        // Obtener ventas
+        // ✅ CONSULTA AJUSTADA A TU ESTRUCTURA DE TABLAS
         $sales = $db->fetchAll(
             "SELECT s.*, 
                     CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as customer_name,
