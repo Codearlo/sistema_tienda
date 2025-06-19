@@ -12,7 +12,7 @@ const POSState = {
     selectedCategory: null,
     paymentMethod: 'cash',
     cashReceived: 0,
-    includeIgv: true, // Nuevo estado para controlar el IGV
+    includeIgv: true,
 };
 
 // ===== INICIALIZACIÓN =====
@@ -80,13 +80,7 @@ function setupEventListeners() {
         cashInput.addEventListener('input', calculateChange);
     }
     
-    // Métodos de pago
-    const paymentMethods = document.querySelectorAll('.payment-method');
-    paymentMethods.forEach(btn => {
-        btn.addEventListener('click', () => selectPaymentMethod(btn.dataset.method));
-    });
-    
-    // IGV toggle button
+    // Botón IGV
     const igvBtn = document.getElementById('igvToggleBtn');
     if (igvBtn) {
         igvBtn.addEventListener('click', toggleIgv);
@@ -180,17 +174,17 @@ function loadProducts() {
     grid.innerHTML = html;
 }
 
-function handleProductSearch(event) {
-    const searchTerm = event.target.value;
+function handleProductSearch() {
+    loadProducts();
+    
+    const searchInput = document.getElementById('productSearch');
     const clearBtn = document.querySelector('.search-clear-btn');
     
-    if (searchTerm.length > 0) {
+    if (searchInput.value.length > 0) {
         clearBtn.style.display = 'block';
     } else {
         clearBtn.style.display = 'none';
     }
-    
-    loadProducts();
 }
 
 function clearSearch() {
@@ -330,30 +324,45 @@ function updateCartDisplay() {
     cartItems.innerHTML = html;
 }
 
+// ===== CÁLCULOS =====
 function updateTotals() {
-    const subtotalEl = document.getElementById('subtotalAmount');
-    const taxEl = document.getElementById('taxAmount');
-    const totalEl = document.getElementById('totalAmount');
-    const completeBtn = document.getElementById('completeBtn');
-    
     const subtotal = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
     let tax = 0;
-    let total = subtotal;
-    
+    const igvRow = document.getElementById('igvRow');
+
     if (POSState.includeIgv) {
-        tax = subtotal * 0.18;
-        total = subtotal + tax;
+        tax = subtotal * 0.18; // IGV 18%
+        if (igvRow) igvRow.style.display = 'flex'; // Mostrar fila de IGV
+    } else {
+        if (igvRow) igvRow.style.display = 'none'; // Ocultar fila de IGV
     }
+    
+    const total = subtotal + tax;
+    
+    const subtotalEl = document.getElementById('subtotal');
+    const taxEl = document.getElementById('tax');
+    const totalEl = document.getElementById('total');
     
     if (subtotalEl) subtotalEl.textContent = `S/ ${subtotal.toFixed(2)}`;
     if (taxEl) taxEl.textContent = `S/ ${tax.toFixed(2)}`;
     if (totalEl) totalEl.textContent = `S/ ${total.toFixed(2)}`;
     
-    if (completeBtn) {
-        completeBtn.disabled = POSState.cart.length === 0;
+    // Mostrar/ocultar secciones
+    const cartSummary = document.getElementById('cartSummary');
+    const paymentSection = document.getElementById('paymentSection');
+    const completeBtn = document.getElementById('completeBtn');
+    
+    if (POSState.cart.length > 0) {
+        if (cartSummary) cartSummary.style.display = 'block';
+        if (paymentSection) paymentSection.style.display = 'block';
+        if (completeBtn) completeBtn.disabled = false;
+    } else {
+        if (cartSummary) cartSummary.style.display = 'none';
+        if (paymentSection) paymentSection.style.display = 'none';
+        if (completeBtn) completeBtn.disabled = true;
     }
     
-    // Actualizar cambio si es pago en efectivo
+    // Recalcular cambio si es pago en efectivo
     if (POSState.paymentMethod === 'cash') {
         calculateChange();
     }
@@ -364,24 +373,40 @@ function toggleIgv() {
     POSState.includeIgv = !POSState.includeIgv;
     updateIgvButtonState();
     updateTotals();
+    showMessage(POSState.includeIgv ? 'IGV incluido' : 'IGV no incluido', 'info');
 }
 
 function updateIgvButtonState() {
-    const btn = document.getElementById('igvToggleBtn');
-    if (!btn) return;
-    
-    if (POSState.includeIgv) {
-        btn.classList.add('active');
-        btn.innerHTML = '<i class="fas fa-check"></i> IGV (18%) Incluido';
-    } else {
-        btn.classList.remove('active');
-        btn.innerHTML = '<i class="fas fa-times"></i> Sin IGV';
+    const toggleIgvBtn = document.getElementById('igvToggleBtn');
+    if (toggleIgvBtn) {
+        if (POSState.includeIgv) {
+            toggleIgvBtn.classList.add('active');
+            toggleIgvBtn.innerHTML = '<i class="fas fa-check"></i> IGV (18%) Incluido';
+        } else {
+            toggleIgvBtn.classList.remove('active');
+            toggleIgvBtn.innerHTML = '<i class="fas fa-times"></i> Sin IGV';
+        }
     }
 }
 
 // ===== MÉTODOS DE PAGO =====
 function setupPaymentMethods() {
-    selectPaymentMethod('cash');
+    const methods = document.querySelectorAll('.payment-method');
+    methods.forEach(method => {
+        method.addEventListener('click', () => {
+            methods.forEach(m => m.classList.remove('active'));
+            method.classList.add('active');
+            POSState.paymentMethod = method.dataset.method;
+            
+            // Mostrar/ocultar sección de efectivo
+            const cashPayment = document.getElementById('cashPayment');
+            if (POSState.paymentMethod === 'cash') {
+                if (cashPayment) cashPayment.style.display = 'block';
+            } else {
+                if (cashPayment) cashPayment.style.display = 'none';
+            }
+        });
+    });
 }
 
 function selectPaymentMethod(method) {
@@ -390,40 +415,43 @@ function selectPaymentMethod(method) {
     // Actualizar botones
     document.querySelectorAll('.payment-method').forEach(btn => {
         btn.classList.remove('active');
-        if (btn.dataset.method === method) {
-            btn.classList.add('active');
-        }
     });
+    const selectedBtn = document.querySelector(`[data-method="${method}"]`);
+    if (selectedBtn) selectedBtn.classList.add('active');
     
     // Mostrar/ocultar sección de efectivo
-    const cashSection = document.getElementById('cashSection');
-    if (cashSection) {
-        cashSection.style.display = method === 'cash' ? 'block' : 'none';
+    const cashPayment = document.getElementById('cashPayment');
+    if (method === 'cash') {
+        if (cashPayment) cashPayment.style.display = 'block';
+    } else {
+        if (cashPayment) cashPayment.style.display = 'none';
     }
-    
-    updateTotals();
 }
 
 function calculateChange() {
     const cashInput = document.getElementById('cashReceived');
-    const changeDisplay = document.getElementById('changeAmount');
-    
-    if (!cashInput || !changeDisplay) return;
+    if (!cashInput) return;
     
     const cashReceived = parseFloat(cashInput.value) || 0;
-    POSState.cashReceived = cashReceived;
-    
-    const subtotal = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
-    let total = subtotal;
-    
+    let total = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
     if (POSState.includeIgv) {
-        total = subtotal * 1.18;
+        total *= 1.18;
     }
     
-    const change = cashReceived - total;
+    POSState.cashReceived = cashReceived;
     
-    changeDisplay.textContent = `S/ ${change.toFixed(2)}`;
-    changeDisplay.className = `change-display ${change >= 0 ? 'positive' : 'negative'}`;
+    const changeAmount = document.getElementById('changeAmount');
+    const changeValue = document.getElementById('changeValue');
+    
+    if (changeAmount && changeValue) {
+        if (cashReceived >= total && cashReceived > 0) {
+            const change = cashReceived - total;
+            changeValue.textContent = `S/ ${change.toFixed(2)}`;
+            changeAmount.style.display = 'block';
+        } else {
+            changeAmount.style.display = 'none';
+        }
+    }
 }
 
 // ===== TRANSACCIONES =====
@@ -455,7 +483,7 @@ async function completeTransaction() {
     }
 
     const saleData = {
-        customer_id: document.getElementById('customerSelect').value || null,
+        customer_id: document.getElementById('customerSelect')?.value || null,
         payment_method: POSState.paymentMethod,
         items: POSState.cart,
         subtotal: subtotal,
