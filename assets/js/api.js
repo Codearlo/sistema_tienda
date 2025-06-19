@@ -165,11 +165,11 @@ class APIClient {
     
     // Ventas
     async getSales(filters = {}) {
-        return await this.get('/sales.php', filters);
+        return await this.get('/backend/api/sales.php', filters);
     }
     
     async createSale(data) {
-        return await this.post('/sales.php', data);
+        return await this.post('/backend/api/sales.php', data);
     }
     
     // Categorías
