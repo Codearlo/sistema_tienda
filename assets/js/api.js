@@ -163,13 +163,13 @@ class APIClient {
         return await this.delete(`/productos.php?id=${id}`);
     }
     
-    // Ventas
+    // Ventas - CORREGIDO
     async getSales(filters = {}) {
-        return await this.get('/ventas.php', filters);
+        return await this.get('/sales.php', filters);
     }
     
     async createSale(data) {
-        return await this.post('/ventas.php', data);
+        return await this.post('/sales.php', data);
     }
     
     // Categorías
