@@ -105,7 +105,7 @@ function loadCategories() {
 }
 
 function loadProducts() {
-                loadProducts(); 
+                refreshProducts(); 
 }
 
 function handleProductSearch() {
