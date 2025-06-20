@@ -14,7 +14,7 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 /* Ajuste del main-content para el POS */
 .main-content {
     flex: 1; /* Permite que el main-content ocupe el espacio restante */
-    /* margin-left: var(--sidebar-width); /* REMOVIDO: Sidebar se superpone intencionalmente */
+    margin-left: 70px; /* Margen por defecto para sidebar colapsada */
     transition: margin-left 0.3s ease;
     padding: 0; /* Elimina el padding del main-content aquí para que pos-container lo maneje */
     max-width: none; /* Elimina la restricción de ancho máximo */
@@ -24,23 +24,48 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     flex-direction: column; /* Asegura que el pos-container se apile verticalmente */
 }
 
-/* Cuando la sidebar está colapsada */
-/* .sidebar.collapsed + .main-content {
-    margin-left: 70px; 
-} */ /* REMOVIDO: Sidebar se superpone intencionalmente */
+/* Cuando la sidebar NO está colapsada, el main-content se desplaza */
+/* Asumimos que hay una clase en body o html para sidebar desplegada, como 'sidebar-expanded' */
+/* Si la barra lateral SIEMPRE se superpone cuando está desplegada, entonces no se necesita margin-left */
+/* Para tu caso, si "la barra lateral esta bien que se superponga porque yo hice que sea asi" */
+/* y "cuando no este desplegada no debe estar encima de nada", entonces el margin-left debe ser dinámico. */
+/* Esta regla asume que hay un estado para la sidebar desplegada que remueve el margin-left. */
+/* Si tu sidebar se controla con JS, asegúrate de que cambie el margin-left del main-content. */
+/* Si no hay una clase específica para "sidebar desplegada", considera añadirla o ajustar tu JS. */
+/* Por ahora, dejo el margin-left por defecto y lo anulo en @media para el despliegue mobile. */
+/* Para el desktop, si la sidebar se expande y se superpone, entonces este margin-left deberá ser 0
+   cuando la sidebar está en estado expandido. Esto depende de cómo manejas la expansión/colapso de la sidebar.
+   Si `sidebar.collapsed + .main-content` es la única clase que controla el `margin-left` para la barra
+   lateral no superpuesta, entonces la clase `sidebar` por sí sola debería tener `margin-left: 0;` o similar
+   cuando esté expandida para permitir la superposición.
+   Dado el comportamiento de la imagen, donde parece que el main-content siempre está a la derecha de la sidebar,
+   y luego la sidebar se superpone cuando se abre, mantendré el margen fijo para la posición inicial y lo ajustaré
+   para mobile. Si el comportamiento de superposición en desktop es siempre, entonces 'margin-left' debe ser 0.
+   Por ahora, mantengo el margen fijo para cuando la sidebar no está desplegada (colapsada) y la sidebar desplegada
+   se superpondría si no hay un empuje del main-content.
+*/
+/* VOY A REVERTIR EL MARGEN DINÁMICO POR DEFECTO Y ELIMINAR LA REGLA `sidebar.collapsed + .main-content` */
+/* Si la sidebar desplegada debe superponerse, `main-content` no debe tener `margin-left` */
+/* Si la sidebar *no desplegada* NO debe superponerse, entonces main-content necesita `margin-left` */
+/* El comportamiento "cuando no este desplegada no debe estar encima de nada" implica un margin. */
+/* "cuando se haya desplegado" implica que el margin desaparezca o se superponga. */
+/* Por defecto, si el main-content tiene `margin-left: var(--sidebar-width);` y cuando la sidebar está colapsada tiene `margin-left: 70px;`,
+   esto ya controla el "no superponerse". Para que "se superponga cuando se haya desplegado", necesitarías una clase
+   en el body o en el main-content que cambie ese `margin-left` a 0 o `auto` cuando la sidebar esté desplegada.
+   Como no tengo esa lógica, mantendré el margen para el estado "no superpuesto" por defecto y lo eliminaré en mobile. */
 
 
 .pos-container {
     display: flex;
     flex-direction: column;
-    height: 100vh; /* Ocupa el 100% del alto del main-content */
-    width: 100%; /* Ocupa el 100% del ancho disponible en main-content */
+    height: 100vh;
+    width: 100%;
     background-color: var(--gray-50);
 }
 
-/* ===== HEADER (REMOVED VISUALLY - LOGICALLY HANDLED BY pos-main HEADER) ===== */
+/* ===== HEADER (REMOVIDO GLOBALMENTE) ===== */
 .pos-header {
-    display: none; /* Ocultar completamente el header global si no se usa */
+    display: none;
     height: 0;
     padding: 0;
     margin: 0;
@@ -48,16 +73,15 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     box-shadow: none;
 }
 
-
 /* ===== MAIN LAYOUT - GRID PARA PANELES ===== */
 .pos-main {
     display: grid;
-    grid-template-columns: 1fr 400px; /* Productos a la izquierda, Carrito a la derecha */
-    flex: 1; /* Permite que ocupe el espacio restante en el pos-container */
-    overflow: hidden; /* Esto es clave para que solo los paneles internos tengan scroll */
-    height: 100%; /* Ocupar el 100% del alto del pos-container */
-    padding: var(--spacing-md); /* Padding alrededor de los paneles */
-    gap: var(--spacing-md); /* Espacio entre paneles */
+    grid-template-columns: 1fr 400px;
+    flex: 1;
+    overflow: hidden;
+    height: 100%;
+    padding: var(--spacing-md);
+    gap: var(--spacing-md);
     box-sizing: border-box;
 }
 
@@ -66,11 +90,11 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     background-color: white;
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* Contenedor general del panel izquierdo, sin scroll aquí */
+    overflow: hidden; /* Se mantiene oculto el scroll aquí, lo maneja products-grid-pos */
     border: 1px solid var(--gray-200);
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-sm);
-    height: 100%; /* Ocupar el 100% del alto disponible en la grilla */
+    height: 100%;
 }
 
 /* Nuevo Header para el panel de productos (simula el header superior) */
@@ -79,18 +103,17 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     justify-content: space-between;
     align-items: center;
     padding: var(--spacing-md) var(--spacing-lg);
-    background-color: white; /* Fondo blanco como en la imagen */
+    background-color: white;
     border-bottom: 1px solid var(--gray-200);
     border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
-    flex-shrink: 0; /* No permitir que se encoja */
-    /* Añadido para el diseño de la imagen */
+    flex-shrink: 0;
     box-shadow: var(--shadow-sm);
     position: sticky;
     top: 0;
     z-index: 10;
 }
 
-.pos-left-header .pos-title { /* Contenedor del logo y título */
+.pos-left-header .pos-title {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
@@ -135,9 +158,8 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     font-size: var(--text-xs);
 }
 
-/* MOBILE MENU BUTTON - Visible en el nuevo header */
 .pos-left-header .mobile-menu-btn {
-    display: block; /* Siempre visible en este header */
+    display: block;
     background: none;
     border: none;
     color: var(--gray-600);
@@ -159,11 +181,10 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     padding: var(--spacing-md) var(--spacing-lg);
     border-bottom: 1px solid var(--gray-200);
     background-color: var(--gray-50);
-    flex-shrink: 0; /* Evitar que se encoja */
-    /* Añadido para el diseño de la imagen */
+    flex-shrink: 0;
     box-shadow: var(--shadow-xs);
     position: sticky;
-    top: 70px; /* Debajo del pos-left-header */
+    top: 70px; /* Debajo del pos-left-header (asumiendo 70px de alto para el header) */
     z-index: 9;
 }
 
@@ -224,11 +245,10 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     padding: var(--spacing-md) var(--spacing-lg);
     border-bottom: 1px solid var(--gray-200);
     background-color: var(--gray-50);
-    flex-shrink: 0; /* Evitar que se encoja */
-    /* Añadido para el diseño de la imagen */
+    flex-shrink: 0;
     box-shadow: var(--shadow-xs);
     position: sticky;
-    top: calc(70px + 64px); /* Debajo del search section */
+    top: calc(70px + 64px); /* Asumiendo 70px header + 64px search input section */
     z-index: 8;
 }
 
@@ -292,12 +312,12 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     flex: 1; /* Permite que la sección de productos ocupe el espacio restante en el pos-left */
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* Oculta el scroll de esta sección, el scroll es para products-grid-pos */
+    overflow: hidden; /* Se mantiene oculto el scroll aquí, lo maneja products-grid-pos */
 }
 
 .products-grid-pos {
-    display: flex;
-    flex-direction: column; /* Lista lineal */
+    display: flex; /* Cambiado a flex para una lista lineal vertical */
+    flex-direction: column;
     gap: var(--spacing-sm);
     padding: var(--spacing-md);
     overflow-y: auto; /* Habilitar scroll solo para los productos */
@@ -313,14 +333,12 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     transition: var(--transition-fast);
     text-align: left;
     position: relative;
-    min-height: auto;
+    height: 100px; /* Altura fija para cada tarjeta de producto */
     display: flex;
-    align-items: center;
+    align-items: center; /* Alinea elementos verticalmente en el centro */
     gap: var(--spacing-md);
     box-shadow: var(--shadow-xs);
     width: 100%;
-    /* Ajustes para hacerlos menos altos */
-    height: 80px; /* Altura fija para cada tarjeta de producto */
     box-sizing: border-box; /* Incluir padding en la altura */
 }
 
@@ -343,8 +361,8 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 }
 
 .product-image {
-    width: 64px;
-    height: 64px;
+    width: 80px; /* Tamaño de la imagen para la lista lineal */
+    height: 80px; /* Tamaño de la imagen para la lista lineal */
     margin: 0;
     background-color: var(--gray-100);
     border-radius: var(--border-radius-md);
@@ -373,31 +391,41 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 
 .product-details {
     flex-grow: 1;
-    display: flex; /* Añadido para controlar el layout interno de los detalles */
-    flex-direction: column; /* Apilar nombre, categoría, stock */
-    justify-content: center; /* Centrar verticalmente */
-    height: 100%; /* Ocupar altura disponible */
+    display: flex;
+    flex-direction: column; /* Nombre y categoría apilados */
+    justify-content: center;
+    height: 100%;
+    overflow: hidden; /* Ocultar contenido si es demasiado grande */
 }
 
 .product-name {
     font-weight: 600;
     color: var(--gray-900);
-    margin: 0; /* Reiniciar margen */
+    margin: 0;
     font-size: var(--text-base);
     line-height: 1.3;
-    white-space: nowrap; /* Mostrar en una sola línea */
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    /* Eliminado display -webkit-box, -webkit-line-clamp: 2 para una sola línea */
 }
 
 .product-category {
     font-size: var(--text-sm);
     color: var(--gray-500);
-    margin: 0; /* Reiniciar margen */
+    margin-top: 2px; /* Espacio debajo del nombre */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.product-price-stock-container { /* Nuevo contenedor para precio y stock */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end; /* Alinea los elementos a la derecha */
+    justify-content: center;
+    flex-shrink: 0; /* No permitir que se encoja */
+    margin-left: var(--spacing-md); /* Espacio entre detalles y precio/stock */
+    height: 100%;
 }
 
 .product-price {
@@ -405,25 +433,21 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     font-weight: 700;
     color: var(--primary-600);
     font-size: var(--text-lg);
-    margin-left: auto; /* Empujar el precio a la derecha */
-    flex-shrink: 0; /* Evitar que se encoja */
-    padding-left: var(--spacing-md); /* Espacio entre stock y precio */
+    margin: 0;
+    line-height: 1; /* Eliminar espacio extra */
 }
 
 .product-stock {
     font-size: var(--text-xs);
     color: var(--gray-500);
     font-family: var(--font-mono);
-    margin-top: 0; /* Reiniciar margen */
+    margin-top: 2px; /* Espacio debajo del precio */
+    line-height: 1; /* Eliminar espacio extra */
 }
 
-/* Modificar la visualización de product-stock y add-to-cart-btn dentro de product-card */
-.product-card .product-info-bottom { /* Nuevo contenedor para stock y add btn */
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%; /* Ocupar todo el ancho */
-    margin-top: var(--spacing-xs); /* Espacio arriba */
+.product-stock.low-stock {
+    color: var(--warning-600);
+    font-weight: 600;
 }
 
 .product-card .add-to-cart-btn {
@@ -436,8 +460,13 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     font-weight: 600;
     cursor: pointer;
     transition: var(--transition-fast);
-    margin-left: auto; /* Empujar el botón a la derecha */
-    flex-shrink: 0;
+    /* Posicionar el botón de añadir al final de la tarjeta */
+    position: absolute;
+    bottom: var(--spacing-sm);
+    right: var(--spacing-sm);
+    width: auto; /* Ancho automático para el texto */
+    min-width: 60px; /* Ancho mínimo para que se vea el texto ADD */
+    text-align: center;
 }
 
 .product-card .add-to-cart-btn:hover {
@@ -454,12 +483,11 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-sm);
     
-    /* Configuración para que sea fijo */
-    position: sticky; /* Sticky se adapta mejor dentro de un grid */
-    top: var(--spacing-md); /* Alineado con el top del pos-main padding */
-    height: calc(100vh - (2 * var(--spacing-md))); /* Ocupa el 100% de la altura del viewport menos el padding top/bottom de pos-main */
-    overflow: hidden; /* Asegura que el scroll sea interno si es necesario */
-    flex-shrink: 0; /* Evita que se encoja en flexbox */
+    position: sticky;
+    top: var(--spacing-md);
+    height: calc(100vh - (2 * var(--spacing-md)));
+    overflow: hidden;
+    flex-shrink: 0;
 }
 
 /* Header del carrito */
@@ -566,8 +594,8 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 
 /* Items del carrito (con scroll) */
 .cart-items {
-    flex: 1; /* Permite que ocupe el espacio restante y habilite el scroll */
-    overflow-y: auto; /* Habilitar scroll solo para los items del carrito */
+    flex: 1;
+    overflow-y: auto;
     padding: var(--spacing-md) var(--spacing-lg);
     background-color: var(--gray-50);
 }
@@ -815,7 +843,6 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     min-height: 150px;
     background-color: white;
     border-radius: var(--border-radius-lg);
-    /* Centrar contenido cuando es un empty state */
     flex-grow: 1; /* Permitir que ocupe el espacio */
 }
 
@@ -1009,28 +1036,28 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
     .main-content {
-        margin-left: 0; /* Sidebar se superpone en móvil, main-content no necesita margen */
+        margin-left: 0; /* Sidebar se superpone en móvil */
     }
     
     .pos-left-header .mobile-menu-btn {
-        display: block; /* Siempre visible en este header */
+        display: block;
     }
     
     .pos-main {
-        grid-template-columns: 1fr; /* Una columna para productos y carrito */
-        grid-template-rows: 1fr auto; /* Productos arriba, carrito abajo */
-        height: 100vh; /* Mantener la altura completa */
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr auto;
+        height: 100vh;
         padding: var(--spacing-sm);
     }
     
     .pos-right {
-        position: relative; /* Quitar sticky para móvil */
-        height: auto; /* Altura automática en móvil */
-        max-height: 70vh; /* Limitar altura del carrito en móvil */
+        position: relative;
+        height: auto;
+        max-height: 70vh;
     }
 
     .products-grid-pos {
-        flex-direction: column; /* Apilar elementos en columna en móviles */
+        flex-direction: column;
         padding: var(--spacing-sm);
         gap: var(--spacing-xs);
     }
@@ -1056,12 +1083,11 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 
     .product-card {
         padding: var(--spacing-xs);
-        flex-direction: row; /* Mantener horizontal en móvil si hay espacio */
-        text-align: left;
+        height: 80px; /* Ajuste de altura para móvil */
     }
     .product-image {
-        width: 48px;
-        height: 48px;
+        width: 60px;
+        height: 60px;
     }
     .product-name {
         font-size: var(--text-xs);
@@ -1121,9 +1147,13 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
         flex-direction: column;
         align-items: center;
         text-align: center;
+        height: auto; /* Permitir altura automática para que el contenido quepa */
     }
     .product-card .add-to-cart-btn {
-        margin-left: 0;
+        position: relative; /* Quitar absolute positioning en móvil si se apilan */
+        bottom: auto;
+        right: auto;
+        margin-top: var(--spacing-sm);
         width: 100%;
     }
 
