@@ -413,32 +413,120 @@ function clearFilters() {
 }
 
 // ===== TRANSACCIONES =====
-async function completeTransaction() {
+function showPaymentModal() {
     if (POSState.cart.length === 0) {
         showMessage('El carrito está vacío', 'warning');
         return;
     }
     
+    const subtotal = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
+    const tax = POSState.includeIgv ? subtotal * 0.18 : 0;
+    const total = subtotal + tax;
+    
+    // Actualizar el contenido del modal de pago
+    const paymentModal = document.getElementById('paymentModal');
+    const paymentContent = document.getElementById('paymentContent');
+    
+    if (!paymentModal || !paymentContent) {
+        console.error('Modal de pago no encontrado');
+        return;
+    }
+    
+    paymentContent.innerHTML = `
+        <div class="payment-summary">
+            <div class="summary-row">
+                <span>Subtotal:</span>
+                <span>S/ ${subtotal.toFixed(2)}</span>
+            </div>
+            ${POSState.includeIgv ? `
+            <div class="summary-row">
+                <span>IGV (18%):</span>
+                <span>S/ ${tax.toFixed(2)}</span>
+            </div>` : ''}
+            <div class="summary-row total">
+                <span>Total a pagar:</span>
+                <span>S/ ${total.toFixed(2)}</span>
+            </div>
+        </div>
+        
+        <div class="payment-method-selection">
+            <h4>Método de pago</h4>
+            <div class="payment-methods">
+                <button class="payment-method ${POSState.paymentMethod === 'cash' ? 'active' : ''}" 
+                        data-method="cash" onclick="selectPaymentMethod('cash')">
+                    <i class="fas fa-money-bill"></i>
+                    Efectivo
+                </button>
+                <button class="payment-method ${POSState.paymentMethod === 'card' ? 'active' : ''}" 
+                        data-method="card" onclick="selectPaymentMethod('card')">
+                    <i class="fas fa-credit-card"></i>
+                    Tarjeta
+                </button>
+            </div>
+        </div>
+        
+        <div id="cashPaymentSection" style="display: ${POSState.paymentMethod === 'cash' ? 'block' : 'none'};">
+            <div class="form-group">
+                <label for="cashReceivedInput">Monto recibido:</label>
+                <input type="number" id="cashReceivedInput" class="form-input" 
+                       step="0.01" min="0" value="0.00" 
+                       oninput="calculateChange()">
+            </div>
+            <div id="changeAmount" class="change-amount" style="display: none;">
+                Vuelto: <span id="changeValue">S/ 0.00</span>
+            </div>
+        </div>
+        
+        <div class="modal-actions" style="margin-top: 20px;">
+            <button class="btn btn-outline" onclick="closeModal('paymentModal')">
+                Cancelar
+            </button>
+            <button class="btn btn-primary" onclick="processPayment()">
+                Confirmar Pago
+            </button>
+        </div>
+    `;
+    
+    // Mostrar el modal
+    openModal('paymentModal');
+    
+    // Enfocar el campo de monto recibido si es pago en efectivo
     if (POSState.paymentMethod === 'cash') {
-        let total = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
-        if (POSState.includeIgv) {
-            total *= 1.18;
-        }
+        setTimeout(() => {
+            const cashInput = document.getElementById('cashReceivedInput');
+            if (cashInput) cashInput.focus();
+        }, 100);
+    }
+}
 
-        if (POSState.cashReceived < total) {
+function processPayment() {
+    if (POSState.paymentMethod === 'cash') {
+        const cashInput = document.getElementById('cashReceivedInput');
+        if (!cashInput) {
+            showMessage('Error al procesar el pago', 'error');
+            return;
+        }
+        
+        const cashReceived = parseFloat(cashInput.value) || 0;
+        const subtotal = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
+        let total = POSState.includeIgv ? subtotal * 1.18 : subtotal;
+        
+        if (cashReceived < total) {
             showMessage('El monto recibido es insuficiente', 'warning');
             return;
         }
+        
+        POSState.cashReceived = cashReceived;
     }
     
-    const subtotal = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
-    let tax = 0;
-    let total = subtotal;
+    closeModal('paymentModal');
+    completeTransaction();
+}
 
-    if (POSState.includeIgv) {
-        tax = subtotal * 0.18;
-        total = subtotal + tax;
-    }
+async function completeTransaction() {
+    const subtotal = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
+    const tax = POSState.includeIgv ? subtotal * 0.18 : 0;
+    const total = subtotal + tax;
 
     const saleData = {
         customer_id: document.getElementById('customerSelect').value || null,

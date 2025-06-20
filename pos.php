@@ -203,11 +203,11 @@ function formatCurrency($amount) {
                             <i class="fas fa-trash"></i>
                             Limpiar Carrito
                         </button>
-                        <button class="btn btn-success" onclick="completeTransaction()" id="completeBtn" disabled>
+                        <button class="btn btn-success" onclick="showPaymentModal()" id="completeBtn" disabled>
                             <i class="fas fa-check"></i>
                             Completar Venta
                         </button>
-                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -221,6 +221,42 @@ function formatCurrency($amount) {
             </div>
             <div class="modal-body" id="transactionDetails">
                 </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="printReceipt()">
+                    <i class="fas fa-print"></i> Imprimir
+                </button>
+                <button class="btn btn-primary" onclick="newTransaction()">
+                    <i class="fas fa-plus"></i> Nueva Venta
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Pago -->
+    <div class="modal-overlay" id="paymentModal" style="display: none;">
+        <div class="modal modal-payment">
+            <div class="modal-header">
+                <h3 class="modal-title">Procesar Pago</h3>
+                <button class="modal-close" onclick="closeModal('paymentModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="paymentContent">
+                    <!-- El contenido se llenará dinámicamente con JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Transacción Completada -->
+    <div class="modal-overlay" id="transactionModal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Venta Completada</h3>
+                <button class="modal-close" onclick="closeTransactionModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="transactionDetails">
+                <!-- El contenido se llenará dinámicamente con JavaScript -->
+            </div>
             <div class="modal-footer">
                 <button class="btn btn-outline" onclick="printReceipt()">
                     <i class="fas fa-print"></i> Imprimir
