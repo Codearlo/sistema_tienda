@@ -705,17 +705,18 @@ function createPaymentModal() {
 }
 
 async function processPayment() {
-    console.log('Procesando pago...', POSState);
+    console.log('Iniciando proceso de pago...', POSState);
     
-    // Validar que hay productos en el carrito
+    // Validar que haya productos en el carrito
     if (POSState.cart.length === 0) {
         showMessage('El carrito está vacío', 'warning');
-        return;
+        return false;
     }
     
     // Calcular totales
     const subtotal = POSState.cart.reduce((sum, item) => sum + (parseFloat(item.subtotal) || 0), 0);
     const total = POSState.includeIgv ? subtotal * 1.18 : subtotal;
+    let cashReceived = 0;
     
     // Validar método de pago
     if (POSState.paymentMethod === 'cash') {
@@ -724,20 +725,51 @@ async function processPayment() {
         if (!cashInput) {
             console.error('No se encontró el campo de monto recibido');
             showMessage('Error al procesar el pago en efectivo', 'error');
-            return;
+            return false;
         }
         
-        const cashReceived = parseFloat(cashInput.value) || 0;
+        cashReceived = parseFloat(cashInput.value) || 0;
         
         // Validar que el monto sea suficiente
-        if (cashReceived < total) {
+        if (cashReceived <= 0) {
+            showMessage('Ingrese un monto válido', 'warning');
+            return false;
+        } else if (cashReceived < total) {
             showMessage('El monto recibido es insuficiente', 'warning');
-            return;
+            return false;
         }
         
         // Actualizar estado con el monto recibido
         POSState.cashReceived = cashReceived;
-        console.log('Pago en efectivo procesado. Monto recibido:', cashReceived);
+        console.log('Pago en efectivo validado. Monto recibido:', cashReceived);
+    } else if (POSState.paymentMethod === 'card') {
+        console.log('Procesando pago con tarjeta...');
+        // Aquí podrías agregar validaciones específicas para tarjeta si es necesario
+    } else {
+        console.error('Método de pago no válido:', POSState.paymentMethod);
+        showMessage('Método de pago no válido', 'error');
+        return false;
+    }
+    
+    // Mostrar mensaje de confirmación
+    showMessage('Procesando pago, por favor espere...', 'info');
+    
+    try {
+        // Cerrar el modal de pago
+        closeModal('paymentModal');
+        
+        // Completar la transacción
+        await completeTransaction();
+        
+        // Mostrar mensaje de éxito
+        showMessage('Pago procesado exitosamente', 'success');
+        
+        return true;
+    } catch (error) {
+        console.error('Error al procesar el pago:', error);
+        showMessage('Error al procesar el pago: ' + (error.message || 'Error desconocido'), 'error');
+        return false;
+    }
     } else if (POSState.paymentMethod === 'card') {
         // Validaciones adicionales para pago con tarjeta si es necesario
         console.log('Procesando pago con tarjeta');
