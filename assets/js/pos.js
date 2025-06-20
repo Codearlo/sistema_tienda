@@ -25,26 +25,26 @@ function initializePOS() {
     
     // Usar datos del PHP
     // Se asegura que las variables globales 'products_data', 'categories_data' y 'customers_data' se asignen al estado.
-    if (typeof products_data !== 'undefined') {
-        POSState.products = products_data;
+    if (typeof products_data !== 'undefined') { /* */
+        POSState.products = products_data; /* */
     } else {
         console.warn('products_data no está definido en el ámbito global.');
     }
-    if (typeof categories_data !== 'undefined') {
-        POSState.categories = categories_data;
+    if (typeof categories_data !== 'undefined') { /* */
+        POSState.categories = categories_data; /* */
     } else {
         console.warn('categories_data no está definido en el ámbito global.');
     }
-    if (typeof customers_data !== 'undefined') {
-        POSState.customers = customers_data;
+    if (typeof customers_data !== 'undefined') { /* */
+        POSState.customers = customers_data; /* */
     } else {
         console.warn('customers_data no está definido en el ámbito global.');
     }
 
     // CONSOLE.LOGS PARA DEPURACIÓN
-    console.log('POSState.products después de inicializar:', POSState.products);
-    console.log('POSState.categories después de inicializar:', POSState.categories);
-    console.log('POSState.customers después de inicializar:', POSState.customers);
+    console.log('POSState.products después de inicializar:', POSState.products); /* */
+    console.log('POSState.categories después de inicializar:', POSState.categories); /* */
+    console.log('POSState.customers después de inicializar:', POSState.customers); /* */
     // FIN DE CONSOLE.LOGS DE DEPURACIÓN
     
     // Inicializar reloj
@@ -80,14 +80,18 @@ function setupEventListeners() {
     }
     
     // Monto recibido en efectivo
-    // Asegurarse de que el ID del input sea consistente 'cashReceivedInput'
+    // El input 'cashReceivedInput' se crea dinámicamente en el modal,
+    // por lo que su evento se adjunta en showPaymentModal y selectPaymentMethod.
+    // Aquí solo se inicializa si ya está presente en el DOM principal (que no es el caso del modal).
+    // Se mantiene esta parte por si hay algún input con este ID fuera del modal.
     const cashInput = document.getElementById('cashReceivedInput'); 
     if (cashInput) {
         cashInput.addEventListener('input', calculateChange);
     }
     
     // Métodos de pago
-    // Asegurarse de que el selector de clase sea consistente '.payment-method-btn'
+    // Estos botones se crean dinámicamente en el modal, su evento se adjunta en showPaymentModal.
+    // Se mantiene esta parte por si hay botones con esta clase fuera del modal.
     const paymentMethods = document.querySelectorAll('.payment-method-btn'); 
     paymentMethods.forEach(btn => {
         btn.addEventListener('click', () => selectPaymentMethod(btn.dataset.method));
@@ -125,7 +129,7 @@ function loadCategories() {
 
 function loadProducts() {
     const grid = document.getElementById('productsGrid');
-    const emptyProductsState = document.getElementById('emptyProducts'); // Obtener el estado vacío
+    const emptyProductsState = document.getElementById('emptyProducts'); /* */
     if (!grid) {
         console.error('productsGrid no encontrado.'); // Depuración
         return;
@@ -161,7 +165,7 @@ function loadProducts() {
     
     let html = '';
     filteredProducts.forEach(product => {
-        const stock = product.stock_quantity || 0; // Usar stock_quantity directamente
+        const stock = product.stock_quantity || 0;
         const isLowStock = stock <= (product.min_stock || 5);
         
         html += `
@@ -195,7 +199,7 @@ function addToCart(productId) {
         return;
     }
     
-    const stock = product.stock_quantity || 0; // Usar stock_quantity
+    const stock = product.stock_quantity || 0;
     if (stock === 0) {
         showMessage('Producto sin stock', 'warning');
         return;
@@ -260,8 +264,7 @@ function updateQuantity(productId, newQuantity) {
 
 function updateCartDisplay() {
     const cartItemsContainer = document.getElementById('cartItems');
-    // Si 'emptyCartState' está presente en el HTML, usarlo; de lo contrario, buscar dentro del contenedor.
-    const emptyState = document.getElementById('emptyCartState') || (cartItemsContainer ? cartItemsContainer.querySelector('.empty-state') : null);
+    const emptyState = cartItemsContainer ? cartItemsContainer.querySelector('.empty-state') : null;
     const completeBtn = document.getElementById('completeBtn');
     const cartCountSpan = document.getElementById('cartCount');
     const cartSummaryDiv = document.getElementById('cartSummary');
@@ -388,7 +391,7 @@ function setupPaymentMethods() {
 
 // ===== CÁLCULO DE CAMBIO =====
 function calculateChange() {
-    console.log('Calculando cambio...');
+    console.log('Calculando cambio...'); /* */
     
     // Verificar que el método de pago sea efectivo
     if (POSState.paymentMethod !== 'cash') {
@@ -397,14 +400,17 @@ function calculateChange() {
     }
     
     // Obtener referencias a los elementos del DOM
+    // Asegurarse de que el ID del input sea consistente 'cashReceivedInput'
     const cashInput = document.getElementById('cashReceivedInput');
     const changeAmountDiv = document.getElementById('changeAmount'); // Div contenedor del cambio
     const changeValueSpan = document.getElementById('changeValue');    // Span que muestra el valor
     const confirmBtn = document.getElementById('confirmPaymentBtn');
     
     // Verificar que todos los elementos necesarios existan
+    // El mensaje de error en la consola indica que uno o más de estos pueden ser null.
+    // Esto suele ocurrir si el modal no está en el DOM o no se ha renderizado.
     if (!cashInput || !changeAmountDiv || !changeValueSpan || !confirmBtn) {
-        console.error('Elementos del formulario de pago no encontrados para cálculo de cambio');
+        console.error('Elementos del formulario de pago no encontrados para cálculo de cambio'); /* */
         return;
     }
     
@@ -465,7 +471,7 @@ function calculateChange() {
 }
 
 function selectPaymentMethod(method) {
-    console.log('Seleccionando método de pago:', method);
+    console.log('Seleccionando método de pago:', method); /* */
     
     // Actualizar el estado global
     POSState.paymentMethod = method;
@@ -545,10 +551,8 @@ function handleProductSearch() {
     const searchInput = document.getElementById('productSearch');
     const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
     
-    // Re-renderizar productos basado en el filtro de búsqueda
     loadProducts(); 
     
-    // Mostrar/ocultar botón de limpiar búsqueda
     const clearBtn = document.querySelector('.search-clear-btn');
     if (clearBtn) {
         clearBtn.style.display = searchTerm ? 'flex' : 'none';
@@ -570,15 +574,14 @@ function clearSearch() {
 }
 
 function filterByCategory(categoryId) {
-    POSState.selectedCategory = categoryId; // categoryId puede ser null para "Todos"
+    POSState.selectedCategory = categoryId;
     loadProducts();
     
-    // Actualizar botones de categoría
     const categoryButtons = document.querySelectorAll('.category-btn');
     if (categoryButtons.length > 0) {
         categoryButtons.forEach(btn => {
-            const btnCategoryId = btn.getAttribute('data-category-id'); // Obtener el data-attribute
-            if ( (categoryId === null && btnCategoryId === "null") || (btnCategoryId == categoryId) ) { // Comparar null y los IDs
+            const btnCategoryId = btn.getAttribute('data-category-id');
+            if ( (categoryId === null && btnCategoryId === "null") || (btnCategoryId == categoryId) ) {
                 btn.classList.add('active');
             } else {
                 btn.classList.remove('active');
@@ -588,11 +591,11 @@ function filterByCategory(categoryId) {
 }
 
 function clearFilters() {
-    POSState.selectedCategory = null; // Restablecer a "Todos"
+    POSState.selectedCategory = null;
     document.getElementById('productSearch').value = '';
     document.querySelector('.search-clear-btn').style.display = 'none';
-    loadCategories(); // Recargar categorías para asegurar el botón "Todos" esté activo
-    loadProducts();   // Recargar todos los productos
+    loadCategories();
+    loadProducts();
 }
 
 // ===== TRANSACCIONES =====
@@ -609,9 +612,7 @@ function showPaymentModal() {
     const total = subtotal + tax;
     
     // Crear el modal si no existe
-    if (!document.getElementById('paymentModal')) {
-        createPaymentModal();
-    }
+    createPaymentModal(); // Se asegura de que el modal exista en el DOM
     
     const paymentModal = document.getElementById('paymentModal');
     const paymentContent = document.getElementById('paymentContent');
@@ -664,7 +665,6 @@ function showPaymentModal() {
                 <label for="cashReceivedInput">Monto recibido:</label>
                 <input type="number" id="cashReceivedInput" class="form-input" 
                        step="0.01" min="0" value="${POSState.cashReceived.toFixed(2)}" 
-                       oninput="calculateChange()"
                        placeholder="0.00">
             </div>
             <div id="changeAmount" class="change-amount" style="display: none;">
@@ -682,7 +682,18 @@ function showPaymentModal() {
         </div>
     `;
     
-    // Configurar evento click para el botón de confirmar pago
+    // IMPORTANT: Re-attach event listeners for dynamically created elements
+    // This is crucial for the calculateChange to work after modal content is updated.
+    const cashInputInModal = document.getElementById('cashReceivedInput');
+    if (cashInputInModal) {
+        cashInputInModal.addEventListener('input', calculateChange);
+    }
+
+    const paymentMethodsInModal = paymentContent.querySelectorAll('.payment-method-btn');
+    paymentMethodsInModal.forEach(btn => {
+        btn.addEventListener('click', () => selectPaymentMethod(btn.dataset.method));
+    });
+
     const confirmBtn = document.getElementById('confirmPaymentBtn');
     if (confirmBtn) {
         confirmBtn.onclick = processPayment; // Asignar directamente la función
@@ -736,20 +747,16 @@ function createPaymentModal() {
 async function processPayment() {
     console.log('Iniciando proceso de pago...', POSState);
     
-    // Validar que haya productos en el carrito
     if (POSState.cart.length === 0) {
         showMessage('El carrito está vacío', 'warning');
         return false;
     }
     
-    // Calcular totales
     const subtotal = POSState.cart.reduce((sum, item) => sum + (parseFloat(item.subtotal) || 0), 0);
     const total = POSState.includeIgv ? subtotal * 1.18 : subtotal;
     let cashReceived = 0;
     
-    // Validar método de pago
     if (POSState.paymentMethod === 'cash') {
-        // Validar monto recibido para pago en efectivo
         const cashInput = document.getElementById('cashReceivedInput');
         if (!cashInput) {
             console.error('No se encontró el campo de monto recibido');
@@ -759,7 +766,6 @@ async function processPayment() {
         
         cashReceived = parseFloat(cashInput.value) || 0;
         
-        // Validar que el monto sea suficiente
         if (cashReceived <= 0) {
             showMessage('Ingrese un monto válido', 'warning');
             return false;
@@ -768,28 +774,21 @@ async function processPayment() {
             return false;
         }
         
-        // Actualizar estado con el monto recibido
         POSState.cashReceived = cashReceived;
         console.log('Pago en efectivo validado. Monto recibido:', cashReceived);
     } else if (POSState.paymentMethod === 'card') {
         console.log('Procesando pago con tarjeta...');
-        // Aquí podrías agregar validaciones específicas para tarjeta si es necesario
     } else {
         console.error('Método de pago no válido:', POSState.paymentMethod);
         showMessage('Método de pago no válido', 'error');
         return false;
     }
     
-    // Mostrar mensaje de confirmación
     showMessage('Procesando pago, por favor espere...', 'info');
     
     try {
-        // Cerrar el modal de pago
         closeModal('paymentModal');
-        
-        // Completar la transacción
         await completeTransaction();
-        
         return true;
     } catch (error) {
         console.error('Error al procesar el pago:', error);
@@ -806,7 +805,7 @@ async function completeTransaction() {
     const saleData = {
         customer_id: document.getElementById('customerSelect').value || null,
         payment_method: POSState.paymentMethod,
-        items: POSState.cart.map(item => ({ // Mapear solo los datos necesarios para el backend
+        items: POSState.cart.map(item => ({
             product_id: item.product_id,
             quantity: item.quantity,
             price: item.price,
@@ -826,9 +825,7 @@ async function completeTransaction() {
         if (response.success) {
             showTransactionComplete(response.data);
             clearCart();
-            // Actualizar la lista de productos después de una venta exitosa
             loadProducts(); 
-            // Cargar datos de dashboard actualizados (si existe la función)
             if (typeof loadDashboardData === 'function') {
                 loadDashboardData();
             }
@@ -880,7 +877,6 @@ function closeTransactionModal() {
 function newTransaction() {
     closeTransactionModal();
     clearCart();
-    // Re-seleccionar el método de pago predeterminado al iniciar una nueva transacción
     selectPaymentMethod('cash'); 
 }
 
@@ -892,7 +888,6 @@ function openModal(modalId) {
         modal.classList.add('show');
         document.body.style.overflow = 'hidden';
         
-        // Enfocar el primer elemento interactivo si existe
         setTimeout(() => {
             const firstInput = modal.querySelector('input, select, textarea, button');
             if (firstInput) {
@@ -910,8 +905,8 @@ function closeModal(modalId) {
         modal.classList.remove('show');
         setTimeout(() => {
             modal.style.display = 'none';
-            document.body.style.overflow = ''; // Restaurar scroll del body
-        }, 300); // Coincide con la duración de la transición en CSS
+            document.body.style.overflow = ''; 
+        }, 300);
     }
 }
 
@@ -934,7 +929,7 @@ function clearCart() {
     updateCartDisplay();
     updateTotals();
     updateIgvButtonState();
-    calculateChange(); // Recalcular para limpiar el vuelto si aplica
+    calculateChange(); 
 }
 
 function updateClock() {
@@ -954,15 +949,13 @@ function printReceipt() {
     showMessage('Funcionalidad de impresión en desarrollo', 'info');
 }
 
-// Reemplazar la función showMessage por una más visual
 function showMessage(message, type = 'info') {
-    // Implementación simple de notificación tipo "toast"
     const notificationContainer = document.querySelector('.pos-container');
     if (!notificationContainer) return;
 
     const existingAlert = notificationContainer.querySelector('.pos-alert');
     if (existingAlert) {
-        existingAlert.remove(); // Eliminar cualquier alerta anterior para no acumular
+        existingAlert.remove();
     }
 
     const alertDiv = document.createElement('div');
@@ -977,7 +970,7 @@ function showMessage(message, type = 'info') {
         </button>
     `;
 
-    notificationContainer.insertBefore(alertDiv, notificationContainer.firstChild); // Insertar al principio
+    notificationContainer.insertBefore(alertDiv, notificationContainer.firstChild);
 
     setTimeout(() => {
         alertDiv.classList.add('show');
@@ -986,7 +979,7 @@ function showMessage(message, type = 'info') {
     setTimeout(() => {
         alertDiv.classList.remove('show');
         alertDiv.addEventListener('transitionend', () => alertDiv.remove(), { once: true });
-    }, 3000); // Duración de 3 segundos
+    }, 3000);
 }
 
 function htmlspecialchars(text) {
