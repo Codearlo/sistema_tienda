@@ -24,15 +24,25 @@ function initializePOS() {
     console.log('Inicializando POS...');
     
     // Usar datos del PHP
-    if (typeof products_data !== 'undefined') { /* */
-        POSState.products = products_data; /* */
+    if (typeof products_data !== 'undefined') {
+        POSState.products = products_data;
+    } else {
+        console.warn('products_data no está definido en el ámbito global.');
     }
-    if (typeof categories_data !== 'undefined') { /* */
-        POSState.categories = categories_data; /* */
+    if (typeof categories_data !== 'undefined') {
+        POSState.categories = categories_data;
+    } else {
+        console.warn('categories_data no está definido en el ámbito global.');
     }
-    if (typeof customers_data !== 'undefined') { /* */
-        POSState.customers = customers_data; /* */
+    if (typeof customers_data !== 'undefined') {
+        POSState.customers = customers_data;
+    } else {
+        console.warn('customers_data no está definido en el ámbito global.');
     }
+
+    console.log('POSState.products después de inicializar:', POSState.products);
+    console.log('POSState.categories después de inicializar:', POSState.categories);
+    console.log('POSState.customers después de inicializar:', POSState.customers);
     
     // Inicializar reloj
     updateClock();
@@ -67,13 +77,16 @@ function setupEventListeners() {
     }
     
     // Monto recibido en efectivo
-    const cashInput = document.getElementById('cashReceivedInput');
+    // Asegurarse de que el input tenga el ID correcto para el modal de pago
+    // En el HTML del modal se usa 'cashReceivedInput', por lo que JS debe referenciarlo.
+    const cashInput = document.getElementById('cashReceivedInput'); 
     if (cashInput) {
         cashInput.addEventListener('input', calculateChange);
     }
     
     // Métodos de pago
-    const paymentMethods = document.querySelectorAll('.payment-method-btn');
+    // Asegurarse de que los botones tengan la clase correcta para el modal de pago
+    const paymentMethods = document.querySelectorAll('.payment-method-btn'); 
     paymentMethods.forEach(btn => {
         btn.addEventListener('click', () => selectPaymentMethod(btn.dataset.method));
     });
@@ -82,10 +95,13 @@ function setupEventListeners() {
 // ===== MANEJO DE PRODUCTOS =====
 function loadCategories() {
     const grid = document.getElementById('categoriesGrid');
-    if (!grid) return;
+    if (!grid) {
+        console.error('categoriesGrid no encontrado.');
+        return;
+    }
     
     let html = `
-        <button class="category-btn ${!POSState.selectedCategory ? 'active' : ''}" onclick="filterByCategory(null)" data-category-id="null">
+        <button class="category-btn ${POSState.selectedCategory === null ? 'active' : ''}" onclick="filterByCategory(null)" data-category-id="null">
             <i class="fas fa-th-large"></i>
             Todos
         </button>
@@ -102,12 +118,16 @@ function loadCategories() {
     });
     
     grid.innerHTML = html;
+    console.log('Categorías cargadas:', POSState.categories.length);
 }
 
 function loadProducts() {
     const grid = document.getElementById('productsGrid');
     const emptyProductsState = document.getElementById('emptyProducts');
-    if (!grid) return;
+    if (!grid) {
+        console.error('productsGrid no encontrado.');
+        return;
+    }
     
     const searchTerm = document.getElementById('productSearch')?.value.toLowerCase() || '';
     
@@ -128,6 +148,7 @@ function loadProducts() {
         if (emptyProductsState) {
             emptyProductsState.style.display = 'flex';
         }
+        console.log('No se encontraron productos filtrados.');
         return;
     }
     
@@ -161,6 +182,7 @@ function loadProducts() {
     });
     
     grid.innerHTML = html;
+    console.log('Productos cargados:', filteredProducts.length);
 }
 
 // ===== MANEJO DEL CARRITO =====
@@ -244,8 +266,12 @@ function updateCartDisplay() {
     if (!cartItemsContainer) return;
     
     if (POSState.cart.length === 0) {
-        if (cartItemsContainer) cartItemsContainer.innerHTML = `<div class="empty-state"><i class="fas fa-shopping-cart fa-2x"></i><h3>El carrito está vacío</h3><p>Agregue productos para comenzar</p></div>`;
-        if (emptyState) emptyState.style.display = 'flex';
+        // Asegurarse de que el empty-state se inserte correctamente si no existe
+        if (!emptyState) {
+             cartItemsContainer.innerHTML = `<div class="empty-state"><i class="fas fa-shopping-cart fa-2x"></i><h3>El carrito está vacío</h3><p>Agregue productos para comenzar</p></div>`;
+        } else {
+            emptyState.style.display = 'flex';
+        }
         if (completeBtn) completeBtn.disabled = true;
         if (cartSummaryDiv) cartSummaryDiv.style.display = 'none';
     } else {
@@ -524,6 +550,7 @@ function filterByCategory(categoryId) {
     if (categoryButtons.length > 0) {
         categoryButtons.forEach(btn => {
             const btnCategoryId = btn.getAttribute('data-category-id');
+            // Corregir la comparación para 'null' para asegurar que el botón "Todos" se active/desactive correctamente
             if ( (categoryId === null && btnCategoryId === "null") || (btnCategoryId == categoryId) ) {
                 btn.classList.add('active');
             } else {
@@ -828,10 +855,11 @@ function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.remove('show');
-        setTimeout(() => {
+        // Usar requestAnimationFrame para asegurar que la transición ocurra antes de ocultar
+        requestAnimationFrame(() => {
             modal.style.display = 'none';
             document.body.style.overflow = ''; 
-        }, 300);
+        });
     }
 }
 
