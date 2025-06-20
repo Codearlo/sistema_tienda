@@ -770,56 +770,76 @@ async function processPayment() {
         showMessage('Error al procesar el pago: ' + (error.message || 'Error desconocido'), 'error');
         return false;
     }
-    } else if (POSState.paymentMethod === 'card') {
-        // Validaciones adicionales para pago con tarjeta si es necesario
-        console.log('Procesando pago con tarjeta');
-    } else {
-        console.error('Método de pago no válido:', POSState.paymentMethod);
-        showMessage('Método de pago no válido', 'error');
-        return;
-    }
-    
-    // Cerrar el modal de pago
-    closeModal('paymentModal');
-    
-    // Mostrar mensaje de confirmación
-    showMessage('Procesando pago...', 'info');
-    
-    // Llamar a la función para completar la transacción
-    try {
-        await completeTransaction();
-    } catch (error) {
-        console.error('Error al completar la transacción:', error);
-        showMessage('Error al procesar el pago: ' + error.message, 'error');
-    }
 }
 
 async function completeTransaction() {
-    const subtotal = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
+    console.log('Completando transacción...');
+    
+    // Validar que haya productos en el carrito
+    if (POSState.cart.length === 0) {
+        console.error('No hay productos en el carrito');
+        throw new Error('No hay productos en el carrito');
+    }
+    
+    // Calcular totales
+    const subtotal = POSState.cart.reduce((sum, item) => sum + (parseFloat(item.subtotal) || 0), 0);
     const tax = POSState.includeIgv ? subtotal * 0.18 : 0;
     const total = subtotal + tax;
-
+    
+    console.log('Datos de la venta:', { subtotal, tax, total, paymentMethod: POSState.paymentMethod });
+    
+    // Preparar datos de la venta
     const saleData = {
-        customer_id: document.getElementById('customerSelect').value || null,
-        payment_method: POSState.paymentMethod,
-        items: POSState.cart,
+        customer_id: document.getElementById('customerSelect') ? document.getElementById('customerSelect').value : null,
+        payment_method: POSState.paymentMethod || 'cash',
+        items: POSState.cart.map(item => ({
+            product_id: item.id,
+            quantity: item.quantity,
+            price: item.price,
+            subtotal: item.subtotal,
+            name: item.name
+        })),
         subtotal: subtotal,
         tax: tax,
         total: total,
-        cash_received: POSState.cashReceived,
+        cash_received: POSState.cashReceived || 0,
         change_amount: POSState.paymentMethod === 'cash' ? 
-            (POSState.cashReceived - total) : 0,
+            ((POSState.cashReceived || 0) - total) : 0,
     };
     
+    console.log('Enviando datos de venta al servidor:', saleData);
+    
     try {
+        // Mostrar indicador de carga
+        showMessage('Procesando transacción, por favor espere...', 'info');
+        
+        // Enviar datos al servidor
         const response = await API.post('/sales.php', saleData);
         
-        if (response.success) {
-            showTransactionComplete(response.data);
+        console.log('Respuesta del servidor:', response);
+        
+        if (response && response.success) {
+            // Mostrar recibo o resumen de la venta
+            if (response.data) {
+                showTransactionComplete(response.data);
+            }
+            
+            // Limpiar el carrito
             clearCart();
+            
+            // Actualizar la lista de productos
+            loadProducts();
+            
+            // Mostrar mensaje de éxito
             showMessage('Venta completada exitosamente', 'success');
-            loadProducts(); 
+            
+            return response.data; // Devolver los datos de la venta
         } else {
+            // Manejar error del servidor
+            const errorMessage = response && response.message ? response.message : 'Error desconocido al procesar la venta';
+            console.error('Error en la respuesta del servidor:', errorMessage);
+            throw new Error(errorMessage);
+        }
             showMessage(response.message || 'Error al procesar la venta', 'error');
         }
     } catch (error) {
