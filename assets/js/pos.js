@@ -342,6 +342,11 @@ function setupPaymentMethods() {
 // ===== CÁLCULO DE CAMBIO =====
 function calculateChange() {
     console.log('Calculando cambio...');
+    // Ejecutar solo si el modal de pago está visible
+    const paymentModal = document.getElementById('paymentModal');
+    if (!paymentModal || paymentModal.style.display === 'none') {
+        return; // Evita errores de elementos faltantes al iniciar la página
+    }
     
     // Verificar que el método de pago sea efectivo
     if (POSState.paymentMethod !== 'cash') {
@@ -357,6 +362,8 @@ function calculateChange() {
     
     // Verificar que todos los elementos necesarios existan
     if (!cashInput || !changeAmount || !changeValue || !confirmBtn) {
+        // Elementos aún no renderizados (posiblemente fuera del modal visible)
+        return;
         console.error('Elementos del formulario de pago no encontrados');
         return;
     }
