@@ -17,23 +17,23 @@ if (!isset($_SESSION['user_id'])) {
 
 // ===== CONFIGURACIÓN Y CARGA DE DATOS =====
 $error_message = null;
-$categories = [];
-$customers = [];
-$products = [];
+$categories_data = [];
+$customers_data = [];
+$products_data = [];
 
 try {
     $db = getDB();
     $business_id = $_SESSION['business_id'];
     
     // Cargar categorías
-    $categories = $db->fetchAll("
+    $categories_data = $db->fetchAll("
         SELECT * FROM categories 
         WHERE business_id = ? AND status = 1 
         ORDER BY name
     ", [$business_id]);
     
     // Cargar clientes
-    $customers = $db->fetchAll("
+    $customers_data = $db->fetchAll("
         SELECT id, CONCAT(first_name, ' ', last_name) as name 
         FROM customers 
         WHERE business_id = ? AND status = 1 
@@ -41,7 +41,7 @@ try {
     ", [$business_id]);
     
     // Cargar productos
-    $products = $db->fetchAll("
+    $products_data = $db->fetchAll("
         SELECT p.*, c.name as category_name 
         FROM products p 
         LEFT JOIN categories c ON p.category_id = c.id 
@@ -140,7 +140,7 @@ function formatCurrency($amount) {
                         <label for="customerSelect">Cliente:</label>
                         <select id="customerSelect" class="form-select">
                             <option value="">Cliente general</option>
-                            <?php foreach ($customers as $customer): ?>
+                            <?php foreach ($customers_data as $customer): /* */ ?>
                                 <option value="<?php echo $customer['id']; ?>">
                                     <?php echo htmlspecialchars($customer['name']); ?>
                                 </option>
@@ -232,7 +232,6 @@ function formatCurrency($amount) {
         </div>
     </div>
 
-    <!-- Modal de Pago -->
     <div class="modal-overlay" id="paymentModal" style="display: none;">
         <div class="modal modal-payment">
             <div class="modal-header">
@@ -241,13 +240,11 @@ function formatCurrency($amount) {
             </div>
             <div class="modal-body">
                 <div id="paymentContent">
-                    <!-- El contenido se llenará dinámicamente con JavaScript -->
-                </div>
+                    </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal de Transacción Completada -->
     <div class="modal-overlay" id="transactionModal" style="display: none;">
         <div class="modal">
             <div class="modal-header">
@@ -255,8 +252,7 @@ function formatCurrency($amount) {
                 <button class="modal-close" onclick="closeTransactionModal()">&times;</button>
             </div>
             <div class="modal-body" id="transactionDetails">
-                <!-- El contenido se llenará dinámicamente con JavaScript -->
-            </div>
+                </div>
             <div class="modal-footer">
                 <button class="btn btn-outline" onclick="printReceipt()">
                     <i class="fas fa-print"></i> Imprimir
@@ -273,12 +269,14 @@ function formatCurrency($amount) {
     
     <script>
         // Initialize POS data
-        const categories = <?php echo json_encode($categories); ?>;
-        const customers = <?php echo json_encode($customers); ?>;
-        const products = <?php
+        const categories_data = <?php echo json_encode($categories_data); ?>; /* */
+        const customers_data = <?php echo json_encode($customers_data); ?>;   /* */
+        const products_data = <?php
             $formatted_products = [];
-            foreach ($products as $product) {
-                $product['current_stock'] = $product['stock_quantity']; // Asignar stock_quantity a current_stock
+            foreach ($products_data as $product) {
+                // Asegurar que 'image_url' siempre esté presente
+                $product['image_url'] = $product['image_url'] ?? 'assets/images/product-placeholder.png'; 
+                // Stock quantity ya viene de la BD, no es necesario 'current_stock'
                 $formatted_products[] = $product;
             }
             echo json_encode($formatted_products);
