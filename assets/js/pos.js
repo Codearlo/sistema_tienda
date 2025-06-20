@@ -144,9 +144,9 @@ function loadProducts() {
         html += `
             <div class="product-card ${stock === 0 ? 'out-of-stock' : ''}" onclick="addToCart(${product.id})">
                 <div class="product-image">
-                    <img src="${product.image_url || '/assets/images/product-placeholder.png'}" 
+                    <img src="${product.image_url || 'https://via.placeholder.com/120x120?text=Sin+Imagen'}" 
                          alt="${htmlspecialchars(product.name)}" 
-                         onerror="this.src='/assets/images/product-placeholder.png'">
+                         onerror="this.src='https://via.placeholder.com/120x120?text=Sin+Imagen'">
                     ${stock === 0 ? '<div class="out-of-stock-badge">Agotado</div>' : ''}
                     ${isLowStock && stock > 0 ? '<div class="low-stock-badge">Poco stock</div>' : ''}
                 </div>
