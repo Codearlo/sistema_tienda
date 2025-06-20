@@ -10,21 +10,21 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5); /* Fondo semitransparente oscuro */
-    display: flex; /* Cambiado a flex para centrar contenido */
+    display: flex; /* Usamos flex para centrar el contenido */
     align-items: center;
     justify-content: center;
     z-index: 10000; /* Asegura que esté por encima de todo */
     backdrop-filter: blur(4px); /* Efecto de desenfoque */
-    transition: opacity 0.3s ease, visibility 0.3s ease; /* Añadido visibility para una mejor transición */
-    opacity: 0; /* Inicialmente transparente */
-    visibility: hidden; /* Inicialmente oculto */
-    pointer-events: none; /* No interactuable cuando está oculto */
+    transition: opacity 0.3s ease, visibility 0.3s ease; /* Transición para suavizar la aparición/desaparición */
+    opacity: 0; /* Por defecto, completamente transparente */
+    visibility: hidden; /* Por defecto, no visible y no ocupa espacio ni interactúa */
+    pointer-events: none; /* Crucial: no intercepta clics cuando está oculto */
 }
 
 .modal.show {
-    opacity: 1; /* Completamente visible */
-    visibility: visible; /* Hacer visible */
-    pointer-events: auto; /* Hacer interactuable */
+    opacity: 1; /* Al añadir la clase 'show', se hace completamente visible */
+    visibility: visible; /* Se hace visible */
+    pointer-events: auto; /* Permite la interacción con la modal cuando está visible */
 }
 
 .modal-content {
@@ -35,12 +35,12 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     max-height: 90vh;
     overflow-y: auto;
     box-shadow: var(--shadow-xl);
-    transform: translateY(-20px); /* Efecto de entrada */
-    transition: transform 0.3s ease;
+    transform: translateY(-20px); /* Efecto de deslizamiento al aparecer */
+    transition: transform 0.3s ease; /* Transición para el efecto de deslizamiento */
 }
 
 .modal.show .modal-content {
-    transform: translateY(0); /* Posición final */
+    transform: translateY(0); /* Vuelve a su posición original al aparecer */
 }
 
 .modal-large {
