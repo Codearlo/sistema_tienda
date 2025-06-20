@@ -515,44 +515,41 @@ function showPaymentModal() {
             </div>
         </div>
         
-        <div class="payment-method-selection" style="margin: 20px 0;">
+        <div class="payment-method-selection">
             <h4>Método de pago</h4>
-            <div class="payment-methods" style="display: flex; gap: 10px; margin: 10px 0;">
-                <button type="button" class="btn ${POSState.paymentMethod === 'cash' ? 'btn-primary' : 'btn-outline'}" 
+            <div class="payment-methods">
+                <button type="button" class="payment-method-btn ${POSState.paymentMethod === 'cash' ? 'active' : ''}" 
                         data-method="cash" 
-                        onclick="selectPaymentMethod('cash')"
-                        style="flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px;">
-                    <i class="fas fa-money-bill" style="font-size: 24px; margin-bottom: 5px;"></i>
+                        onclick="selectPaymentMethod('cash')">
+                    <i class="fas fa-money-bill"></i>
                     <span>Efectivo</span>
                 </button>
-                <button type="button" class="btn ${POSState.paymentMethod === 'card' ? 'btn-primary' : 'btn-outline'}" 
+                <button type="button" class="payment-method-btn ${POSState.paymentMethod === 'card' ? 'active' : ''}" 
                         data-method="card" 
-                        onclick="selectPaymentMethod('card')"
-                        style="flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px;">
-                    <i class="fas fa-credit-card" style="font-size: 24px; margin-bottom: 5px;"></i>
+                        onclick="selectPaymentMethod('card')">
+                    <i class="fas fa-credit-card"></i>
                     <span>Tarjeta</span>
                 </button>
             </div>
         </div>
         
-        <div id="cashPaymentSection" style="display: ${POSState.paymentMethod === 'cash' ? 'block' : 'none'}; margin: 15px 0;">
+        <div id="cashPaymentSection" class="cash-payment-section" style="display: ${POSState.paymentMethod === 'cash' ? 'block' : 'none'}">
             <div class="form-group">
-                <label for="cashReceivedInput" style="display: block; margin-bottom: 5px; font-weight: 500;">Monto recibido:</label>
-                <input type="number" id="cashReceivedInput" class="form-input" 
+                <label for="cashReceivedInput">Monto recibido:</label>
+                <input type="number" id="cashReceivedInput" class="form-control" 
                        step="0.01" min="0" value="0.00" 
-                       oninput="calculateChange()"
-                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px;">
+                       oninput="calculateChange()">
             </div>
-            <div id="changeAmount" class="change-amount" style="margin-top: 10px; font-weight: 500; display: none;">
-                Vuelto: <span id="changeValue" style="color: #10b981; font-weight: bold;">S/ 0.00</span>
+            <div id="changeAmount" class="change-amount">
+                Vuelto: <span id="changeValue" class="change-value">S/ 0.00</span>
             </div>
         </div>
         
-        <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
-            <button type="button" class="btn btn-outline" onclick="closeModal('paymentModal')" style="padding: 8px 16px;">
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeModal('paymentModal')">
                 Cancelar
             </button>
-            <button type="button" class="btn btn-primary" onclick="processPayment()" style="padding: 8px 16px;">
+            <button type="button" class="btn btn-primary" onclick="processPayment()">
                 <i class="fas fa-check"></i> Confirmar Pago
             </button>
         </div>
@@ -584,13 +581,13 @@ function createPaymentModal() {
     
     // Crear el elemento del modal
     const modalHTML = `
-    <div class="modal-overlay" id="paymentModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 1000; display: none; justify-content: center; align-items: center;">
-        <div class="modal" style="background: white; border-radius: 8px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);">
-            <div class="modal-header" style="padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: white; z-index: 1;">
-                <h3 class="modal-title" style="margin: 0; font-size: 1.25rem; color: #333;">Procesar Pago</h3>
-                <button type="button" class="modal-close" onclick="closeModal('paymentModal')" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666; padding: 0 5px;">&times;</button>
+    <div class="modal-overlay" id="paymentModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Procesar Pago</h3>
+                <button type="button" class="modal-close" onclick="closeModal('paymentModal')">&times;</button>
             </div>
-            <div class="modal-body" style="padding: 20px; overflow-y: auto; max-height: calc(90vh - 120px);">
+            <div class="modal-body">
                 <div id="paymentContent">
                     <!-- El contenido se llenará dinámicamente con JavaScript -->
                 </div>
