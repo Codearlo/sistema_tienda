@@ -1,85 +1,73 @@
+/* Estilos para el overlay del modal */
 .modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  opacity: 0;
-  visibility: hidden;
-  transition: var(--transition-normal);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Color de fondo semitransparente */
+    display: none; /* Oculto por defecto */
+    justify-content: center; /* Centrar contenido horizontalmente */
+    align-items: center;    /* Centrar contenido verticalmente */
+    z-index: 1000; /* Asegura que esté por encima de otros elementos */
+    opacity: 0; /* Para la transición de entrada */
+    transition: opacity 0.3s ease-in-out;
 }
 
+/* Cuando el overlay tiene la clase 'show', se vuelve visible */
 .modal-overlay.show {
-  opacity: 1;
-  visibility: visible;
+    opacity: 1;
+    display: flex; /* Hace visible el overlay y usa flex para centrar */
 }
 
+/* Estilos para la ventana del modal (el contenido en sí) */
 .modal {
-  background-color: white;
-  border-radius: var(--border-radius-lg);
-  max-width: 500px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-  transform: scale(0.9);
-  transition: var(--transition-normal);
+    background-color: #fff; /* Fondo blanco */
+    padding: 25px; /* Espaciado interno */
+    border-radius: 8px; /* Bordes redondeados */
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2); /* Sombra para profundidad */
+    width: 90%; /* Ancho por defecto */
+    max-width: 600px; /* Ancho máximo */
+    z-index: 1001; /* Asegura que esté por encima del overlay */
+
+    /* PROPIEDADES CRUCIALES PARA LA VISIBILIDAD Y ANIMACIÓN */
+    display: none; /* Oculto por defecto, para que no aparezca antes de la animación */
+    opacity: 0; /* Opacidad inicial para animación */
+    transform: translateY(-20px); /* Posición inicial para animación (ligeramente arriba) */
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out; /* Transición suave */
+    /* FIN DE PROPIEDADES CRUCIALES */
+
+    /* Estilos para el layout interno del modal */
+    flex-direction: column; /* Contenido apilado verticalmente */
+    gap: 15px; /* Espacio entre secciones del modal */
 }
 
+/* Cuando el overlay se muestra, también se muestra el contenido del modal */
 .modal-overlay.show .modal {
-  transform: scale(1);
+    display: flex; /* ¡IMPORTANTE! Hace visible el contenido del modal */
+    opacity: 1; /* Opacidad final para animación */
+    transform: translateY(0); /* Posición final para animación */
 }
 
-.modal-large {
-  max-width: 800px;
-  width: 95%;
-}
-
-.modal-receipt {
-  max-width: 400px;
-}
-
+/* Estilos opcionales para la estructura interna del modal (si los tienes definidos) */
 .modal-header {
-  padding: var(--spacing-lg);
-  border-bottom: 1px solid var(--gray-200);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--gray-900);
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  color: var(--gray-400);
-  cursor: pointer;
-  padding: var(--spacing-sm);
-  border-radius: var(--border-radius-sm);
-  transition: var(--transition-fast);
-}
-
-.modal-close:hover {
-  background-color: var(--gray-100);
-  color: var(--gray-600);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--gray-200); /* Usar tu variable de color */
 }
 
 .modal-body {
-  padding: var(--spacing-lg);
+    flex-grow: 1; /* Permite que el cuerpo ocupe el espacio disponible */
+    padding-top: 15px;
+    padding-bottom: 15px;
 }
 
 .modal-footer {
-  padding: var(--spacing-lg);
-  border-top: 1px solid var(--gray-200);
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--spacing-md);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 15px;
+    border-top: 1px solid var(--gray-200); /* Usar tu variable de color */
 }
