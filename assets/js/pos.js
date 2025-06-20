@@ -24,25 +24,25 @@ function initializePOS() {
     console.log('Inicializando POS...');
     
     // Usar datos del PHP
-    if (typeof products_data !== 'undefined') { /* */
-        POSState.products = products_data; /* */
+    if (typeof products_data !== 'undefined') {
+        POSState.products = products_data;
     } else {
         console.warn('products_data no está definido en el ámbito global.');
     }
-    if (typeof categories_data !== 'undefined') { /* */
-        POSState.categories = categories_data; /* */
+    if (typeof categories_data !== 'undefined') {
+        POSState.categories = categories_data;
     } else {
         console.warn('categories_data no está definido en el ámbito global.');
     }
-    if (typeof customers_data !== 'undefined') { /* */
-        POSState.customers = customers_data; /* */
+    if (typeof customers_data !== 'undefined') {
+        POSState.customers = customers_data;
     } else {
         console.warn('customers_data no está definido en el ámbito global.');
     }
 
-    console.log('POSState.products después de inicializar:', POSState.products); /* */
-    console.log('POSState.categories después de inicializar:', POSState.categories); /* */
-    console.log('POSState.customers después de inicializar:', POSState.customers); /* */
+    console.log('POSState.products después de inicializar:', POSState.products);
+    console.log('POSState.categories después de inicializar:', POSState.categories);
+    console.log('POSState.customers después de inicializar:', POSState.customers);
     
     updateClock();
     setInterval(updateClock, 1000);
@@ -71,13 +71,11 @@ function setupEventListeners() {
         clearBtn.addEventListener('click', clearSearch);
     }
     
-    // Event listener para el input de efectivo en la sección principal del POS
     const cashInput = document.getElementById('cashReceivedInput'); 
     if (cashInput) {
         cashInput.addEventListener('input', calculateChange);
     }
     
-    // Event listeners para los botones de método de pago en la sección principal del POS
     const paymentMethodButtons = document.querySelectorAll('.payment-section .payment-method-btn'); 
     paymentMethodButtons.forEach(btn => {
         btn.addEventListener('click', () => selectPaymentMethod(btn.dataset.method));
@@ -539,7 +537,7 @@ function showPaymentModal() {
     const total = subtotal + tax;
     
     // Crear el modal si no existe
-    createPaymentModal(); // Se asegura de que el modal exista en el DOM
+    createPaymentModal(); 
     
     const paymentModal = document.getElementById('paymentModal');
     const paymentContent = document.getElementById('paymentContent');
@@ -551,8 +549,6 @@ function showPaymentModal() {
     }
     
     // Actualizar el contenido del modal de pago - ESTO ES PARA EL MODAL DE CONFIRMACIÓN
-    // Los IDs de los inputs y divs dentro de este modal DEBEN SER DIFERENTES
-    // para no confundirse con los de la sección principal.
     paymentContent.innerHTML = `
         <div class="payment-summary">
             <h3>Resumen de la Venta</h3>
@@ -583,12 +579,16 @@ function showPaymentModal() {
         </div>
         
         ${POSState.paymentMethod === 'cash' ? `
-        <div id="modalCashPaymentSection" class="cash-payment-section"> <div class="form-group">
+        <div id="modalCashPaymentSection" class="cash-payment-section">
+            <div class="form-group">
                 <label for="modalCashReceivedInput">Monto recibido:</label>
                 <input type="number" id="modalCashReceivedInput" class="form-input" 
                        step="0.01" min="0" value="${POSState.cashReceived.toFixed(2)}" 
-                       readonly> </div>
-            <div id="modalChangeAmount" class="change-amount" style="display: block;"> Vuelto: <span id="modalChangeValue" class="change-value">S/ ${(POSState.cashReceived - total).toFixed(2)}</span> </div>
+                       readonly>
+            </div>
+            <div id="modalChangeAmount" class="change-amount" style="display: block;">
+                Vuelto: <span id="modalChangeValue" class="change-value">S/ ${(POSState.cashReceived - total).toFixed(2)}</span>
+            </div>
         </div>
         ` : ''}
 
@@ -757,7 +757,7 @@ function openModal(modalId) {
     console.log('Abriendo modal:', modalId);
     const modal = document.getElementById(modalId);
     if (modal) {
-        modal.style.display = 'flex'; // Asegura que el modal-overlay se muestre
+        modal.style.display = 'flex'; 
         modal.classList.add('show');
         document.body.style.overflow = 'hidden';
         
