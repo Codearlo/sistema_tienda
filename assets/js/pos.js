@@ -46,6 +46,7 @@ function initializePOS() {
     loadProducts();
     updateCartDisplay();
     updateTotals();
+    // Los métodos de pago se configuran en el panel
     setupPaymentMethods();
     updateIgvButtonState();
     
@@ -334,13 +335,85 @@ function updateIgvButtonState() {
     }
 }
 
+// ===== PANEL DE PAGO =====
+function createPaymentPanel(){
+    if(document.getElementById('paymentPanel')) return;
+    const panelHTML=`
+        <div id="paymentPanel" class="payment-panel">
+            <h3>Procesar Pago</h3>
+            <div class="payment-methods">
+                <button class="payment-method-btn" data-method="cash"><i class="fas fa-money-bill-wave"></i> Efectivo</button>
+                <button class="payment-method-btn" data-method="card"><i class="fas fa-credit-card"></i> Tarjeta</button>
+            </div>
+            <div class="payment-details">
+                <label>Monto recibido</label>
+                <input id="cashReceivedInput" type="number" min="0" step="0.01" placeholder="0.00" />
+                <p id="changeAmount" style="display:none">Cambio: <span id="changeValue"></span></p>
+            </div>
+            <button id="confirmPaymentBtn" class="btn btn-primary" disabled><i class="fas fa-check"></i> Confirmar Pago</button>
+        </div>`;
+    const target=document.getElementById('cartSummary')||document.body;
+    target.insertAdjacentHTML('beforeend',panelHTML);
+
+    // Eventos
+    document.getElementById('cashReceivedInput').addEventListener('input',calculateChange);
+    document.getElementById('confirmPaymentBtn').addEventListener('click',processPayment);
+ }
+
 // ===== MÉTODOS DE PAGO =====
 function setupPaymentMethods() {
+    // Garantizar que los botones del panel tengan los listeners
+    const paymentButtons = document.querySelectorAll('.payment-method-btn');
+    paymentButtons.forEach(btn => {
+        btn.addEventListener('click', () => selectPaymentMethod(btn.dataset.method));
+    });
     selectPaymentMethod('cash');
 }
 
 // ===== CÁLCULO DE CAMBIO =====
 function calculateChange() {
+    // Solo aplicar para método efectivo
+    if (POSState.paymentMethod !== 'cash') return;
+
+    const cashInput = document.getElementById('cashReceivedInput');
+    const changeAmount = document.getElementById('changeAmount');
+    const changeValue = document.getElementById('changeValue');
+    const confirmBtn = document.getElementById('confirmPaymentBtn');
+
+    if (!cashInput || !changeAmount || !changeValue || !confirmBtn) return;
+
+    const cashReceived = parseFloat(cashInput.value) || 0;
+    const subtotal = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
+    const total = POSState.includeIgv ? subtotal * 1.18 : subtotal;
+    const change = cashReceived - total;
+
+    if (cashReceived > 0) {
+        if (change >= 0) {
+            changeValue.textContent = `S/ ${change.toFixed(2)}`;
+            changeAmount.style.display = 'block';
+            changeAmount.style.color = '#10b981';
+            confirmBtn.disabled = false;
+            confirmBtn.classList.add('btn-success');
+        } else {
+            changeValue.textContent = `Faltan S/ ${Math.abs(change).toFixed(2)}`;
+            changeAmount.style.display = 'block';
+            changeAmount.style.color = '#ef4444';
+            confirmBtn.disabled = true;
+            confirmBtn.classList.remove('btn-success');
+        }
+    } else {
+        changeAmount.style.display = 'none';
+        confirmBtn.disabled = true;
+        confirmBtn.classList.remove('btn-success');
+    }
+
+    POSState.cashReceived = cashReceived;
+}
+/* Duplicated old calculateChange block removed
+    // Solo continuar si el input de efectivo existe en el panel
+    const cashInput = document.getElementById('cashReceivedInput');
+    if (!cashInput) return;
+    console.log('Calculando cambio...');
     console.log('Calculando cambio...');
     // Ejecutar solo si el modal de pago está visible
     const paymentModal = document.getElementById('paymentModal');
@@ -364,7 +437,7 @@ function calculateChange() {
     if (!cashInput || !changeAmount || !changeValue || !confirmBtn) {
         // Elementos aún no renderizados (posiblemente fuera del modal visible)
         return;
-        console.error('Elementos del formulario de pago no encontrados');
+        // Elementos aún no disponibles, salir sin log de error
         return;
     }
     
@@ -419,7 +492,8 @@ function calculateChange() {
     POSState.cashReceived = cashReceived;
     
     console.log('Cálculo de cambio completado');
-}
+*/
+// }
 
 function selectPaymentMethod(method) {
     console.log('Seleccionando método de pago:', method);
@@ -559,9 +633,15 @@ function clearFilters() {
     document.querySelector('.search-clear-btn').style.display = 'none';
     loadCategories();
     loadProducts();
+
+    // Crear panel fijo de pago
+    createPaymentPanel();
 }
 
 // ===== TRANSACCIONES =====
+// ===== TRANSACCIONES =====
+// Compatibilidad: si algún botón antiguo llama a showPaymentModal simplemente
+// hace scroll al panel de pago y enfoca el input de efectivo.
 function showPaymentModal() {
     console.log('Mostrando modal de pago...');
     
@@ -671,11 +751,15 @@ function showPaymentModal() {
         }, 300); // Aumentar el tiempo para asegurar que el input esté listo
     }
     
-    return false; // Prevenir comportamiento por defecto del botón
+    // Hacer scroll suave al panel
+    document.getElementById('paymentPanel')?.scrollIntoView({behavior:'smooth'});
+    setTimeout(()=>document.getElementById('cashReceivedInput')?.focus(),300);
+    return false;
 }
 
-// Función para crear el modal de pago dinámicamente si no existe
-function createPaymentModal() {
+function createPaymentModal() {} // deprecated
+/*
+// createPaymentModal eliminado: se reemplaza por panel fijo {
     console.log('Creando modal de pago...');
     
     // Verificar si ya existe el modal
@@ -708,7 +792,7 @@ function createPaymentModal() {
     const modalElement = temp.firstElementChild;
     document.body.appendChild(modalElement);
     
-    console.log('Modal de pago creado exitosamente');
+    // Fin createPaymentModal (obsoleto) */
 }
 
 async function processPayment() {
