@@ -1,4 +1,3 @@
-codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/assets/css/layouts/pos.css
 /* =====================================================
     POS LAYOUT - Punto de Venta Layout
     ===================================================== */
@@ -6,54 +5,23 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 .pos-page {
     background-color: var(--gray-100);
     min-height: 100vh;
-    overflow: hidden; /* Oculta el scroll de la página principal */
+    overflow: hidden;
     display: flex;
     font-family: 'Inter', sans-serif;
 }
 
 /* Ajuste del main-content para el POS */
 .main-content {
-    flex: 1; /* Permite que el main-content ocupe el espacio restante */
-    margin-left: 70px; /* Margen por defecto para sidebar colapsada */
+    flex: 1;
+    margin-left: 70px;
     transition: margin-left 0.3s ease;
-    padding: 0; /* Elimina el padding del main-content aquí para que pos-container lo maneje */
-    max-width: none; /* Elimina la restricción de ancho máximo */
-    margin-right: 0; /* Elimina margen derecho */
-    min-height: 100vh; /* Asegura que ocupe toda la altura */
-    display: flex; /* Añadido para que el pos-container se ajuste dentro */
-    flex-direction: column; /* Asegura que el pos-container se apile verticalmente */
+    padding: 0;
+    max-width: none;
+    margin-right: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
-
-/* Cuando la sidebar NO está colapsada, el main-content se desplaza */
-/* Asumimos que hay una clase en body o html para sidebar desplegada, como 'sidebar-expanded' */
-/* Si la barra lateral SIEMPRE se superpone cuando está desplegada, entonces no se necesita margin-left */
-/* Para tu caso, si "la barra lateral esta bien que se superponga porque yo hice que sea asi" */
-/* y "cuando no este desplegada no debe estar encima de nada", entonces el margin-left debe ser dinámico. */
-/* Esta regla asume que hay un estado para la sidebar desplegada que remueve el margin-left. */
-/* Si tu sidebar se controla con JS, asegúrate de que cambie el margin-left del main-content. */
-/* Si no hay una clase específica para "sidebar desplegada", considera añadirla o ajustar tu JS. */
-/* Por ahora, dejo el margin-left por defecto y lo anulo en @media para el despliegue mobile. */
-/* Para el desktop, si la sidebar se expande y se superpone, entonces este margin-left deberá ser 0
-   cuando la sidebar está en estado expandido. Esto depende de cómo manejas la expansión/colapso de la sidebar.
-   Si `sidebar.collapsed + .main-content` es la única clase que controla el `margin-left` para la barra
-   lateral no superpuesta, entonces la clase `sidebar` por sí sola debería tener `margin-left: 0;` o similar
-   cuando esté expandida para permitir la superposición.
-   Dado el comportamiento de la imagen, donde parece que el main-content siempre está a la derecha de la sidebar,
-   y luego la sidebar se superpone cuando se abre, mantendré el margen fijo para la posición inicial y lo ajustaré
-   para mobile. Si el comportamiento de superposición en desktop es siempre, entonces 'margin-left' debe ser 0.
-   Por ahora, mantengo el margen fijo para cuando la sidebar no está desplegada (colapsada) y la sidebar desplegada
-   se superpondría si no hay un empuje del main-content.
-*/
-/* VOY A REVERTIR EL MARGEN DINÁMICO POR DEFECTO Y ELIMINAR LA REGLA `sidebar.collapsed + .main-content` */
-/* Si la sidebar desplegada debe superponerse, `main-content` no debe tener `margin-left` */
-/* Si la sidebar *no desplegada* NO debe superponerse, entonces main-content necesita `margin-left` */
-/* El comportamiento "cuando no este desplegada no debe estar encima de nada" implica un margin. */
-/* "cuando se haya desplegado" implica que el margin desaparezca o se superponga. */
-/* Por defecto, si el main-content tiene `margin-left: var(--sidebar-width);` y cuando la sidebar está colapsada tiene `margin-left: 70px;`,
-   esto ya controla el "no superponerse". Para que "se superponga cuando se haya desplegado", necesitarías una clase
-   en el body o en el main-content que cambie ese `margin-left` a 0 o `auto` cuando la sidebar esté desplegada.
-   Como no tengo esa lógica, mantendré el margen para el estado "no superpuesto" por defecto y lo eliminaré en mobile. */
-
 
 .pos-container {
     display: flex;
@@ -90,14 +58,14 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     background-color: white;
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* Se mantiene oculto el scroll aquí, lo maneja products-grid-pos */
+    overflow: hidden;
     border: 1px solid var(--gray-200);
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-sm);
     height: 100%;
 }
 
-/* Nuevo Header para el panel de productos (simula el header superior) */
+/* Nuevo Header para el panel de productos */
 .pos-left-header {
     display: flex;
     justify-content: space-between;
@@ -159,7 +127,7 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 }
 
 .pos-left-header .mobile-menu-btn {
-    display: block;
+    display: none;
     background: none;
     border: none;
     color: var(--gray-600);
@@ -167,7 +135,6 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     padding: var(--spacing-xs);
     border-radius: var(--border-radius-md);
     transition: var(--transition-fast);
-    margin-right: var(--spacing-sm);
 }
 
 .pos-left-header .mobile-menu-btn:hover {
@@ -175,41 +142,29 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     color: var(--gray-800);
 }
 
-
-/* SECCIONES INTERNAS DEL PANEL IZQUIERDO */
+/* Sección de búsqueda de productos */
 .product-search-section {
     padding: var(--spacing-md) var(--spacing-lg);
     border-bottom: 1px solid var(--gray-200);
-    background-color: var(--gray-50);
+    background-color: white;
     flex-shrink: 0;
-    box-shadow: var(--shadow-xs);
-    position: sticky;
-    top: 70px; /* Debajo del pos-left-header (asumiendo 70px de alto para el header) */
-    z-index: 9;
 }
 
-.search-input-group {
+.search-container {
     position: relative;
     display: flex;
     align-items: center;
-    flex-grow: 1;
-}
-
-.search-icon {
-    position: absolute;
-    left: var(--spacing-sm);
-    color: var(--gray-400);
-    z-index: 2;
+    gap: var(--spacing-sm);
 }
 
 .search-input {
-    width: 100%;
-    padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) 2.2rem;
+    flex: 1;
+    padding: var(--spacing-sm) var(--spacing-md);
     border: 1px solid var(--gray-300);
     border-radius: var(--border-radius-md);
     font-size: var(--text-sm);
-    transition: var(--transition-fast);
     background-color: white;
+    transition: var(--transition-fast);
 }
 
 .search-input:focus {
@@ -221,48 +176,32 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 .search-clear-btn {
     position: absolute;
     right: var(--spacing-sm);
-    background: var(--gray-100);
+    background: none;
     border: none;
-    color: var(--gray-500);
+    color: var(--gray-400);
     cursor: pointer;
-    padding: 4px;
-    border-radius: var(--border-radius-full);
-    transition: var(--transition-fast);
-    font-size: 0.8rem;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    padding: var(--spacing-xs);
+    border-radius: var(--border-radius-sm);
+    display: none;
 }
 
 .search-clear-btn:hover {
-    background-color: var(--gray-200);
-    color: var(--gray-700);
+    color: var(--gray-600);
+    background-color: var(--gray-100);
 }
 
+/* Categorías rápidas */
 .categories-quick {
     padding: var(--spacing-md) var(--spacing-lg);
     border-bottom: 1px solid var(--gray-200);
-    background-color: var(--gray-50);
+    background-color: white;
     flex-shrink: 0;
-    box-shadow: var(--shadow-xs);
-    position: sticky;
-    top: calc(70px + 64px); /* Asumiendo 70px header + 64px search input section */
-    z-index: 8;
-}
-
-.categories-quick h3 {
-    font-size: var(--text-sm);
-    font-weight: 600;
-    color: var(--gray-700);
-    margin-bottom: var(--spacing-md);
 }
 
 .categories-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-    gap: var(--spacing-xs);
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: var(--spacing-sm);
 }
 
 .category-btn {
@@ -309,19 +248,19 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 }
 
 .products-section {
-    flex: 1; /* Permite que la sección de productos ocupe el espacio restante en el pos-left */
+    flex: 1;
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* Se mantiene oculto el scroll aquí, lo maneja products-grid-pos */
+    overflow: hidden;
 }
 
 .products-grid-pos {
-    display: flex; /* Cambiado a flex para una lista lineal vertical */
+    display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
     padding: var(--spacing-md);
-    overflow-y: auto; /* Habilitar scroll solo para los productos */
-    flex: 1; /* Esto permitirá que los productos ocupen el espacio restante y tengan scroll */
+    overflow-y: auto;
+    flex: 1;
 }
 
 .product-card {
@@ -333,13 +272,13 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     transition: var(--transition-fast);
     text-align: left;
     position: relative;
-    height: 100px; /* Altura fija para cada tarjeta de producto */
+    height: 100px;
     display: flex;
-    align-items: center; /* Alinea elementos verticalmente en el centro */
+    align-items: center;
     gap: var(--spacing-md);
     box-shadow: var(--shadow-xs);
     width: 100%;
-    box-sizing: border-box; /* Incluir padding en la altura */
+    box-sizing: border-box;
 }
 
 .product-card:hover {
@@ -361,9 +300,8 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 }
 
 .product-image {
-    width: 80px; /* Tamaño de la imagen para la lista lineal */
-    height: 80px; /* Tamaño de la imagen para la lista lineal */
-    margin: 0;
+    width: 70px;
+    height: 70px;
     background-color: var(--gray-100);
     border-radius: var(--border-radius-md);
     display: flex;
@@ -371,110 +309,98 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     justify-content: center;
     overflow: hidden;
     flex-shrink: 0;
+    position: relative;
 }
 
 .product-image img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    border-radius: var(--border-radius-md);
 }
 
-.product-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    color: var(--gray-400);
-    font-size: 24px;
+.out-of-stock-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background-color: var(--error-600);
+    color: white;
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: var(--border-radius-full);
+    font-weight: 600;
 }
 
-.product-details {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column; /* Nombre y categoría apilados */
-    justify-content: center;
-    height: 100%;
-    overflow: hidden; /* Ocultar contenido si es demasiado grande */
+.low-stock-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background-color: var(--warning-600);
+    color: white;
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: var(--border-radius-full);
+    font-weight: 600;
 }
 
-.product-name {
+.product-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.product-info h3 {
+    font-size: var(--text-sm);
     font-weight: 600;
     color: var(--gray-900);
-    margin: 0;
-    font-size: var(--text-base);
-    line-height: 1.3;
-    white-space: nowrap;
+    margin: 0 0 var(--spacing-xs) 0;
     overflow: hidden;
     text-overflow: ellipsis;
-}
-
-.product-category {
-    font-size: var(--text-sm);
-    color: var(--gray-500);
-    margin-top: 2px; /* Espacio debajo del nombre */
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.product-price-stock-container { /* Nuevo contenedor para precio y stock */
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end; /* Alinea los elementos a la derecha */
-    justify-content: center;
-    flex-shrink: 0; /* No permitir que se encoja */
-    margin-left: var(--spacing-md); /* Espacio entre detalles y precio/stock */
-    height: 100%;
 }
 
 .product-price {
-    font-family: var(--font-mono);
+    font-size: var(--text-lg);
     font-weight: 700;
     color: var(--primary-600);
-    font-size: var(--text-lg);
-    margin: 0;
-    line-height: 1; /* Eliminar espacio extra */
+    margin: 0 0 var(--spacing-xs) 0;
 }
 
 .product-stock {
     font-size: var(--text-xs);
+    color: var(--gray-600);
+    margin: 0;
+}
+
+.product-sku {
+    font-size: var(--text-xs);
     color: var(--gray-500);
+    margin: 0;
     font-family: var(--font-mono);
-    margin-top: 2px; /* Espacio debajo del precio */
-    line-height: 1; /* Eliminar espacio extra */
 }
 
-.product-stock.low-stock {
-    color: var(--warning-600);
-    font-weight: 600;
-}
-
-.product-card .add-to-cart-btn {
+.add-to-cart-btn {
+    position: absolute;
+    bottom: var(--spacing-sm);
+    right: var(--spacing-sm);
     background-color: var(--primary-500);
     color: white;
     border: none;
     border-radius: var(--border-radius-md);
     padding: var(--spacing-xs) var(--spacing-sm);
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
     font-weight: 600;
     cursor: pointer;
     transition: var(--transition-fast);
-    /* Posicionar el botón de añadir al final de la tarjeta */
-    position: absolute;
-    bottom: var(--spacing-sm);
-    right: var(--spacing-sm);
-    width: auto; /* Ancho automático para el texto */
-    min-width: 60px; /* Ancho mínimo para que se vea el texto ADD */
+    width: auto;
+    min-width: 60px;
     text-align: center;
 }
 
-.product-card .add-to-cart-btn:hover {
+.add-to-cart-btn:hover {
     background-color: var(--primary-600);
 }
 
-
-/* ===== RIGHT PANEL - CARRITO (Fixed/Sticky) ===== */
+/* ===== RIGHT PANEL - CARRITO ===== */
 .pos-right {
     background-color: white;
     display: flex;
@@ -482,7 +408,6 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     border: 1px solid var(--gray-200);
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-sm);
-    
     position: sticky;
     top: var(--spacing-md);
     height: calc(100vh - (2 * var(--spacing-md)));
@@ -540,6 +465,7 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     gap: 4px;
     flex-shrink: 0;
 }
+
 .igv-toggle-btn i {
     font-size: 0.75rem;
 }
@@ -554,11 +480,11 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     color: white;
     border-color: var(--success-600);
 }
+
 .igv-toggle-btn.active:hover {
     background-color: var(--success-700);
     border-color: var(--success-700);
 }
-
 
 /* Sección de cliente */
 .customer-section {
@@ -576,7 +502,7 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     font-size: var(--text-sm);
 }
 
-.form-select {
+.customer-select {
     width: 100%;
     padding: var(--spacing-sm);
     border: 1px solid var(--gray-300);
@@ -586,108 +512,125 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     transition: var(--transition-fast);
 }
 
-.form-select:focus {
+.customer-select:focus {
     outline: none;
     border-color: var(--primary-500);
     box-shadow: 0 0 0 2px rgb(59 130 246 / 0.15);
 }
 
-/* Items del carrito (con scroll) */
+/* Items del carrito */
 .cart-items {
     flex: 1;
     overflow-y: auto;
-    padding: var(--spacing-md) var(--spacing-lg);
-    background-color: var(--gray-50);
+    padding: var(--spacing-sm);
+    background-color: white;
 }
 
 .cart-item {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
+    justify-content: space-between;
     padding: var(--spacing-sm);
-    border: 1px solid var(--gray-200);
-    border-radius: var(--border-radius-md);
-    margin-bottom: var(--spacing-sm);
-    background-color: white;
-    box-shadow: var(--shadow-xs);
+    border-bottom: 1px solid var(--gray-100);
+    gap: var(--spacing-sm);
+    position: relative;
 }
 
-.item-info {
+.cart-item:last-child {
+    border-bottom: none;
+}
+
+.cart-item-info {
     flex: 1;
+    min-width: 0;
 }
 
-.item-name {
+.cart-item-info h4 {
+    font-size: var(--text-sm);
     font-weight: 600;
     color: var(--gray-900);
-    margin: 0 0 2px 0;
-    font-size: var(--text-sm);
+    margin: 0 0 var(--spacing-xs) 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .item-price {
-    font-family: var(--font-mono);
-    color: var(--gray-600);
     font-size: var(--text-xs);
+    color: var(--gray-600);
     margin: 0;
 }
 
-.item-controls {
+.cart-item-controls {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--spacing-sm);
 }
 
-.qty-btn {
+.quantity-controls {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+}
+
+.quantity-btn {
+    background: var(--gray-100);
+    border: none;
+    padding: var(--spacing-xs);
     width: 28px;
     height: 28px;
-    border: 1px solid var(--gray-300);
-    border-radius: var(--border-radius-sm);
-    background-color: white;
-    color: var(--gray-600);
     cursor: pointer;
     transition: var(--transition-fast);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-}
-
-.qty-btn:hover {
-    background-color: var(--gray-100);
-    border-color: var(--gray-400);
-    color: var(--gray-800);
-}
-
-.item-quantity {
     font-weight: 600;
-    color: var(--gray-900);
-    min-width: 28px;
+    color: var(--gray-700);
+}
+
+.quantity-btn:hover {
+    background: var(--gray-200);
+}
+
+.quantity-input {
+    border: none;
+    width: 40px;
     text-align: center;
+    padding: var(--spacing-xs);
     font-size: var(--text-sm);
+    font-weight: 600;
+    background: white;
+}
+
+.quantity-input:focus {
+    outline: none;
 }
 
 .item-total {
-    font-family: var(--font-mono);
+    font-size: var(--text-sm);
     font-weight: 700;
-    color: var(--primary-600);
-    min-width: 70px;
+    color: var(--gray-900);
+    min-width: 60px;
     text-align: right;
-    font-size: var(--text-base);
 }
 
 .remove-btn {
-    background: none;
+    background: var(--error-100);
     border: none;
-    color: var(--error-500);
-    cursor: pointer;
-    padding: 4px;
+    color: var(--error-600);
+    padding: var(--spacing-xs);
     border-radius: var(--border-radius-md);
+    cursor: pointer;
     transition: var(--transition-fast);
-    font-size: 0.9rem;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .remove-btn:hover {
-    background-color: var(--error-50);
-    color: var(--error-600);
+    background: var(--error-200);
+    color: var(--error-700);
 }
 
 /* Resumen del carrito */
@@ -770,10 +713,10 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     color: var(--primary-700);
     font-weight: 600;
 }
+
 .payment-method.active i {
     color: var(--primary-600);
 }
-
 
 .cash-payment {
     margin-top: var(--spacing-md);
@@ -815,7 +758,7 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     font-size: var(--text-sm);
 }
 
-/* Acciones del POS (fijas en la parte inferior del carrito) */
+/* Acciones del POS */
 .pos-actions {
     padding: var(--spacing-md) var(--spacing-lg);
     display: flex;
@@ -825,11 +768,11 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     background-color: white;
     flex-shrink: 0;
 }
+
 .pos-actions .btn {
     padding: var(--spacing-sm) var(--spacing-md);
     font-size: var(--text-sm);
 }
-
 
 /* Estados vacíos */
 .empty-state {
@@ -843,7 +786,7 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     min-height: 150px;
     background-color: white;
     border-radius: var(--border-radius-lg);
-    flex-grow: 1; /* Permitir que ocupe el espacio */
+    flex-grow: 1;
 }
 
 .empty-state i {
@@ -871,7 +814,7 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     padding: var(--spacing-sm) var(--spacing-md);
 }
 
-/* ===== MODALES ===== */
+/* ===== MODALES CORREGIDOS ===== */
 .modal {
     position: fixed;
     top: 0;
@@ -884,11 +827,15 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     justify-content: center;
     z-index: 10000;
     backdrop-filter: blur(4px);
-    transition: opacity 0.3s ease;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
     opacity: 0;
+    visibility: hidden;
 }
-.modal.show {
+
+.modal.show,
+.modal.modal-open {
     opacity: 1;
+    visibility: visible;
 }
 
 .modal-content {
@@ -902,7 +849,9 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     transform: translateY(-20px);
     transition: transform 0.3s ease;
 }
-.modal.show .modal-content {
+
+.modal.show .modal-content,
+.modal.modal-open .modal-content {
     transform: translateY(0);
 }
 
@@ -915,12 +864,19 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     max-width: 400px;
 }
 
+/* Modal específico de transacción */
+#transactionModal .modal-content {
+    max-width: 600px;
+}
+
 .modal-header {
     padding: var(--spacing-lg);
     border-bottom: 1px solid var(--gray-200);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: var(--gray-50);
+    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
 }
 
 .modal-header h3 {
@@ -939,6 +895,7 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     transition: var(--transition-fast);
     padding: var(--spacing-sm);
     border-radius: var(--border-radius-md);
+    line-height: 1;
 }
 
 .modal-close:hover {
@@ -956,8 +913,67 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     gap: var(--spacing-md);
     justify-content: flex-end;
     border-top: 1px solid var(--gray-200);
+    background: var(--gray-50);
+    border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
 }
 
+.modal-footer .btn {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    min-width: 120px;
+}
+
+.modal-footer .btn-outline {
+    background: white;
+    border: 2px solid var(--gray-300);
+    color: var(--gray-700);
+}
+
+.modal-footer .btn-outline:hover {
+    border-color: var(--gray-400);
+    background: var(--gray-50);
+}
+
+.modal-footer .btn-primary {
+    background: var(--primary-600);
+    border: 2px solid var(--primary-600);
+    color: white;
+}
+
+.modal-footer .btn-primary:hover {
+    background: var(--primary-700);
+    border-color: var(--primary-700);
+    transform: translateY(-1px);
+}
+
+/* Estilos para el modal de transacción completa */
+.transaction-summary {
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    background: linear-gradient(135deg, var(--success-50), var(--success-100));
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--success-200);
+}
+
+.transaction-summary h4 {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    color: var(--success-700);
+    margin-bottom: var(--spacing-sm);
+}
+
+.transaction-summary p {
+    font-size: var(--text-base);
+    color: var(--gray-700);
+    margin-bottom: var(--spacing-xs);
+}
+
+.transaction-summary p strong {
+    color: var(--gray-900);
+    font-weight: 600;
+}
 
 /* Estilos específicos para el modal de ventas suspendidas */
 #suspendedSalesModal .modal-content {
@@ -1010,33 +1026,10 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     font-size: var(--text-sm);
 }
 
-/* Estilos para el modal de transacción completa */
-.transaction-summary {
-    text-align: center;
-    margin-bottom: var(--spacing-lg);
-}
-
-.transaction-summary h4 {
-    font-size: var(--text-xl);
-    font-weight: 700;
-    color: var(--primary-600);
-    margin-bottom: var(--spacing-sm);
-}
-
-.transaction-summary p {
-    font-size: var(--text-base);
-    color: var(--gray-700);
-    margin-bottom: var(--spacing-xs);
-}
-
-.transaction-summary p strong {
-    color: var(--gray-900);
-}
-
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
     .main-content {
-        margin-left: 0; /* Sidebar se superpone en móvil */
+        margin-left: 0;
     }
     
     .pos-left-header .mobile-menu-btn {
@@ -1076,6 +1069,7 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
         flex-direction: column;
         align-items: flex-start;
     }
+    
     .suspended-sale-item .sale-actions {
         width: 100%;
         justify-content: center;
@@ -1083,15 +1077,18 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
 
     .product-card {
         padding: var(--spacing-xs);
-        height: 80px; /* Ajuste de altura para móvil */
+        height: 80px;
     }
+    
     .product-image {
         width: 60px;
         height: 60px;
     }
-    .product-name {
+    
+    .product-card h3 {
         font-size: var(--text-xs);
     }
+    
     .product-price {
         font-size: var(--text-sm);
     }
@@ -1101,13 +1098,19 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
         justify-content: center;
         text-align: center;
     }
-    .cart-item .item-info, .cart-item .item-controls, .cart-item .item-total {
+    
+    .cart-item .cart-item-info, 
+    .cart-item .cart-item-controls, 
+    .cart-item .item-total {
         width: 100%;
         text-align: center;
     }
-    .cart-item .item-info h4, .cart-item .item-info p {
+    
+    .cart-item .cart-item-info h4, 
+    .cart-item .cart-item-info p {
         text-align: center;
     }
+    
     .cart-item .remove-btn {
         position: absolute;
         top: 4px;
@@ -1122,9 +1125,11 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
         padding: var(--spacing-sm) var(--spacing-md);
         border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
     }
+    
     .pos-left-header h1 {
         margin-bottom: var(--spacing-xs);
     }
+    
     .pos-left-header .user-info {
         align-items: flex-start;
     }
@@ -1134,7 +1139,8 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
         gap: var(--spacing-sm);
     }
 
-    .product-search-section, .categories-quick {
+    .product-search-section, 
+    .categories-quick {
         padding: var(--spacing-sm) var(--spacing-md);
     }
     
@@ -1143,14 +1149,16 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
         padding: var(--spacing-sm);
         gap: var(--spacing-xs);
     }
+    
     .product-card {
         flex-direction: column;
         align-items: center;
         text-align: center;
-        height: auto; /* Permitir altura automática para que el contenido quepa */
+        height: auto;
     }
+    
     .product-card .add-to-cart-btn {
-        position: relative; /* Quitar absolute positioning en móvil si se apilan */
+        position: relative;
         bottom: auto;
         right: auto;
         margin-top: var(--spacing-sm);
@@ -1160,6 +1168,26 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
     .pos-actions {
         padding: var(--spacing-md);
     }
+    
+    .modal-content {
+        width: 95%;
+        max-width: none;
+        margin: var(--spacing-md);
+    }
+    
+    .modal-footer {
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+    
+    .modal-footer .btn {
+        width: 100%;
+        min-width: auto;
+    }
+    
+    .transaction-summary {
+        padding: var(--spacing-md);
+    }
 }
 
 @media (max-width: 480px) {
@@ -1167,56 +1195,75 @@ codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/
         padding: var(--spacing-xs);
         gap: var(--spacing-xs);
     }
+    
     .products-grid-pos {
         padding: var(--spacing-xs);
         gap: var(--spacing-xs);
     }
+    
     .product-card {
         padding: var(--spacing-xs);
     }
+    
     .categories-grid {
         grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
     }
+    
     .search-input {
         font-size: var(--text-xs);
     }
+    
     .category-btn {
         font-size: 0.65rem;
     }
+    
     .category-btn i {
         font-size: 0.9rem;
     }
+    
     .cart-item {
         padding: var(--spacing-xs);
         font-size: var(--text-xs);
     }
-    .item-name {
+    
+    .cart-item-info h4 {
         font-size: var(--text-xs);
     }
+    
     .item-price {
         font-size: 0.6rem;
     }
+    
     .item-total {
         font-size: var(--text-sm);
     }
-    .qty-btn {
+    
+    .quantity-btn {
         width: 24px;
         height: 24px;
         font-size: 0.7rem;
     }
+    
     .remove-btn {
         font-size: 0.7rem;
     }
+    
     .pos-right {
         border-radius: var(--border-radius-md);
     }
-    .cart-header, .customer-section, .cart-items, .cart-summary, .payment-section, .pos-actions {
+    
+    .cart-header, 
+    .customer-section, 
+    .cart-items, 
+    .cart-summary, 
+    .payment-section, 
+    .pos-actions {
         padding-left: var(--spacing-sm);
         padding-right: var(--spacing-sm);
     }
 }
 
-/* Scrollbar Styling for POS specific elements */
+/* ===== SCROLLBAR STYLING ===== */
 .products-grid-pos::-webkit-scrollbar {
     width: 6px;
     height: 6px;
