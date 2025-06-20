@@ -480,22 +480,21 @@ function showPaymentModal() {
     const tax = POSState.includeIgv ? subtotal * 0.18 : 0;
     const total = subtotal + tax;
     
-    // Verificar si el modal ya existe
-    let paymentModal = document.getElementById('paymentModal');
-    let paymentContent = document.getElementById('paymentContent');
+    // Crear el modal si no existe
+    if (!document.getElementById('paymentModal')) {
+        createPaymentModal();
+    }
+    
+    const paymentModal = document.getElementById('paymentModal');
+    const paymentContent = document.getElementById('paymentContent');
     
     if (!paymentModal || !paymentContent) {
-        console.error('No se pudo encontrar el modal de pago o su contenido');
-        // Crear el modal dinámicamente si no existe
-        createPaymentModal();
-        paymentModal = document.getElementById('paymentModal');
-        paymentContent = document.getElementById('paymentContent');
-        
-        if (!paymentModal || !paymentContent) {
-            console.error('No se pudo crear el modal de pago');
-            return;
-        }
+        console.error('No se pudo crear el modal de pago');
+        return;
     }
+    
+    // Mostrar el modal ANTES de actualizar su contenido
+    openModal('paymentModal');
     
     // Actualizar el contenido del modal de pago
     paymentContent.innerHTML = `
@@ -519,14 +518,14 @@ function showPaymentModal() {
         <div class="payment-method-selection" style="margin: 20px 0;">
             <h4>Método de pago</h4>
             <div class="payment-methods" style="display: flex; gap: 10px; margin: 10px 0;">
-                <button class="btn ${POSState.paymentMethod === 'cash' ? 'btn-primary' : 'btn-outline'}" 
+                <button type="button" class="btn ${POSState.paymentMethod === 'cash' ? 'btn-primary' : 'btn-outline'}" 
                         data-method="cash" 
                         onclick="selectPaymentMethod('cash')"
                         style="flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px;">
                     <i class="fas fa-money-bill" style="font-size: 24px; margin-bottom: 5px;"></i>
                     <span>Efectivo</span>
                 </button>
-                <button class="btn ${POSState.paymentMethod === 'card' ? 'btn-primary' : 'btn-outline'}" 
+                <button type="button" class="btn ${POSState.paymentMethod === 'card' ? 'btn-primary' : 'btn-outline'}" 
                         data-method="card" 
                         onclick="selectPaymentMethod('card')"
                         style="flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px;">
@@ -550,17 +549,14 @@ function showPaymentModal() {
         </div>
         
         <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
-            <button class="btn btn-outline" onclick="closeModal('paymentModal')" style="padding: 8px 16px;">
+            <button type="button" class="btn btn-outline" onclick="closeModal('paymentModal')" style="padding: 8px 16px;">
                 Cancelar
             </button>
-            <button class="btn btn-primary" onclick="processPayment()" style="padding: 8px 16px;">
+            <button type="button" class="btn btn-primary" onclick="processPayment()" style="padding: 8px 16px;">
                 <i class="fas fa-check"></i> Confirmar Pago
             </button>
         </div>
     `;
-    
-    // Mostrar el modal
-    openModal('paymentModal');
     
     // Configurar el método de pago inicial
     selectPaymentMethod(POSState.paymentMethod || 'cash');
@@ -571,11 +567,12 @@ function showPaymentModal() {
             const cashInput = document.getElementById('cashReceivedInput');
             if (cashInput) {
                 cashInput.focus();
-                // Seleccionar todo el texto para facilitar la edición
                 cashInput.select();
             }
-        }, 300);
+        }, 100);
     }
+    
+    return false; // Prevenir comportamiento por defecto del botón
 }
 
 // Función para crear el modal de pago dinámicamente si no existe
@@ -587,13 +584,13 @@ function createPaymentModal() {
     
     // Crear el elemento del modal
     const modalHTML = `
-    <div class="modal-overlay" id="paymentModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 1000; display: flex; justify-content: center; align-items: center;">
+    <div class="modal-overlay" id="paymentModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 1000; display: none; justify-content: center; align-items: center;">
         <div class="modal" style="background: white; border-radius: 8px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);">
-            <div class="modal-header" style="padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+            <div class="modal-header" style="padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: white; z-index: 1;">
                 <h3 class="modal-title" style="margin: 0; font-size: 1.25rem; color: #333;">Procesar Pago</h3>
-                <button class="modal-close" onclick="closeModal('paymentModal')" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">&times;</button>
+                <button type="button" class="modal-close" onclick="closeModal('paymentModal')" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666; padding: 0 5px;">&times;</button>
             </div>
-            <div class="modal-body" style="padding: 20px;">
+            <div class="modal-body" style="padding: 20px; overflow-y: auto; max-height: calc(90vh - 120px);">
                 <div id="paymentContent">
                     <!-- El contenido se llenará dinámicamente con JavaScript -->
                 </div>
