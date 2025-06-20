@@ -409,8 +409,8 @@ function calculateChange() {
 
     POSState.cashReceived = cashReceived;
 }
-
-/* duplicate block removed
+/* Duplicated old calculateChange block removed
+    // Solo continuar si el input de efectivo existe en el panel
     const cashInput = document.getElementById('cashReceivedInput');
     if (!cashInput) return;
     console.log('Calculando cambio...');
@@ -486,6 +486,15 @@ function calculateChange() {
         confirmBtn.classList.remove('btn-success');
         confirmBtn.classList.add('btn-primary');
         confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirmar Pago';
+    }
+    
+    // Actualizar el estado global con el monto recibido
+    POSState.cashReceived = cashReceived;
+    
+    console.log('Cálculo de cambio completado');
+*/
+// }
+
 function selectPaymentMethod(method) {
     console.log('Seleccionando método de pago:', method);
     
@@ -748,9 +757,8 @@ function showPaymentModal() {
     return false;
 }
 
-function createPaymentModal() {
-  // deprecated: no-op kept for backward compatibility
-}
+function createPaymentModal() {} // deprecated
+/*
 // createPaymentModal eliminado: se reemplaza por panel fijo {
     console.log('Creando modal de pago...');
     
