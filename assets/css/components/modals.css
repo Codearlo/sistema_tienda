@@ -1,240 +1,73 @@
-/*
- * Archivo: modals.css
- * Descripción: Estilos para los componentes de modales (ventanas emergentes).
- */
-
-/* ========================================= */
-/* Estilos Base para el Overlay del Modal */
-/* ========================================= */
-
+/* Estilos para el overlay del modal */
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.6); /* Un poco más oscuro para asegurar visibilidad */
+    background-color: rgba(0, 0, 0, 0.5);
     display: none; /* Oculto por defecto */
-    justify-content: center; /* Centra el contenido horizontalmente */
-    align-items: center;    /* Centra el contenido verticalmente */
-    z-index: 1000; /* Asegura que esté por encima de la mayoría de los elementos */
-    opacity: 0; /* Opacidad inicial para la transición */
-    transition: opacity 0.3s ease-in-out; /* Transición suave de opacidad */
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
 }
 
-/* Estado visible del overlay */
+/* Cuando el overlay tiene la clase 'show', se vuelve visible */
 .modal-overlay.show {
-    opacity: 1; /* Completamente visible */
-    display: flex; /* Hace el overlay visible y permite centrar el modal con flexbox */
+    display: flex; /* Hace visible el overlay */
+    opacity: 1;
 }
 
-/* ========================================= */
-/* Estilos Base para la Ventana del Modal (el cuadro de contenido) */
-/* ========================================= */
-
+/* Estilos para la ventana del modal (el contenido en sí) */
 .modal {
-    background-color: var(--white); /* Color de fondo del modal, usando una variable CSS */
-    padding: 25px; /* Relleno interno del modal */
-    border-radius: 8px; /* Bordes redondeados */
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25); /* Sombra para darle profundidad */
-    width: 90%; /* Ancho del modal */
-    max-width: 600px; /* Ancho máximo para el modal */
-    z-index: 1001; /* Asegura que el modal esté por encima de su propio overlay */
+    background-color: #fff; /* O tu color de fondo */
+    padding: 25px; /* Ajusta según necesites */
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 600px; /* Ajusta según tu diseño */
+    z-index: 1001; /* Siempre encima del overlay */
 
-    /* Propiedades para la animación de entrada/salida y visibilidad inicial */
-    display: none; /* Crucial: Oculto por defecto para que la animación funcione al aparecer */
-    opacity: 0; /* Opacidad inicial para la animación */
-    transform: translateY(-30px); /* Posición inicial para la animación (viene de arriba) */
-    transition: opacity 0.3s ease-out, transform 0.3s ease-out; /* Transiciones suaves */
+    /* Propiedades para la animación y visibilidad predeterminada */
+    display: none; /* Crucial: oculto por defecto para que la transición funcione */
+    opacity: 0; /* Opacidad inicial para animación */
+    transform: translateY(-20px); /* Posición inicial para animación */
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
 
-    /* Layout interno del modal */
-    display: flex; /* Usamos flexbox para organizar el header, body, footer */
-    flex-direction: column; /* Apila los elementos verticalmente */
-    max-height: 90vh; /* Máxima altura del modal (90% del viewport height) */
-    overflow-y: auto; /* Permite scroll si el contenido es demasiado largo */
+    /* Propiedades para el layout interno del modal (si las usas) */
+    flex-direction: column;
+    gap: 15px;
 }
 
-/* Estado visible del modal cuando su overlay está activo */
+
+/* Cuando el overlay se muestra, también se muestra el contenido del modal */
 .modal-overlay.show .modal {
-    display: flex; /* ¡IMPORTANTE! Hace visible el contenido del modal cuando el overlay está activo */
-    opacity: 1; /* Opacidad final */
-    transform: translateY(0); /* Posición final */
+    display: flex; /* <-- ¡Asegúrate de que esta regla esté aquí y NO esté tachada en dev tools! */
+    opacity: 1;
+    transform: translateY(0);
 }
 
-/* ========================================= */
-/* Estilos para las Secciones Internas del Modal */
-/* ========================================= */
-
+/* Estilos opcionales para la estructura interna del modal (si los tienes definidos) */
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding-bottom: 15px;
-    margin-bottom: 15px; /* Espacio debajo del header */
-    border-bottom: 1px solid var(--gray-200); /* Línea divisoria, usando una variable CSS */
-}
-
-.modal-title {
-    font-size: 1.5rem;
-    color: var(--primary-800); /* Color del título, usando variable CSS */
-    margin: 0;
-}
-
-.modal-close {
-    background: none;
-    border: none;
-    font-size: 2rem;
-    color: var(--gray-500); /* Color del botón de cerrar */
-    cursor: pointer;
-    line-height: 1;
-    padding: 0;
-    transition: color 0.2s ease;
-}
-
-.modal-close:hover {
-    color: var(--error-600); /* Cambia de color al pasar el ratón */
+    border-bottom: 1px solid var(--gray-200); /* Usar tu variable de color */
 }
 
 .modal-body {
-    flex-grow: 1; /* Permite que el body del modal ocupe el espacio restante */
-    padding-top: 0; /* Ya hay margen en el header */
-    padding-bottom: 20px; /* Espaciado antes del footer */
-    overflow-y: auto; /* Permite scroll interno si el body es muy largo */
+    flex-grow: 1; /* Permite que el cuerpo ocupe el espacio disponible */
+    padding-top: 15px;
+    padding-bottom: 15px;
 }
 
 .modal-footer {
     display: flex;
-    justify-content: flex-end; /* Alinea los botones a la derecha */
-    gap: 10px; /* Espacio entre botones */
-    padding-top: 20px; /* Espaciado encima del footer */
-    margin-top: auto; /* Empuja el footer hacia abajo si el body es pequeño */
-    border-top: 1px solid var(--gray-200); /* Línea divisoria */
-}
-
-/* ========================================= */
-/* Estilos Específicos para el Modal de Pago */
-/* (Pueden estar en pos-payment-modal.css si existe, o aquí) */
-/* ========================================= */
-
-.modal-payment .payment-summary {
-    margin-bottom: 20px;
-    padding: 15px;
-    border-radius: 6px;
-    background-color: var(--gray-50);
-    border: 1px solid var(--gray-200);
-}
-
-.modal-payment .summary-row {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 8px;
-    font-size: 1.1rem;
-}
-
-.modal-payment .summary-row.total {
-    font-weight: bold;
-    font-size: 1.4rem;
-    color: var(--primary-700);
-    border-top: 1px dashed var(--gray-300);
-    padding-top: 10px;
-    margin-top: 10px;
-}
-
-.modal-payment .payment-method-selection h4 {
-    margin-bottom: 10px;
-    color: var(--text-base);
-}
-
-.modal-payment .payment-method-selection .payment-methods {
-    display: flex;
-    justify-content: center; /* Centrar el botón del método de pago seleccionado */
-    gap: 15px;
-    margin-bottom: 20px;
-}
-
-.modal-payment .payment-method-btn {
-    /* Estilos para el botón de método de pago dentro del modal (si es solo para mostrar el seleccionado) */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 15px 20px;
-    border: 1px solid var(--gray-300);
-    border-radius: 8px;
-    background-color: var(--white);
-    color: var(--gray-700);
-    font-size: 1.1rem;
-    cursor: default; /* No permitir click si es solo para visualización */
-    transition: all 0.2s ease;
-    flex-grow: 1; /* Permitir que ocupe espacio */
-    max-width: 150px; /* Ancho máximo para el botón */
-}
-
-.modal-payment .payment-method-btn.active {
-    border-color: var(--primary-500);
-    background-color: var(--primary-50);
-    color: var(--primary-700);
-    box-shadow: 0 2px 5px rgba(var(--primary-500-rgb), 0.2);
-}
-
-.modal-payment .payment-method-btn i {
-    font-size: 2rem;
-    margin-bottom: 8px;
-}
-
-.modal-payment .cash-payment-section .form-group label {
-    font-weight: bold;
-    margin-bottom: 5px;
-    display: block;
-}
-
-.modal-payment .cash-payment-section .form-input {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid var(--gray-300);
-    border-radius: 5px;
-    font-size: 1.2rem;
-    text-align: right;
-    background-color: var(--gray-100); /* Fondo ligeramente gris para readonly */
-}
-
-.modal-payment .change-amount {
-    margin-top: 15px;
-    padding: 10px;
-    border-radius: 5px;
-    background-color: var(--success-50);
-    border: 1px solid var(--success-200);
-    color: var(--success-700);
-    font-size: 1.3rem;
-    font-weight: bold;
-    text-align: center;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-}
-
-/* Reglas para responsive (ejemplo, ajusta según tus media queries) */
-@media (max-width: 768px) {
-    .modal {
-        width: 95%;
-        padding: 15px;
-    }
-
-    .modal-title {
-        font-size: 1.2rem;
-    }
-
-    .modal-close {
-        font-size: 1.5rem;
-    }
-
-    .modal-payment .payment-method-btn {
-        padding: 10px 15px;
-        font-size: 1rem;
-    }
-
-    .modal-payment .payment-method-btn i {
-        font-size: 1.5rem;
-    }
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 15px;
+    border-top: 1px solid var(--gray-200); /* Usar tu variable de color */
 }
