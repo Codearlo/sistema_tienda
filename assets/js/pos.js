@@ -514,23 +514,39 @@ function newTransaction() {
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
+        // Asegurarse de que el modal sea visible
         modal.style.display = 'flex';
-        modal.offsetHeight;
-        modal.classList.add('show');
+        document.body.style.overflow = 'hidden'; // Prevenir scroll del body
         
-        const firstInput = modal.querySelector('input, select, textarea');
+        // Agregar clase para animación
+        setTimeout(() => {
+            modal.classList.add('show');
+            modal.style.opacity = '1';
+            modal.style.visibility = 'visible';
+        }, 10);
+        
+        // Enfocar el primer elemento interactivo si existe
+        const firstInput = modal.querySelector('input, select, textarea, button');
         if (firstInput) {
             setTimeout(() => firstInput.focus(), 100);
         }
+    } else {
+        console.error('No se pudo encontrar el modal con ID:', modalId);
     }
 }
 
 function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
+        // Remover clase de animación
         modal.classList.remove('show');
+        modal.style.opacity = '0';
+        
+        // Ocultar el modal después de la animación
         setTimeout(() => {
             modal.style.display = 'none';
+            modal.style.visibility = 'hidden';
+            document.body.style.overflow = ''; // Restaurar scroll del body
         }, 300);
     }
 }
