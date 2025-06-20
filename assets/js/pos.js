@@ -24,6 +24,7 @@ function initializePOS() {
     console.log('Inicializando POS...');
     
     // Usar datos del PHP
+    // Se asegura que las variables globales 'products_data', 'categories_data' y 'customers_data' se asignen al estado.
     if (typeof products_data !== 'undefined') {
         POSState.products = products_data;
     } else {
@@ -40,9 +41,11 @@ function initializePOS() {
         console.warn('customers_data no está definido en el ámbito global.');
     }
 
+    // CONSOLE.LOGS PARA DEPURACIÓN
     console.log('POSState.products después de inicializar:', POSState.products);
     console.log('POSState.categories después de inicializar:', POSState.categories);
     console.log('POSState.customers después de inicializar:', POSState.customers);
+    // FIN DE CONSOLE.LOGS DE DEPURACIÓN
     
     // Inicializar reloj
     updateClock();
@@ -77,15 +80,14 @@ function setupEventListeners() {
     }
     
     // Monto recibido en efectivo
-    // Asegurarse de que el input tenga el ID correcto para el modal de pago
-    // En el HTML del modal se usa 'cashReceivedInput', por lo que JS debe referenciarlo.
+    // Asegurarse de que el ID del input sea consistente 'cashReceivedInput'
     const cashInput = document.getElementById('cashReceivedInput'); 
     if (cashInput) {
         cashInput.addEventListener('input', calculateChange);
     }
     
     // Métodos de pago
-    // Asegurarse de que los botones tengan la clase correcta para el modal de pago
+    // Asegurarse de que el selector de clase sea consistente '.payment-method-btn'
     const paymentMethods = document.querySelectorAll('.payment-method-btn'); 
     paymentMethods.forEach(btn => {
         btn.addEventListener('click', () => selectPaymentMethod(btn.dataset.method));
@@ -96,12 +98,12 @@ function setupEventListeners() {
 function loadCategories() {
     const grid = document.getElementById('categoriesGrid');
     if (!grid) {
-        console.error('categoriesGrid no encontrado.');
+        console.error('categoriesGrid no encontrado.'); // Depuración
         return;
     }
     
     let html = `
-        <button class="category-btn ${POSState.selectedCategory === null ? 'active' : ''}" onclick="filterByCategory(null)" data-category-id="null">
+        <button class="category-btn ${!POSState.selectedCategory ? 'active' : ''}" onclick="filterByCategory(null)" data-category-id="null">
             <i class="fas fa-th-large"></i>
             Todos
         </button>
@@ -118,14 +120,14 @@ function loadCategories() {
     });
     
     grid.innerHTML = html;
-    console.log('Categorías cargadas:', POSState.categories.length);
+    console.log('Categorías cargadas:', POSState.categories.length); // Depuración
 }
 
 function loadProducts() {
     const grid = document.getElementById('productsGrid');
-    const emptyProductsState = document.getElementById('emptyProducts');
+    const emptyProductsState = document.getElementById('emptyProducts'); // Obtener el estado vacío
     if (!grid) {
-        console.error('productsGrid no encontrado.');
+        console.error('productsGrid no encontrado.'); // Depuración
         return;
     }
     
@@ -144,22 +146,22 @@ function loadProducts() {
     });
     
     if (filteredProducts.length === 0) {
-        grid.style.display = 'none';
+        grid.style.display = 'none'; // Ocultar la cuadrícula de productos
         if (emptyProductsState) {
-            emptyProductsState.style.display = 'flex';
+            emptyProductsState.style.display = 'flex'; // Mostrar el estado vacío
         }
-        console.log('No se encontraron productos filtrados.');
+        console.log('No se encontraron productos filtrados.'); // Depuración
         return;
     }
     
-    grid.style.display = 'grid';
+    grid.style.display = 'grid'; // Asegurarse de que la cuadrícula esté visible
     if (emptyProductsState) {
-        emptyProductsState.style.display = 'none';
+        emptyProductsState.style.display = 'none'; // Ocultar el estado vacío
     }
     
     let html = '';
     filteredProducts.forEach(product => {
-        const stock = product.stock_quantity || 0;
+        const stock = product.stock_quantity || 0; // Usar stock_quantity directamente
         const isLowStock = stock <= (product.min_stock || 5);
         
         html += `
@@ -182,7 +184,7 @@ function loadProducts() {
     });
     
     grid.innerHTML = html;
-    console.log('Productos cargados:', filteredProducts.length);
+    console.log('Productos cargados:', filteredProducts.length); // Depuración
 }
 
 // ===== MANEJO DEL CARRITO =====
@@ -193,7 +195,7 @@ function addToCart(productId) {
         return;
     }
     
-    const stock = product.stock_quantity || 0;
+    const stock = product.stock_quantity || 0; // Usar stock_quantity
     if (stock === 0) {
         showMessage('Producto sin stock', 'warning');
         return;
@@ -215,7 +217,7 @@ function addToCart(productId) {
             price: parseFloat(product.selling_price),
             quantity: 1,
             subtotal: parseFloat(product.selling_price),
-            stock: stock
+            stock: stock // Guardar stock disponible para validación
         });
     }
     
@@ -236,7 +238,7 @@ function updateQuantity(productId, newQuantity) {
     const item = POSState.cart.find(item => item.product_id == productId);
     if (!item) return;
     
-    newQuantity = parseInt(newQuantity);
+    newQuantity = parseInt(newQuantity); // Asegurarse de que sea un número entero
     
     if (isNaN(newQuantity) || newQuantity <= 0) {
         removeFromCart(productId);
@@ -245,7 +247,7 @@ function updateQuantity(productId, newQuantity) {
     
     if (newQuantity > item.stock) {
         showMessage(`Cantidad excede el stock disponible (${item.stock})`, 'warning');
-        item.quantity = item.stock; 
+        item.quantity = item.stock; // Ajustar a la cantidad máxima disponible
     } else {
         item.quantity = newQuantity;
     }
@@ -258,7 +260,8 @@ function updateQuantity(productId, newQuantity) {
 
 function updateCartDisplay() {
     const cartItemsContainer = document.getElementById('cartItems');
-    const emptyState = cartItemsContainer ? cartItemsContainer.querySelector('.empty-state') : null;
+    // Si 'emptyCartState' está presente en el HTML, usarlo; de lo contrario, buscar dentro del contenedor.
+    const emptyState = document.getElementById('emptyCartState') || (cartItemsContainer ? cartItemsContainer.querySelector('.empty-state') : null);
     const completeBtn = document.getElementById('completeBtn');
     const cartCountSpan = document.getElementById('cartCount');
     const cartSummaryDiv = document.getElementById('cartSummary');
@@ -266,12 +269,8 @@ function updateCartDisplay() {
     if (!cartItemsContainer) return;
     
     if (POSState.cart.length === 0) {
-        // Asegurarse de que el empty-state se inserte correctamente si no existe
-        if (!emptyState) {
-             cartItemsContainer.innerHTML = `<div class="empty-state"><i class="fas fa-shopping-cart fa-2x"></i><h3>El carrito está vacío</h3><p>Agregue productos para comenzar</p></div>`;
-        } else {
-            emptyState.style.display = 'flex';
-        }
+        if (cartItemsContainer) cartItemsContainer.innerHTML = `<div class="empty-state"><i class="fas fa-shopping-cart fa-2x"></i><h3>El carrito está vacío</h3><p>Agregue productos para comenzar</p></div>`; // Restaurar empty state si se eliminó
+        if (emptyState) emptyState.style.display = 'flex';
         if (completeBtn) completeBtn.disabled = true;
         if (cartSummaryDiv) cartSummaryDiv.style.display = 'none';
     } else {
@@ -302,14 +301,14 @@ function updateCartDisplay() {
                         </div>
                         <div class="item-total">S/ ${item.subtotal.toFixed(2)}</div>
                         <button onclick="removeFromCart(${item.product_id})" 
-                            class="remove-btn" title="Eliminar">
+                                class="remove-btn" title="Eliminar">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
                 </div>
             `;
         });
-        cartItemsContainer.innerHTML = html;
+        cartItemsContainer.innerHTML = html; // Asignar HTML directamente
     }
     
     if (cartCountSpan) {
@@ -327,10 +326,12 @@ function updateTotals() {
         total = subtotal + tax;
     }
     
+    // Actualizar elementos en la interfaz
+    // Asegurarse de que los IDs de los spans sean 'subtotal', 'tax', 'total' según el HTML de pos.php
     const elements = {
-        'subtotal': `S/ ${subtotal.toFixed(2)}`,
-        'tax': `S/ ${tax.toFixed(2)}`,
-        'total': `S/ ${total.toFixed(2)}`
+        'subtotal': `S/ ${subtotal.toFixed(2)}`, 
+        'tax': `S/ ${tax.toFixed(2)}`,         
+        'total': `S/ ${total.toFixed(2)}`       
     };
     
     Object.keys(elements).forEach(id => {
@@ -340,11 +341,13 @@ function updateTotals() {
         }
     });
 
+    // Actualizar visibilidad de la fila de IGV
     const igvRow = document.getElementById('igvRow');
     if (igvRow) {
         igvRow.style.display = POSState.includeIgv ? 'flex' : 'none';
     }
     
+    // Actualizar cambio si es necesario
     if (POSState.paymentMethod === 'cash') {
         calculateChange();
     }
@@ -373,11 +376,13 @@ function updateIgvButtonState() {
 
 // ===== MÉTODOS DE PAGO =====
 function setupPaymentMethods() {
+    // Asegurar que solo se seleccione un método al inicio
+    // Usar '.payment-method-btn' como selector
     const initialMethod = document.querySelector('.payment-method-btn.active');
     if (initialMethod) {
         selectPaymentMethod(initialMethod.dataset.method);
     } else {
-        selectPaymentMethod('cash');
+        selectPaymentMethod('cash'); // Default a efectivo si no hay ninguno activo
     }
 }
 
@@ -385,62 +390,75 @@ function setupPaymentMethods() {
 function calculateChange() {
     console.log('Calculando cambio...');
     
+    // Verificar que el método de pago sea efectivo
     if (POSState.paymentMethod !== 'cash') {
         console.log('No es pago en efectivo, no se calcula cambio');
         return;
     }
     
+    // Obtener referencias a los elementos del DOM
     const cashInput = document.getElementById('cashReceivedInput');
-    const changeAmountDiv = document.getElementById('changeAmount');
-    const changeValueSpan = document.getElementById('changeValue');
+    const changeAmountDiv = document.getElementById('changeAmount'); // Div contenedor del cambio
+    const changeValueSpan = document.getElementById('changeValue');    // Span que muestra el valor
     const confirmBtn = document.getElementById('confirmPaymentBtn');
     
+    // Verificar que todos los elementos necesarios existan
     if (!cashInput || !changeAmountDiv || !changeValueSpan || !confirmBtn) {
         console.error('Elementos del formulario de pago no encontrados para cálculo de cambio');
         return;
     }
     
+    // Convertir el valor a número y asegurarse de que sea un número válido
     const cashReceived = parseFloat(cashInput.value) || 0;
     
+    // Calcular el total de la compra
     const subtotal = POSState.cart.reduce((sum, item) => sum + (parseFloat(item.subtotal) || 0), 0);
     const total = POSState.includeIgv ? subtotal * 1.18 : subtotal;
     const change = cashReceived - total;
     
     console.log('Monto recibido:', cashReceived, 'Total:', total, 'Cambio:', change);
     
+    // Actualizar la interfaz de usuario
     if (cashReceived > 0) {
-        changeAmountDiv.style.display = 'block';
+        changeAmountDiv.style.display = 'block'; // Mostrar el contenedor del cambio
         if (change >= 0) {
+            // Monto suficiente
             changeValueSpan.textContent = `S/ ${change.toFixed(2)}`;
-            changeAmountDiv.style.color = 'var(--success-700)';
+            changeAmountDiv.style.color = 'var(--success-700)'; // Verde para cambio positivo
             changeAmountDiv.style.backgroundColor = 'var(--success-50)';
             changeAmountDiv.style.borderColor = 'var(--success-200)';
             confirmBtn.disabled = false;
             
+            // Resaltar el botón de confirmación
             confirmBtn.classList.remove('btn-primary');
             confirmBtn.classList.add('btn-success');
             confirmBtn.innerHTML = '<i class="fas fa-check-double"></i> Confirmar Pago';
         } else {
+            // Monto insuficiente
             const amountNeeded = Math.abs(change);
             changeValueSpan.textContent = `Faltan S/ ${amountNeeded.toFixed(2)}`;
-            changeAmountDiv.style.color = 'var(--error-700)';
+            changeAmountDiv.style.color = 'var(--error-700)'; // Rojo para monto insuficiente
             changeAmountDiv.style.backgroundColor = 'var(--error-50)';
             changeAmountDiv.style.borderColor = 'var(--error-200)';
             confirmBtn.disabled = true;
             
+            // Restaurar el estilo del botón
             confirmBtn.classList.remove('btn-success');
             confirmBtn.classList.add('btn-primary');
             confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirmar Pago';
         }
     } else {
-        changeAmountDiv.style.display = 'none';
+        // Monto no ingresado o cero
+        changeAmountDiv.style.display = 'none'; // Ocultar el contenedor del cambio
         confirmBtn.disabled = true;
         
+        // Restaurar el estilo del botón
         confirmBtn.classList.remove('btn-success');
         confirmBtn.classList.add('btn-primary');
         confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirmar Pago';
     }
     
+    // Actualizar el estado global con el monto recibido
     POSState.cashReceived = cashReceived;
     
     console.log('Cálculo de cambio completado');
@@ -449,8 +467,11 @@ function calculateChange() {
 function selectPaymentMethod(method) {
     console.log('Seleccionando método de pago:', method);
     
+    // Actualizar el estado global
     POSState.paymentMethod = method;
     
+    // Actualizar botones de método de pago
+    // Usar '.payment-method-btn' como selector
     const paymentButtons = document.querySelectorAll('.payment-method-btn');
     paymentButtons.forEach(btn => {
         if (btn.dataset.method === method) {
@@ -460,11 +481,13 @@ function selectPaymentMethod(method) {
         }
     });
     
+    // Mostrar/ocultar sección de efectivo
     const cashSection = document.getElementById('cashPaymentSection');
     if (cashSection) {
         cashSection.style.display = method === 'cash' ? 'block' : 'none';
     }
     
+    // Si es pago con tarjeta, limpiar el campo de monto recibido y ocultar cambio
     if (method === 'card') {
         const cashInput = document.getElementById('cashReceivedInput');
         if (cashInput) {
@@ -477,6 +500,7 @@ function selectPaymentMethod(method) {
         }
     }
     
+    // Si es pago en efectivo, enfocar el input y calcular cambio
     if (method === 'cash') {
         setTimeout(() => {
             const cashInput = document.getElementById('cashReceivedInput');
@@ -488,6 +512,7 @@ function selectPaymentMethod(method) {
         }, 100); 
     }
     
+    // Actualizar estado del botón de confirmar pago
     const confirmBtn = document.getElementById('confirmPaymentBtn');
     if (confirmBtn) {
         if (method === 'cash') {
@@ -507,7 +532,7 @@ function selectPaymentMethod(method) {
             }
 
         } else {
-            confirmBtn.disabled = false;
+            confirmBtn.disabled = false; // Siempre habilitado para tarjeta
             confirmBtn.classList.remove('btn-success');
             confirmBtn.classList.add('btn-primary');
             confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirmar Pago';
@@ -520,8 +545,10 @@ function handleProductSearch() {
     const searchInput = document.getElementById('productSearch');
     const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
     
+    // Re-renderizar productos basado en el filtro de búsqueda
     loadProducts(); 
     
+    // Mostrar/ocultar botón de limpiar búsqueda
     const clearBtn = document.querySelector('.search-clear-btn');
     if (clearBtn) {
         clearBtn.style.display = searchTerm ? 'flex' : 'none';
@@ -543,15 +570,15 @@ function clearSearch() {
 }
 
 function filterByCategory(categoryId) {
-    POSState.selectedCategory = categoryId;
+    POSState.selectedCategory = categoryId; // categoryId puede ser null para "Todos"
     loadProducts();
     
+    // Actualizar botones de categoría
     const categoryButtons = document.querySelectorAll('.category-btn');
     if (categoryButtons.length > 0) {
         categoryButtons.forEach(btn => {
-            const btnCategoryId = btn.getAttribute('data-category-id');
-            // Corregir la comparación para 'null' para asegurar que el botón "Todos" se active/desactive correctamente
-            if ( (categoryId === null && btnCategoryId === "null") || (btnCategoryId == categoryId) ) {
+            const btnCategoryId = btn.getAttribute('data-category-id'); // Obtener el data-attribute
+            if ( (categoryId === null && btnCategoryId === "null") || (btnCategoryId == categoryId) ) { // Comparar null y los IDs
                 btn.classList.add('active');
             } else {
                 btn.classList.remove('active');
@@ -561,11 +588,11 @@ function filterByCategory(categoryId) {
 }
 
 function clearFilters() {
-    POSState.selectedCategory = null;
+    POSState.selectedCategory = null; // Restablecer a "Todos"
     document.getElementById('productSearch').value = '';
     document.querySelector('.search-clear-btn').style.display = 'none';
-    loadCategories();
-    loadProducts();
+    loadCategories(); // Recargar categorías para asegurar el botón "Todos" esté activo
+    loadProducts();   // Recargar todos los productos
 }
 
 // ===== TRANSACCIONES =====
@@ -581,6 +608,7 @@ function showPaymentModal() {
     const tax = POSState.includeIgv ? subtotal * 0.18 : 0;
     const total = subtotal + tax;
     
+    // Crear el modal si no existe
     if (!document.getElementById('paymentModal')) {
         createPaymentModal();
     }
@@ -594,6 +622,7 @@ function showPaymentModal() {
         return false;
     }
     
+    // Actualizar el contenido del modal de pago
     paymentContent.innerHTML = `
         <div class="payment-summary">
             <h3>Resumen de la Venta</h3>
@@ -653,26 +682,32 @@ function showPaymentModal() {
         </div>
     `;
     
+    // Configurar evento click para el botón de confirmar pago
     const confirmBtn = document.getElementById('confirmPaymentBtn');
     if (confirmBtn) {
-        confirmBtn.onclick = processPayment;
+        confirmBtn.onclick = processPayment; // Asignar directamente la función
     }
     
+    // Mostrar el modal después de actualizar su contenido
     openModal('paymentModal');
     
+    // Re-seleccionar el método de pago para aplicar estilos y lógica
     selectPaymentMethod(POSState.paymentMethod);
     
-    return false;
+    return false; // Prevenir comportamiento por defecto del botón
 }
 
+// Función para crear el modal de pago dinámicamente si no existe
 function createPaymentModal() {
     console.log('Creando modal de pago...');
     
+    // Verificar si ya existe el modal
     if (document.getElementById('paymentModal')) {
         console.log('El modal de pago ya existe');
         return;
     }
     
+    // Crear el elemento del modal
     const modalHTML = `
     <div class="modal-overlay" id="paymentModal">
         <div class="modal">
@@ -687,9 +722,11 @@ function createPaymentModal() {
         </div>
     </div>`;
     
+    // Crear un contenedor temporal
     const temp = document.createElement('div');
     temp.innerHTML = modalHTML;
     
+    // Agregar el modal al final del body
     const modalElement = temp.firstElementChild;
     document.body.appendChild(modalElement);
     
@@ -699,16 +736,20 @@ function createPaymentModal() {
 async function processPayment() {
     console.log('Iniciando proceso de pago...', POSState);
     
+    // Validar que haya productos en el carrito
     if (POSState.cart.length === 0) {
         showMessage('El carrito está vacío', 'warning');
         return false;
     }
     
+    // Calcular totales
     const subtotal = POSState.cart.reduce((sum, item) => sum + (parseFloat(item.subtotal) || 0), 0);
     const total = POSState.includeIgv ? subtotal * 1.18 : subtotal;
     let cashReceived = 0;
     
+    // Validar método de pago
     if (POSState.paymentMethod === 'cash') {
+        // Validar monto recibido para pago en efectivo
         const cashInput = document.getElementById('cashReceivedInput');
         if (!cashInput) {
             console.error('No se encontró el campo de monto recibido');
@@ -718,6 +759,7 @@ async function processPayment() {
         
         cashReceived = parseFloat(cashInput.value) || 0;
         
+        // Validar que el monto sea suficiente
         if (cashReceived <= 0) {
             showMessage('Ingrese un monto válido', 'warning');
             return false;
@@ -726,21 +768,28 @@ async function processPayment() {
             return false;
         }
         
+        // Actualizar estado con el monto recibido
         POSState.cashReceived = cashReceived;
         console.log('Pago en efectivo validado. Monto recibido:', cashReceived);
     } else if (POSState.paymentMethod === 'card') {
         console.log('Procesando pago con tarjeta...');
+        // Aquí podrías agregar validaciones específicas para tarjeta si es necesario
     } else {
         console.error('Método de pago no válido:', POSState.paymentMethod);
         showMessage('Método de pago no válido', 'error');
         return false;
     }
     
+    // Mostrar mensaje de confirmación
     showMessage('Procesando pago, por favor espere...', 'info');
     
     try {
+        // Cerrar el modal de pago
         closeModal('paymentModal');
+        
+        // Completar la transacción
         await completeTransaction();
+        
         return true;
     } catch (error) {
         console.error('Error al procesar el pago:', error);
@@ -757,7 +806,7 @@ async function completeTransaction() {
     const saleData = {
         customer_id: document.getElementById('customerSelect').value || null,
         payment_method: POSState.paymentMethod,
-        items: POSState.cart.map(item => ({
+        items: POSState.cart.map(item => ({ // Mapear solo los datos necesarios para el backend
             product_id: item.product_id,
             quantity: item.quantity,
             price: item.price,
@@ -777,7 +826,9 @@ async function completeTransaction() {
         if (response.success) {
             showTransactionComplete(response.data);
             clearCart();
+            // Actualizar la lista de productos después de una venta exitosa
             loadProducts(); 
+            // Cargar datos de dashboard actualizados (si existe la función)
             if (typeof loadDashboardData === 'function') {
                 loadDashboardData();
             }
@@ -829,6 +880,7 @@ function closeTransactionModal() {
 function newTransaction() {
     closeTransactionModal();
     clearCart();
+    // Re-seleccionar el método de pago predeterminado al iniciar una nueva transacción
     selectPaymentMethod('cash'); 
 }
 
@@ -840,6 +892,7 @@ function openModal(modalId) {
         modal.classList.add('show');
         document.body.style.overflow = 'hidden';
         
+        // Enfocar el primer elemento interactivo si existe
         setTimeout(() => {
             const firstInput = modal.querySelector('input, select, textarea, button');
             if (firstInput) {
@@ -855,11 +908,10 @@ function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.remove('show');
-        // Usar requestAnimationFrame para asegurar que la transición ocurra antes de ocultar
-        requestAnimationFrame(() => {
+        setTimeout(() => {
             modal.style.display = 'none';
-            document.body.style.overflow = ''; 
-        });
+            document.body.style.overflow = ''; // Restaurar scroll del body
+        }, 300); // Coincide con la duración de la transición en CSS
     }
 }
 
@@ -869,6 +921,7 @@ function clearCart() {
     POSState.cashReceived = 0;
     POSState.includeIgv = true;
 
+    // Asegurarse de que el ID del input sea consistente 'cashReceivedInput'
     const cashReceivedInput = document.getElementById('cashReceivedInput');
     if (cashReceivedInput) {
         cashReceivedInput.value = '';
@@ -881,7 +934,7 @@ function clearCart() {
     updateCartDisplay();
     updateTotals();
     updateIgvButtonState();
-    calculateChange();
+    calculateChange(); // Recalcular para limpiar el vuelto si aplica
 }
 
 function updateClock() {
@@ -901,13 +954,15 @@ function printReceipt() {
     showMessage('Funcionalidad de impresión en desarrollo', 'info');
 }
 
+// Reemplazar la función showMessage por una más visual
 function showMessage(message, type = 'info') {
+    // Implementación simple de notificación tipo "toast"
     const notificationContainer = document.querySelector('.pos-container');
     if (!notificationContainer) return;
 
     const existingAlert = notificationContainer.querySelector('.pos-alert');
     if (existingAlert) {
-        existingAlert.remove();
+        existingAlert.remove(); // Eliminar cualquier alerta anterior para no acumular
     }
 
     const alertDiv = document.createElement('div');
@@ -922,7 +977,7 @@ function showMessage(message, type = 'info') {
         </button>
     `;
 
-    notificationContainer.insertBefore(alertDiv, notificationContainer.firstChild);
+    notificationContainer.insertBefore(alertDiv, notificationContainer.firstChild); // Insertar al principio
 
     setTimeout(() => {
         alertDiv.classList.add('show');
@@ -931,7 +986,7 @@ function showMessage(message, type = 'info') {
     setTimeout(() => {
         alertDiv.classList.remove('show');
         alertDiv.addEventListener('transitionend', () => alertDiv.remove(), { once: true });
-    }, 3000);
+    }, 3000); // Duración de 3 segundos
 }
 
 function htmlspecialchars(text) {

@@ -140,7 +140,7 @@ function formatCurrency($amount) {
                         <label for="customerSelect">Cliente:</label>
                         <select id="customerSelect" class="form-select">
                             <option value="">Cliente general</option>
-                            <?php foreach ($customers_data as $customer): ?>
+                            <?php foreach ($customers_data as $customer): /* */ ?>
                                 <option value="<?php echo $customer['id']; ?>">
                                     <?php echo htmlspecialchars($customer['name']); ?>
                                 </option>
@@ -171,6 +171,33 @@ function formatCurrency($amount) {
                         </div>
                     </div>
 
+                    <div class="payment-section" id="paymentSection" style="display: none;">
+                        <h3>Método de Pago</h3>
+                        <div class="payment-methods">
+                            <button class="payment-method active" data-method="cash">
+                                <i class="fas fa-money-bill"></i>
+                                Efectivo
+                            </button>
+                            <button class="payment-method" data-method="card">
+                                <i class="fas fa-credit-card"></i>
+                                Tarjeta
+                            </button>
+                            <button class="payment-method" data-method="transfer">
+                                <i class="fas fa-exchange-alt"></i>
+                                Transferencia
+                            </button>
+                        </div>
+
+                        <div class="cash-payment" id="cashPayment">
+                            <label>Monto recibido:</label>
+                            <input type="number" class="form-input" id="cashReceived" 
+                                   placeholder="0.00" step="0.01" min="0">
+                            <div class="change-amount" id="changeAmount" style="display: none;">
+                                Vuelto: <span id="changeValue">S/ 0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="pos-actions">
                         <button class="btn btn-outline" onclick="clearCart()">
                             <i class="fas fa-trash"></i>
@@ -186,11 +213,30 @@ function formatCurrency($amount) {
         </div>
     </main>
 
+    <div class="modal" id="transactionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Venta Completada</h3>
+                <button class="modal-close" onclick="closeTransactionModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="transactionDetails">
+                </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="printReceipt()">
+                    <i class="fas fa-print"></i> Imprimir
+                </button>
+                <button class="btn btn-primary" onclick="newTransaction()">
+                    <i class="fas fa-plus"></i> Nueva Venta
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="paymentModal" style="display: none;">
         <div class="modal modal-payment">
             <div class="modal-header">
                 <h3 class="modal-title">Procesar Pago</h3>
-                <button type="button" class="modal-close" onclick="closeModal('paymentModal')" aria-label="Cerrar">&times;</button>
+                <button class="modal-close" onclick="closeModal('paymentModal')">&times;</button>
             </div>
             <div class="modal-body">
                 <div id="paymentContent">
@@ -203,15 +249,15 @@ function formatCurrency($amount) {
         <div class="modal">
             <div class="modal-header">
                 <h3 class="modal-title">Venta Completada</h3>
-                <button type="button" class="modal-close" onclick="closeTransactionModal()" aria-label="Cerrar">&times;</button>
+                <button class="modal-close" onclick="closeTransactionModal()">&times;</button>
             </div>
             <div class="modal-body" id="transactionDetails">
                 </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-outline" onclick="printReceipt()">
+                <button class="btn btn-outline" onclick="printReceipt()">
                     <i class="fas fa-print"></i> Imprimir
                 </button>
-                <button type="button" class="btn btn-primary" onclick="newTransaction()">
+                <button class="btn btn-primary" onclick="newTransaction()">
                     <i class="fas fa-plus"></i> Nueva Venta
                 </button>
             </div>
@@ -223,13 +269,14 @@ function formatCurrency($amount) {
     
     <script>
         // Initialize POS data
-        const categories_data = <?php echo json_encode($categories_data); ?>;
-        const customers_data = <?php echo json_encode($customers_data); ?>;
+        const categories_data = <?php echo json_encode($categories_data); ?>; /* */
+        const customers_data = <?php echo json_encode($customers_data); ?>;   /* */
         const products_data = <?php
             $formatted_products = [];
             foreach ($products_data as $product) {
-                // Asegurar que 'image_url' siempre esté presente y apunte al placeholder si no hay una imagen definida
+                // Asegurar que 'image_url' siempre esté presente
                 $product['image_url'] = $product['image_url'] ?? 'assets/images/product-placeholder.png'; 
+                // Stock quantity ya viene de la BD, no es necesario 'current_stock'
                 $formatted_products[] = $product;
             }
             echo json_encode($formatted_products);
