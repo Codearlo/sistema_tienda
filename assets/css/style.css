@@ -52,3 +52,20 @@
     display: block;
   }
 }
+
+/* --- INICIO DE REGLAS DE DEPURACIÓN PARA EL MODAL --- */
+/* Estas reglas fuerzan la visibilidad del modal para diagnosticar el problema. */
+
+.modal-overlay.show .modal {
+    display: flex !important; /* ¡Fuerza la visibilidad como flexbox! */
+    opacity: 1 !important;    /* Fuerza la opacidad */
+    transform: translateY(0) !important; /* Fuerza la posición */
+    visibility: visible !important; /* Asegura la visibilidad */
+}
+
+/* También, verifica si hay alguna regla que oculta divs genéricos */
+/* Por ejemplo, si tienes algo como: */
+/* div { display: none; } */
+/* Esto sería un problema. Revisa si hay reglas generales de div. */
+
+/* --- FIN DE REGLAS DE DEPURACIÓN PARA EL MODAL --- */
