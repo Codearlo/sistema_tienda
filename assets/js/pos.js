@@ -46,7 +46,6 @@ function initializePOS() {
     loadProducts();
     updateCartDisplay();
     updateTotals();
-    // Los métodos de pago se configuran en el panel
     setupPaymentMethods();
     updateIgvButtonState();
     
@@ -145,9 +144,9 @@ function loadProducts() {
         html += `
             <div class="product-card ${stock === 0 ? 'out-of-stock' : ''}" onclick="addToCart(${product.id})">
                 <div class="product-image">
-                    <img src="${product.image_url || 'data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20width%3D%22120%22%20height%3D%22120%22%3E%3Crect%20width%3D%22120%22%20height%3D%22120%22%20fill%3D%22%23dddddd%22/%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20dominant-baseline%3D%22middle%22%20text-anchor%3D%22middle%22%20font-size%3D%2214%22%20fill%3D%22%23666666%22%3ESin%20Imagen%3C/text%3E%3C/svg%3E'}" 
+                    <img src="${product.image_url || '/assets/images/product-placeholder.png'}" 
                          alt="${htmlspecialchars(product.name)}" 
-                         >
+                         onerror="this.src='/assets/images/product-placeholder.png'">
                     ${stock === 0 ? '<div class="out-of-stock-badge">Agotado</div>' : ''}
                     ${isLowStock && stock > 0 ? '<div class="low-stock-badge">Poco stock</div>' : ''}
                 </div>
@@ -335,91 +334,14 @@ function updateIgvButtonState() {
     }
 }
 
-// ===== PANEL DE PAGO =====
-function createPaymentPanel(){
-    if(document.getElementById('paymentPanel')) return;
-    const panelHTML=`
-        <div id="paymentPanel" class="payment-panel">
-            <h3>Procesar Pago</h3>
-            <div class="payment-methods">
-                <button class="payment-method-btn" data-method="cash"><i class="fas fa-money-bill-wave"></i> Efectivo</button>
-                <button class="payment-method-btn" data-method="card"><i class="fas fa-credit-card"></i> Tarjeta</button>
-            </div>
-            <div class="payment-details">
-                <label>Monto recibido</label>
-                <input id="cashReceivedInput" type="number" min="0" step="0.01" placeholder="0.00" />
-                <p id="changeAmount" style="display:none">Cambio: <span id="changeValue"></span></p>
-            </div>
-            <button id="confirmPaymentBtn" class="btn btn-primary" disabled><i class="fas fa-check"></i> Confirmar Pago</button>
-        </div>`;
-    const target=document.getElementById('cartSummary')||document.body;
-    target.insertAdjacentHTML('beforeend',panelHTML);
-
-    // Eventos
-    document.getElementById('cashReceivedInput').addEventListener('input',calculateChange);
-    document.getElementById('confirmPaymentBtn').addEventListener('click',processPayment);
- }
-
 // ===== MÉTODOS DE PAGO =====
 function setupPaymentMethods() {
-    // Garantizar que los botones del panel tengan los listeners
-    const paymentButtons = document.querySelectorAll('.payment-method-btn');
-    paymentButtons.forEach(btn => {
-        btn.addEventListener('click', () => selectPaymentMethod(btn.dataset.method));
-    });
     selectPaymentMethod('cash');
 }
 
 // ===== CÁLCULO DE CAMBIO =====
 function calculateChange() {
-    // Solo aplicar para método efectivo
-    if (POSState.paymentMethod !== 'cash') return;
-
-    const cashInput = document.getElementById('cashReceivedInput');
-    const changeAmount = document.getElementById('changeAmount');
-    const changeValue = document.getElementById('changeValue');
-    const confirmBtn = document.getElementById('confirmPaymentBtn');
-
-    if (!cashInput || !changeAmount || !changeValue || !confirmBtn) return;
-
-    const cashReceived = parseFloat(cashInput.value) || 0;
-    const subtotal = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
-    const total = POSState.includeIgv ? subtotal * 1.18 : subtotal;
-    const change = cashReceived - total;
-
-    if (cashReceived > 0) {
-        if (change >= 0) {
-            changeValue.textContent = `S/ ${change.toFixed(2)}`;
-            changeAmount.style.display = 'block';
-            changeAmount.style.color = '#10b981';
-            confirmBtn.disabled = false;
-            confirmBtn.classList.add('btn-success');
-        } else {
-            changeValue.textContent = `Faltan S/ ${Math.abs(change).toFixed(2)}`;
-            changeAmount.style.display = 'block';
-            changeAmount.style.color = '#ef4444';
-            confirmBtn.disabled = true;
-            confirmBtn.classList.remove('btn-success');
-        }
-    } else {
-        changeAmount.style.display = 'none';
-        confirmBtn.disabled = true;
-        confirmBtn.classList.remove('btn-success');
-    }
-
-    POSState.cashReceived = cashReceived;
-}
-/* Duplicated old calculateChange block removed
-    // Solo continuar si el input de efectivo existe en el panel
-    const cashInput = document.getElementById('cashReceivedInput');
-    if (!cashInput) return;
     console.log('Calculando cambio...');
-    console.log('Calculando cambio...');
-    // Ejecutar solo si el modal de pago está visible
-    const paymentModal = document.getElementById('paymentModal');
-    if (!paymentModal || paymentModal.style.display === 'none') {
-        return; // Evita errores de elementos faltantes al iniciar la página
-    }
     
     // Verificar que el método de pago sea efectivo
     if (POSState.paymentMethod !== 'cash') {
@@ -435,9 +357,7 @@ function calculateChange() {
     
     // Verificar que todos los elementos necesarios existan
     if (!cashInput || !changeAmount || !changeValue || !confirmBtn) {
-        // Elementos aún no renderizados (posiblemente fuera del modal visible)
-        return;
-        // Elementos aún no disponibles, salir sin log de error
+        console.error('Elementos del formulario de pago no encontrados');
         return;
     }
     
@@ -492,8 +412,7 @@ function calculateChange() {
     POSState.cashReceived = cashReceived;
     
     console.log('Cálculo de cambio completado');
-*/
-// }
+}
 
 function selectPaymentMethod(method) {
     console.log('Seleccionando método de pago:', method);
@@ -633,15 +552,9 @@ function clearFilters() {
     document.querySelector('.search-clear-btn').style.display = 'none';
     loadCategories();
     loadProducts();
-
-    // Crear panel fijo de pago
-    createPaymentPanel();
 }
 
 // ===== TRANSACCIONES =====
-// ===== TRANSACCIONES =====
-// Compatibilidad: si algún botón antiguo llama a showPaymentModal simplemente
-// hace scroll al panel de pago y enfoca el input de efectivo.
 function showPaymentModal() {
     console.log('Mostrando modal de pago...');
     
@@ -751,15 +664,11 @@ function showPaymentModal() {
         }, 300); // Aumentar el tiempo para asegurar que el input esté listo
     }
     
-    // Hacer scroll suave al panel
-    document.getElementById('paymentPanel')?.scrollIntoView({behavior:'smooth'});
-    setTimeout(()=>document.getElementById('cashReceivedInput')?.focus(),300);
-    return false;
+    return false; // Prevenir comportamiento por defecto del botón
 }
 
-function createPaymentModal() {} // deprecated
-/*
-// createPaymentModal eliminado: se reemplaza por panel fijo {
+// Función para crear el modal de pago dinámicamente si no existe
+function createPaymentModal() {
     console.log('Creando modal de pago...');
     
     // Verificar si ya existe el modal
@@ -792,22 +701,21 @@ function createPaymentModal() {} // deprecated
     const modalElement = temp.firstElementChild;
     document.body.appendChild(modalElement);
     
-    // Fin createPaymentModal (obsoleto) */
+    console.log('Modal de pago creado exitosamente');
 }
 
 async function processPayment() {
-    console.log('Iniciando proceso de pago...', POSState);
+    console.log('Procesando pago...', POSState);
     
-    // Validar que haya productos en el carrito
+    // Validar que hay productos en el carrito
     if (POSState.cart.length === 0) {
         showMessage('El carrito está vacío', 'warning');
-        return false;
+        return;
     }
     
     // Calcular totales
     const subtotal = POSState.cart.reduce((sum, item) => sum + (parseFloat(item.subtotal) || 0), 0);
     const total = POSState.includeIgv ? subtotal * 1.18 : subtotal;
-    let cashReceived = 0;
     
     // Validar método de pago
     if (POSState.paymentMethod === 'cash') {
@@ -816,231 +724,98 @@ async function processPayment() {
         if (!cashInput) {
             console.error('No se encontró el campo de monto recibido');
             showMessage('Error al procesar el pago en efectivo', 'error');
-            return false;
+            return;
         }
         
-        cashReceived = parseFloat(cashInput.value) || 0;
+        const cashReceived = parseFloat(cashInput.value) || 0;
         
         // Validar que el monto sea suficiente
-        if (cashReceived <= 0) {
-            showMessage('Ingrese un monto válido', 'warning');
-            return false;
-        } else if (cashReceived < total) {
+        if (cashReceived < total) {
             showMessage('El monto recibido es insuficiente', 'warning');
-            return false;
+            return;
         }
         
         // Actualizar estado con el monto recibido
         POSState.cashReceived = cashReceived;
-        console.log('Pago en efectivo validado. Monto recibido:', cashReceived);
+        console.log('Pago en efectivo procesado. Monto recibido:', cashReceived);
     } else if (POSState.paymentMethod === 'card') {
-        console.log('Procesando pago con tarjeta...');
-        // Aquí podrías agregar validaciones específicas para tarjeta si es necesario
+        // Validaciones adicionales para pago con tarjeta si es necesario
+        console.log('Procesando pago con tarjeta');
     } else {
         console.error('Método de pago no válido:', POSState.paymentMethod);
         showMessage('Método de pago no válido', 'error');
-        return false;
+        return;
     }
     
-    // Mostrar mensaje de confirmación
-    showMessage('Procesando pago, por favor espere...', 'info');
+    // Cerrar el modal de pago
+    closeModal('paymentModal');
     
+    // Mostrar mensaje de confirmación
+    showMessage('Procesando pago...', 'info');
+    
+    // Llamar a la función para completar la transacción
     try {
-        // Cerrar el modal de pago
-        closeModal('paymentModal');
-        
-        // Completar la transacción
         await completeTransaction();
-        
-        // Mostrar mensaje de éxito
-        showMessage('Pago procesado exitosamente', 'success');
-        
-        return true;
     } catch (error) {
-        console.error('Error al procesar el pago:', error);
-        showMessage('Error al procesar el pago: ' + (error.message || 'Error desconocido'), 'error');
-        return false;
+        console.error('Error al completar la transacción:', error);
+        showMessage('Error al procesar el pago: ' + error.message, 'error');
     }
 }
 
 async function completeTransaction() {
-    console.log('Completando transacción...');
-    
-    // Validar que haya productos en el carrito
-    if (POSState.cart.length === 0) {
-        console.error('No hay productos en el carrito');
-        throw new Error('No hay productos en el carrito');
-    }
-    
-    // Calcular totales
-    const subtotal = POSState.cart.reduce((sum, item) => sum + (parseFloat(item.subtotal) || 0), 0);
+    const subtotal = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
     const tax = POSState.includeIgv ? subtotal * 0.18 : 0;
     const total = subtotal + tax;
-    
-    console.log('Datos de la venta:', { subtotal, tax, total, paymentMethod: POSState.paymentMethod });
-    
-    // Preparar datos de la venta
+
     const saleData = {
-        customer_id: document.getElementById('customerSelect') ? document.getElementById('customerSelect').value : null,
-        payment_method: POSState.paymentMethod || 'cash',
-        items: POSState.cart.map(item => ({
-            product_id: item.id,
-            quantity: item.quantity,
-            price: item.price,
-            subtotal: item.subtotal,
-            name: item.name
-        })),
+        customer_id: document.getElementById('customerSelect').value || null,
+        payment_method: POSState.paymentMethod,
+        items: POSState.cart,
         subtotal: subtotal,
         tax: tax,
         total: total,
-        cash_received: POSState.cashReceived || 0,
+        cash_received: POSState.cashReceived,
         change_amount: POSState.paymentMethod === 'cash' ? 
-            ((POSState.cashReceived || 0) - total) : 0,
+            (POSState.cashReceived - total) : 0,
     };
     
-    console.log('Enviando datos de venta al servidor:', saleData);
-    
     try {
-        // Mostrar indicador de carga
-        showMessage('Procesando transacción, por favor espere...', 'info');
-        
-        // Enviar datos al servidor
         const response = await API.post('/sales.php', saleData);
         
-        console.log('Respuesta del servidor:', response);
-        
-        if (response && response.success) {
-            // Mostrar recibo o resumen de la venta
-            if (response.data) {
-                showTransactionComplete(response.data);
-            }
-            
-            // Limpiar el carrito
+        if (response.success) {
+            showTransactionComplete(response.data);
             clearCart();
-            
-            // Actualizar la lista de productos
-            loadProducts();
-            
-            // Mostrar mensaje de éxito
             showMessage('Venta completada exitosamente', 'success');
-            
-            return response.data; // Devolver los datos de la venta
+            loadProducts(); 
         } else {
-            // Manejar error del servidor
-            const errorMessage = response && response.message ? response.message : 'Error desconocido al procesar la venta';
-            console.error('Error en la respuesta del servidor:', errorMessage);
-            throw new Error(errorMessage);
+            showMessage(response.message || 'Error al procesar la venta', 'error');
         }
     } catch (error) {
-        console.error('Error al completar la transacción:', error);
-        throw error; // Relanzar el error para que sea manejado por processPayment
+        console.error('Error:', error);
+        showMessage('Error de conexión', 'error');
     }
 }
 
 function showTransactionComplete(saleData) {
-    console.log('Mostrando resumen de transacción:', saleData);
-    
-    // Asegurarse de que saleData sea un objeto
-    if (!saleData || typeof saleData !== 'object') {
-        console.error('Datos de transacción no válidos:', saleData);
-        return;
-    }
-    
     const modal = document.getElementById('transactionModal');
     const details = document.getElementById('transactionDetails');
     
     if (!modal || !details) {
-        console.error('Elementos del modal de transacción no encontrados');
+        console.error('Modal de transacción no encontrado');
         return;
     }
     
-    // Formatear la fecha
-    const saleDate = saleData.created_at ? new Date(saleData.created_at) : new Date();
-    const formattedDate = saleDate.toLocaleString('es-PE', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-    
-    // Calcular totales si no están incluidos en saleData
-    const subtotal = saleData.subtotal || (saleData.items ? 
-        saleData.items.reduce((sum, item) => sum + (parseFloat(item.subtotal) || 0), 0) : 0);
-    const tax = saleData.tax || (saleData.include_igv ? subtotal * 0.18 : 0);
-    const total = saleData.total || (subtotal + tax);
-    
-    // Generar lista de productos
-    const itemsList = saleData.items && Array.isArray(saleData.items) ? 
-        saleData.items.map(item => `
-            <div class="transaction-item">
-                <span class="item-name">${item.quantity}x ${item.name || 'Producto'}</span>
-                <span class="item-price">S/ ${(parseFloat(item.subtotal) || 0).toFixed(2)}</span>
-            </div>`
-        ).join('') : '';
-    
-    // Construir el HTML del resumen
     details.innerHTML = `
         <div class="transaction-summary">
-            <div class="transaction-header">
-                <h3>¡Venta Completada!</h3>
-                <p class="sale-number">#${saleData.sale_number || 'N/A'}</p>
-            </div>
-            
-            <div class="transaction-details">
-                <div class="transaction-info">
-                    <p><strong>Fecha:</strong> ${formattedDate}</p>
-                    <p><strong>Método de pago:</strong> ${getPaymentMethodName(saleData.payment_method || 'cash')}</p>
-                    ${saleData.customer_name ? 
-                        `<p><strong>Cliente:</strong> ${saleData.customer_name}</p>` : ''}
-                </div>
-                
-                <div class="transaction-items">
-                    <h4>Productos</h4>
-                    ${itemsList || '<p>No hay productos en esta venta</p>'}
-                </div>
-                
-                <div class="transaction-totals">
-                    <div class="total-row">
-                        <span>Subtotal:</span>
-                        <span>S/ ${subtotal.toFixed(2)}</span>
-                    </div>
-                    ${saleData.include_igv ? `
-                    <div class="total-row">
-                        <span>IGV (18%):</span>
-                        <span>S/ ${tax.toFixed(2)}</span>
-                    </div>` : ''}
-                    <div class="total-row grand-total">
-                        <span>Total:</span>
-                        <span>S/ ${total.toFixed(2)}</span>
-                    </div>
-                    ${saleData.payment_method === 'cash' && saleData.cash_received ? `
-                    <div class="total-row">
-                        <span>Recibido:</span>
-                        <span>S/ ${parseFloat(saleData.cash_received).toFixed(2)}</span>
-                    </div>
-                    <div class="total-row change-amount">
-                        <span>Vuelto:</span>
-                        <span>S/ ${(saleData.change_amount || 0).toFixed(2)}</span>
-                    </div>` : ''}
-                </div>
-            </div>
-            
-            <div class="transaction-actions">
-                <button type="button" class="btn btn-outline" onclick="closeTransactionModal()">
-                    <i class="fas fa-times"></i> Cerrar
-                </button>
-                <button type="button" class="btn btn-primary" onclick="printReceipt(${saleData.id || ''})">
-                    <i class="fas fa-print"></i> Imprimir
-                </button>
-                <button type="button" class="btn btn-success" onclick="newTransaction()">
-                    <i class="fas fa-plus"></i> Nueva Venta
-                </button>
-            </div>
+            <h4>Venta #${saleData.sale_number}</h4>
+            <p><strong>Fecha:</strong> ${new Date().toLocaleString()}</p>
+            <p><strong>Total:</strong> S/ ${saleData.total}</p>
+            <p><strong>Método de pago:</strong> ${getPaymentMethodName(saleData.payment_method)}</p>
+            ${saleData.change_amount > 0 ? 
+                `<p><strong>Vuelto:</strong> S/ ${saleData.change_amount.toFixed(2)}</p>` : ''}
         </div>
     `;
     
-    // Mostrar el modal
     openModal('transactionModal');
 }
 
@@ -1139,208 +914,8 @@ function updateClock() {
     timeElement.innerHTML = dateTimeString;
 }
 
-function printReceipt(saleId = null) {
-    console.log('Preparando recibo para impresión...', { saleId });
-    
-    // Obtener los datos de la venta actual o usar los datos del modal
-    let saleData = null;
-    const transactionDetails = document.getElementById('transactionDetails');
-    
-    if (transactionDetails && transactionDetails.innerHTML) {
-        // Si hay un modal de transacción abierto, usamos esos datos
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = transactionDetails.innerHTML;
-        
-        // Extraer datos del DOM (esto es un ejemplo básico, podrías necesitar ajustarlo)
-        const saleNumber = tempDiv.querySelector('.sale-number')?.textContent || 'N/A';
-        const dateElement = tempDiv.querySelector('.transaction-info p:first-child');
-        const date = dateElement ? dateElement.textContent.replace('Fecha:', '').trim() : new Date().toLocaleString();
-        
-        // Crear un objeto con los datos básicos
-        saleData = {
-            id: saleId,
-            sale_number: saleNumber.replace('#', ''),
-            created_at: date,
-            items: [],
-            subtotal: 0,
-            tax: 0,
-            total: 0,
-            payment_method: 'cash',
-            cash_received: 0,
-            change_amount: 0
-        };
-        
-        // Extraer totales
-        const totalElements = tempDiv.querySelectorAll('.total-row');
-        totalElements.forEach(row => {
-            const label = row.querySelector('span:first-child')?.textContent?.trim();
-            const value = row.querySelector('span:last-child')?.textContent?.replace('S/', '').trim() || '0';
-            
-            if (label && value) {
-                if (label.includes('Subtotal')) saleData.subtotal = parseFloat(value);
-                else if (label.includes('IGV')) saleData.tax = parseFloat(value);
-                else if (label.includes('Total')) saleData.total = parseFloat(value);
-                else if (label.includes('Recibido')) saleData.cash_received = parseFloat(value);
-                else if (label.includes('Vuelto')) saleData.change_amount = parseFloat(value);
-            }
-        });
-        
-        // Extraer productos
-        const items = tempDiv.querySelectorAll('.transaction-item');
-        items.forEach(item => {
-            const nameElement = item.querySelector('.item-name');
-            const priceElement = item.querySelector('.item-price');
-            
-            if (nameElement && priceElement) {
-                const nameText = nameElement.textContent.trim();
-                const quantityMatch = nameText.match(/^(\d+)x/);
-                const quantity = quantityMatch ? parseInt(quantityMatch[1]) : 1;
-                const name = nameText.replace(/^\d+x\s*/, '').trim();
-                const price = parseFloat(priceElement.textContent.replace('S/', '').trim()) || 0;
-                
-                saleData.items.push({
-                    name: name,
-                    quantity: quantity,
-                    price: price / quantity, // Precio unitario
-                    subtotal: price
-                });
-            }
-        });
-    } else if (saleId) {
-        // Aquí podrías hacer una petición al servidor para obtener los datos de la venta
-        console.log('Obteniendo datos de la venta desde el servidor...', saleId);
-        // Por ahora mostramos un mensaje
-        showMessage('No se pudo generar el recibo. Por favor, intente nuevamente.', 'error');
-        return;
-    } else {
-        console.error('No hay datos de venta disponibles para imprimir');
-        showMessage('No hay datos de venta disponibles para imprimir', 'error');
-        return;
-    }
-    
-    // Crear una ventana emergente con el contenido del recibo
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-        showMessage('No se pudo abrir la ventana de impresión. Asegúrese de permitir ventanas emergentes.', 'error');
-        return;
-    }
-    
-    // Estilos para el recibo
-    const styles = `
-        <style>
-            @media print {
-                body { font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.2; }
-                .no-print { display: none !important; }
-                .receipt { width: 80mm; margin: 0 auto; padding: 10px; }
-                .text-center { text-align: center; }
-                .text-right { text-align: right; }
-                .divider { border-top: 1px dashed #000; margin: 5px 0; }
-                .items { margin: 10px 0; }
-                .item { display: flex; justify-content: space-between; margin-bottom: 5px; }
-                .totals { margin-top: 10px; }
-                .total-row { display: flex; justify-content: space-between; margin: 5px 0; }
-                .grand-total { font-weight: bold; font-size: 1.1em; margin-top: 10px; }
-                .thank-you { text-align: center; margin-top: 15px; font-style: italic; }
-            }
-        </style>
-    `;
-    
-    // Generar el contenido del recibo
-    const receiptContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Recibo de Venta #${saleData.sale_number}</title>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            ${styles}
-        </head>
-        <body>
-            <div class="receipt">
-                <div class="text-center">
-                    <h2>${document.querySelector('title')?.textContent || 'Sistema de Ventas'}</h2>
-                    <p>${window.location.hostname}</p>
-                    <p>${saleData.created_at || new Date().toLocaleString()}</p>
-                    <p>Venta #${saleData.sale_number}</p>
-                </div>
-                
-                <div class="divider"></div>
-                
-                <div class="items">
-                    ${saleData.items.map(item => `
-                        <div class="item">
-                            <span>${item.quantity}x ${item.name}</span>
-                            <span>S/ ${item.subtotal.toFixed(2)}</span>
-                        </div>
-                    `).join('')}
-                </div>
-                
-                <div class="divider"></div>
-                
-                <div class="totals">
-                    <div class="total-row">
-                        <span>Subtotal:</span>
-                        <span>S/ ${saleData.subtotal?.toFixed(2) || '0.00'}</span>
-                    </div>
-                    ${saleData.tax ? `
-                    <div class="total-row">
-                        <span>IGV (18%):</span>
-                        <span>S/ ${saleData.tax.toFixed(2)}</span>
-                    </div>` : ''}
-                    <div class="total-row grand-total">
-                        <span>Total:</span>
-                        <span>S/ ${saleData.total?.toFixed(2) || '0.00'}</span>
-                    </div>
-                    ${saleData.payment_method === 'cash' ? `
-                    <div class="total-row">
-                        <span>Efectivo:</span>
-                        <span>S/ ${saleData.cash_received?.toFixed(2) || '0.00'}</span>
-                    </div>
-                    <div class="total-row">
-                        <span>Vuelto:</span>
-                        <span>S/ ${saleData.change_amount?.toFixed(2) || '0.00'}</span>
-                    </div>` : ''}
-                </div>
-                
-                <div class="divider"></div>
-                
-                <div class="thank-you">
-                    <p>¡Gracias por su compra!</p>
-                    <p>Vuelva pronto</p>
-                </div>
-                
-                <div class="no-print" style="margin-top: 20px; text-align: center;">
-                    <button onclick="window.print()" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        Imprimir Recibo
-                    </button>
-                    <button onclick="window.close()" style="padding: 10px 20px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">
-                        Cerrar
-                    </button>
-                </div>
-            </div>
-            
-            <script>
-                // Intentar imprimir automáticamente
-                window.onload = function() {
-                    setTimeout(function() {
-                        window.print();
-                        // Cerrar la ventana después de un tiempo si no se ha cerrado
-                        setTimeout(function() {
-                            if (!window.closed) {
-                                window.close();
-                            }
-                        }, 5000);
-                    }, 500);
-                };
-            </script>
-        </body>
-        </html>
-    `;
-    
-    // Escribir el contenido en la ventana
-    printWindow.document.open();
-    printWindow.document.write(receiptContent);
-    printWindow.document.close();
+function printReceipt() {
+    showMessage('Funcionalidad de impresión en desarrollo', 'info');
 }
 
 function showMessage(message, type = 'info') {
