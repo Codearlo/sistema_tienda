@@ -144,9 +144,9 @@ function loadProducts() {
         html += `
             <div class="product-card ${stock === 0 ? 'out-of-stock' : ''}" onclick="addToCart(${product.id})">
                 <div class="product-image">
-                    <img src="${product.image_url || 'https://via.placeholder.com/120x120?text=Sin+Imagen'}" 
+                    <img src="${product.image_url || 'data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20width%3D%22120%22%20height%3D%22120%22%3E%3Crect%20width%3D%22120%22%20height%3D%22120%22%20fill%3D%22%23dddddd%22/%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20dominant-baseline%3D%22middle%22%20text-anchor%3D%22middle%22%20font-size%3D%2214%22%20fill%3D%22%23666666%22%3ESin%20Imagen%3C/text%3E%3C/svg%3E'}" 
                          alt="${htmlspecialchars(product.name)}" 
-                         onerror="this.src='https://via.placeholder.com/120x120?text=Sin+Imagen'">
+                         >
                     ${stock === 0 ? '<div class="out-of-stock-badge">Agotado</div>' : ''}
                     ${isLowStock && stock > 0 ? '<div class="low-stock-badge">Poco stock</div>' : ''}
                 </div>
