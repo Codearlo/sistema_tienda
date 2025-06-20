@@ -773,73 +773,31 @@ async function processPayment() {
 }
 
 async function completeTransaction() {
-    console.log('Completando transacción...');
-    
-    // Validar que haya productos en el carrito
-    if (POSState.cart.length === 0) {
-        console.error('No hay productos en el carrito');
-        throw new Error('No hay productos en el carrito');
-    }
-    
-    // Calcular totales
-    const subtotal = POSState.cart.reduce((sum, item) => sum + (parseFloat(item.subtotal) || 0), 0);
+    const subtotal = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
     const tax = POSState.includeIgv ? subtotal * 0.18 : 0;
     const total = subtotal + tax;
-    
-    console.log('Datos de la venta:', { subtotal, tax, total, paymentMethod: POSState.paymentMethod });
-    
-    // Preparar datos de la venta
+
     const saleData = {
-        customer_id: document.getElementById('customerSelect') ? document.getElementById('customerSelect').value : null,
-        payment_method: POSState.paymentMethod || 'cash',
-        items: POSState.cart.map(item => ({
-            product_id: item.id,
-            quantity: item.quantity,
-            price: item.price,
-            subtotal: item.subtotal,
-            name: item.name
-        })),
+        customer_id: document.getElementById('customerSelect').value || null,
+        payment_method: POSState.paymentMethod,
+        items: POSState.cart,
         subtotal: subtotal,
         tax: tax,
         total: total,
-        cash_received: POSState.cashReceived || 0,
+        cash_received: POSState.cashReceived,
         change_amount: POSState.paymentMethod === 'cash' ? 
-            ((POSState.cashReceived || 0) - total) : 0,
+            (POSState.cashReceived - total) : 0,
     };
     
-    console.log('Enviando datos de venta al servidor:', saleData);
-    
     try {
-        // Mostrar indicador de carga
-        showMessage('Procesando transacción, por favor espere...', 'info');
-        
-        // Enviar datos al servidor
         const response = await API.post('/sales.php', saleData);
         
-        console.log('Respuesta del servidor:', response);
-        
-        if (response && response.success) {
-            // Mostrar recibo o resumen de la venta
-            if (response.data) {
-                showTransactionComplete(response.data);
-            }
-            
-            // Limpiar el carrito
+        if (response.success) {
+            showTransactionComplete(response.data);
             clearCart();
-            
-            // Actualizar la lista de productos
-            loadProducts();
-            
-            // Mostrar mensaje de éxito
             showMessage('Venta completada exitosamente', 'success');
-            
-            return response.data; // Devolver los datos de la venta
+            loadProducts(); 
         } else {
-            // Manejar error del servidor
-            const errorMessage = response && response.message ? response.message : 'Error desconocido al procesar la venta';
-            console.error('Error en la respuesta del servidor:', errorMessage);
-            throw new Error(errorMessage);
-        }
             showMessage(response.message || 'Error al procesar la venta', 'error');
         }
     } catch (error) {
