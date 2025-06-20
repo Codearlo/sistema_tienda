@@ -24,41 +24,36 @@ function initializePOS() {
     console.log('Inicializando POS...');
     
     // Usar datos del PHP
-    if (typeof products_data !== 'undefined') {
-        POSState.products = products_data;
+    if (typeof products_data !== 'undefined') { /* */
+        POSState.products = products_data; /* */
     } else {
         console.warn('products_data no está definido en el ámbito global.');
     }
-    if (typeof categories_data !== 'undefined') {
-        POSState.categories = categories_data;
+    if (typeof categories_data !== 'undefined') { /* */
+        POSState.categories = categories_data; /* */
     } else {
         console.warn('categories_data no está definido en el ámbito global.');
     }
-    if (typeof customers_data !== 'undefined') {
-        POSState.customers = customers_data;
+    if (typeof customers_data !== 'undefined') { /* */
+        POSState.customers = customers_data; /* */
     } else {
         console.warn('customers_data no está definido en el ámbito global.');
     }
 
-    // CONSOLE.LOGS PARA DEPURACIÓN
-    console.log('POSState.products después de inicializar:', POSState.products);
-    console.log('POSState.categories después de inicializar:', POSState.categories);
-    console.log('POSState.customers después de inicializar:', POSState.customers);
-    // FIN DE CONSOLE.LOGS DE DEPURACIÓN
+    console.log('POSState.products después de inicializar:', POSState.products); /* */
+    console.log('POSState.categories después de inicializar:', POSState.categories); /* */
+    console.log('POSState.customers después de inicializar:', POSState.customers); /* */
     
-    // Inicializar reloj
     updateClock();
     setInterval(updateClock, 1000);
     
-    // Configurar eventos
     setupEventListeners();
     
-    // Cargar interfaz
     loadCategories();
     loadProducts();
     updateCartDisplay();
     updateTotals();
-    setupPaymentMethods(); // Esta función configurará el método de pago inicial y su visibilidad.
+    setupPaymentMethods(); 
     updateIgvButtonState();
     
     console.log('POS inicializado correctamente');
@@ -66,25 +61,23 @@ function initializePOS() {
 
 // ===== CONFIGURACIÓN DE EVENTOS =====
 function setupEventListeners() {
-    // Búsqueda de productos
     const searchInput = document.getElementById('productSearch');
     if (searchInput) {
         searchInput.addEventListener('input', handleProductSearch);
     }
     
-    // Botón limpiar búsqueda
     const clearBtn = document.querySelector('.search-clear-btn');
     if (clearBtn) {
         clearBtn.addEventListener('click', clearSearch);
     }
     
-    // Monto recibido en efectivo - AHORA ASOCIADO AL INPUT EN LA SECCIÓN DE PAGO PRINCIPAL
+    // Event listener para el input de efectivo en la sección principal del POS
     const cashInput = document.getElementById('cashReceivedInput'); 
     if (cashInput) {
         cashInput.addEventListener('input', calculateChange);
     }
     
-    // Métodos de pago - AHORA ASOCIADOS A LOS BOTONES EN LA SECCIÓN DE PAGO PRINCIPAL
+    // Event listeners para los botones de método de pago en la sección principal del POS
     const paymentMethodButtons = document.querySelectorAll('.payment-section .payment-method-btn'); 
     paymentMethodButtons.forEach(btn => {
         btn.addEventListener('click', () => selectPaymentMethod(btn.dataset.method));
@@ -214,7 +207,7 @@ function addToCart(productId) {
             price: parseFloat(product.selling_price),
             quantity: 1,
             subtotal: parseFloat(product.selling_price),
-            stock: stock // Guardar stock disponible para validación
+            stock: stock 
         });
     }
     
@@ -244,7 +237,7 @@ function updateQuantity(productId, newQuantity) {
     
     if (newQuantity > item.stock) {
         showMessage(`Cantidad excede el stock disponible (${item.stock})`, 'warning');
-        item.quantity = item.stock; // Ajustar a la cantidad máxima disponible
+        item.quantity = item.stock;
     } else {
         item.quantity = newQuantity;
     }
@@ -340,8 +333,6 @@ function updateTotals() {
         igvRow.style.display = POSState.includeIgv ? 'flex' : 'none';
     }
     
-    // Se invoca calculateChange aquí porque el total puede cambiar al añadir/quitar ítems
-    // Asegurarse de que calculateChange() pueda manejar elementos no presentes si se llama antes del modal
     calculateChange();
 }
 
@@ -368,12 +359,11 @@ function updateIgvButtonState() {
 
 // ===== MÉTODOS DE PAGO =====
 function setupPaymentMethods() {
-    // Seleccionar el método de pago inicial por defecto o el activo en el HTML
     const initialMethodBtn = document.querySelector('.payment-section .payment-method-btn.active');
     if (initialMethodBtn) {
         selectPaymentMethod(initialMethodBtn.dataset.method);
     } else {
-        selectPaymentMethod('cash'); // Default a efectivo si no hay ninguno activo
+        selectPaymentMethod('cash');
     }
 }
 
@@ -381,24 +371,19 @@ function setupPaymentMethods() {
 function calculateChange() {
     console.log('Calculando cambio...');
     
-    // Obtener referencias a los elementos del DOM de la sección de pago principal
     const cashInput = document.getElementById('cashReceivedInput');
     const changeAmountDiv = document.getElementById('changeAmount');
     const changeValueSpan = document.getElementById('changeValue');
-    const completeBtn = document.getElementById('completeBtn'); // El botón "Completar Venta" fuera del modal
+    const completeBtn = document.getElementById('completeBtn');
 
-    // Si los elementos no existen (por ejemplo, si esta función se llama al inicio antes de que el DOM esté listo
-    // o si el POS.php no tiene el ID correcto para cashReceivedInput), simplemente salir.
-    // Los errores de "Elementos no encontrados" se debían a que estos elementos no estaban listos o con el ID correcto.
     if (!cashInput || !changeAmountDiv || !changeValueSpan || !completeBtn) {
         console.warn('Algunos elementos del formulario de pago principal no se encontraron. Posiblemente se está inicializando el POS.');
         return;
     }
     
-    // Solo proceder con la lógica si el método de pago actual es 'cash'
     if (POSState.paymentMethod !== 'cash') {
-        changeAmountDiv.style.display = 'none'; // Asegurarse de que el cambio esté oculto si no es efectivo
-        completeBtn.disabled = POSState.cart.length === 0; // Habilitar/deshabilitar botón completar venta basado en carrito
+        changeAmountDiv.style.display = 'none';
+        completeBtn.disabled = POSState.cart.length === 0;
         completeBtn.classList.remove('btn-success');
         completeBtn.classList.add('btn-primary');
         completeBtn.innerHTML = '<i class="fas fa-check"></i> Completar Venta';
@@ -420,7 +405,7 @@ function calculateChange() {
             changeAmountDiv.style.color = 'var(--success-700)';
             changeAmountDiv.style.backgroundColor = 'var(--success-50)';
             changeAmountDiv.style.borderColor = 'var(--success-200)';
-            completeBtn.disabled = false; // Habilitar el botón si el monto es suficiente
+            completeBtn.disabled = false;
             completeBtn.classList.remove('btn-primary');
             completeBtn.classList.add('btn-success');
             completeBtn.innerHTML = '<i class="fas fa-check-double"></i> Completar Venta';
@@ -430,14 +415,14 @@ function calculateChange() {
             changeAmountDiv.style.color = 'var(--error-700)';
             changeAmountDiv.style.backgroundColor = 'var(--error-50)';
             changeAmountDiv.style.borderColor = 'var(--error-200)';
-            completeBtn.disabled = true; // Deshabilitar si el monto es insuficiente
+            completeBtn.disabled = true;
             completeBtn.classList.remove('btn-success');
             completeBtn.classList.add('btn-primary');
             completeBtn.innerHTML = '<i class="fas fa-check"></i> Completar Venta';
         }
     } else {
         changeAmountDiv.style.display = 'none';
-        completeBtn.disabled = true; // Deshabilitar si no hay monto ingresado
+        completeBtn.disabled = true;
         completeBtn.classList.remove('btn-success');
         completeBtn.classList.add('btn-primary');
         completeBtn.innerHTML = '<i class="fas fa-check"></i> Completar Venta';
@@ -452,7 +437,6 @@ function selectPaymentMethod(method) {
     
     POSState.paymentMethod = method;
     
-    // Actualizar botones de método de pago en la sección principal
     const paymentMethodButtons = document.querySelectorAll('.payment-section .payment-method-btn');
     paymentMethodButtons.forEach(btn => {
         if (btn.dataset.method === method) {
@@ -462,24 +446,21 @@ function selectPaymentMethod(method) {
         }
     });
     
-    // Mostrar/ocultar sección de efectivo en la sección principal
-    const cashPaymentSection = document.getElementById('cashPayment'); // Este es el div del input de efectivo
+    const cashPaymentSection = document.getElementById('cashPayment');
     if (cashPaymentSection) {
         cashPaymentSection.style.display = method === 'cash' ? 'block' : 'none';
     }
     
-    // Si es pago con tarjeta/transferencia, limpiar el campo de monto recibido y ocultar cambio
     if (method !== 'cash') {
         const cashInput = document.getElementById('cashReceivedInput');
         if (cashInput) {
-            cashInput.value = '0.00'; // Limpiar el valor para otros métodos de pago
+            cashInput.value = '0.00';
         }
         const changeAmountDiv = document.getElementById('changeAmount');
         if (changeAmountDiv) {
             changeAmountDiv.style.display = 'none';
         }
     } else {
-        // Si vuelve a efectivo, enfocar el input y calcular cambio
         setTimeout(() => {
             const cashInput = document.getElementById('cashReceivedInput');
             if (cashInput) {
@@ -489,9 +470,7 @@ function selectPaymentMethod(method) {
         }, 100);
     }
     
-    // Recalcular el cambio para actualizar el estado del botón "Completar Venta"
-    // Esto se encarga de habilitar/deshabilitar 'completeBtn' correctamente.
-    calculateChange(); 
+    calculateChange();
 }
 
 // ===== BÚSQUEDA Y FILTROS =====
@@ -572,6 +551,8 @@ function showPaymentModal() {
     }
     
     // Actualizar el contenido del modal de pago - ESTO ES PARA EL MODAL DE CONFIRMACIÓN
+    // Los IDs de los inputs y divs dentro de este modal DEBEN SER DIFERENTES
+    // para no confundirse con los de la sección principal.
     paymentContent.innerHTML = `
         <div class="payment-summary">
             <h3>Resumen de la Venta</h3>
@@ -595,22 +576,19 @@ function showPaymentModal() {
             <div class="payment-methods">
                 <button type="button" class="payment-method-btn active" 
                         data-method="${POSState.paymentMethod}">
-                    <i class="fas ${POSState.paymentMethod === 'cash' ? 'fa-money-bill' : 'fa-credit-card'}"></i>
+                    <i class="fas ${POSState.paymentMethod === 'cash' ? 'fa-money-bill' : (POSState.paymentMethod === 'card' ? 'fa-credit-card' : 'fa-exchange-alt')}"></i>
                     <span>${getPaymentMethodName(POSState.paymentMethod)}</span>
                 </button>
             </div>
         </div>
         
         ${POSState.paymentMethod === 'cash' ? `
-        <div id="cashPaymentSection" class="cash-payment-section">
-            <div class="form-group">
+        <div id="modalCashPaymentSection" class="cash-payment-section"> <div class="form-group">
                 <label for="modalCashReceivedInput">Monto recibido:</label>
                 <input type="number" id="modalCashReceivedInput" class="form-input" 
                        step="0.01" min="0" value="${POSState.cashReceived.toFixed(2)}" 
                        readonly> </div>
-            <div id="modalChangeAmount" class="change-amount" style="display: block;">
-                Vuelto: <span id="modalChangeValue" class="change-value">S/ ${(POSState.cashReceived - total).toFixed(2)}</span>
-            </div>
+            <div id="modalChangeAmount" class="change-amount" style="display: block;"> Vuelto: <span id="modalChangeValue" class="change-value">S/ ${(POSState.cashReceived - total).toFixed(2)}</span> </div>
         </div>
         ` : ''}
 
@@ -624,32 +602,25 @@ function showPaymentModal() {
         </div>
     `;
     
-    // El botón de confirmar pago ahora está en el modal de confirmación
     const confirmBtnInModal = document.getElementById('confirmPaymentBtn');
     if (confirmBtnInModal) {
         confirmBtnInModal.onclick = processPayment; 
     }
     
-    // Mostrar el modal después de actualizar su contenido
     openModal('paymentModal');
     
-    // No es necesario llamar a selectPaymentMethod o calculateChange aquí para el modal de confirmación,
-    // ya que el estado del pago ya fue definido en la sección principal del POS.
-    
-    return false; // Prevenir comportamiento por defecto del botón
+    return false;
 }
 
 // Función para crear el modal de pago dinámicamente si no existe
 function createPaymentModal() {
     console.log('Creando modal de pago...');
     
-    // Verificar si ya existe el modal
     if (document.getElementById('paymentModal')) {
         console.log('El modal de pago ya existe');
         return;
     }
     
-    // Crear el elemento del modal
     const modalHTML = `
     <div class="modal-overlay" id="paymentModal">
         <div class="modal">
@@ -664,11 +635,9 @@ function createPaymentModal() {
         </div>
     </div>`;
     
-    // Crear un contenedor temporal
     const temp = document.createElement('div');
     temp.innerHTML = modalHTML;
     
-    // Agregar el modal al final del body
     const modalElement = temp.firstElementChild;
     document.body.appendChild(modalElement);
     
@@ -685,11 +654,7 @@ async function processPayment() {
     
     const subtotal = POSState.cart.reduce((sum, item) => sum + (parseFloat(item.subtotal) || 0), 0);
     const total = POSState.includeIgv ? subtotal * 1.18 : subtotal;
-    // cashReceived ya se actualiza en calculateChange en la sección principal
     let cashReceived = POSState.cashReceived; 
-    
-    // No es necesario validar cashReceived aquí si ya se hizo en calculateChange
-    // y el botón de confirmar pago está deshabilitado si el monto es insuficiente.
     
     showMessage('Procesando pago, por favor espere...', 'info');
     
@@ -792,7 +757,7 @@ function openModal(modalId) {
     console.log('Abriendo modal:', modalId);
     const modal = document.getElementById(modalId);
     if (modal) {
-        modal.style.display = 'flex'; // Asegurar que el modal se muestre como flex
+        modal.style.display = 'flex'; // Asegura que el modal-overlay se muestre
         modal.classList.add('show');
         document.body.style.overflow = 'hidden';
         
@@ -826,7 +791,7 @@ function clearCart() {
 
     const cashReceivedInput = document.getElementById('cashReceivedInput');
     if (cashReceivedInput) {
-        cashReceivedInput.value = '0.00'; // Resetear a 0.00 al limpiar el carrito
+        cashReceivedInput.value = '0.00';
     }
     const customerSelect = document.getElementById('customerSelect');
     if (customerSelect) {
@@ -836,7 +801,7 @@ function clearCart() {
     updateCartDisplay();
     updateTotals();
     updateIgvButtonState();
-    calculateChange(); // Asegurarse de que el cambio se resetee también
+    calculateChange(); 
 }
 
 function updateClock() {
