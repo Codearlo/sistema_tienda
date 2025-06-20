@@ -339,42 +339,97 @@ function setupPaymentMethods() {
     selectPaymentMethod('cash');
 }
 
-function selectPaymentMethod(method) {
-    POSState.paymentMethod = method;
-    
-    // Actualizar botones
-    document.querySelectorAll('.payment-method').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    document.querySelector(`[data-method="${method}"]`).classList.add('active');
-    
-    // Mostrar/ocultar sección de efectivo
-    const cashPayment = document.getElementById('cashPayment');
-    if (method === 'cash') {
-        cashPayment.style.display = 'block';
-    } else {
-        cashPayment.style.display = 'none';
-    }
-}
-
+// ===== CÁLCULO DE CAMBIO =====
 function calculateChange() {
-    const cashReceived = parseFloat(document.getElementById('cashReceived').value) || 0;
-    let total = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
-    if (POSState.includeIgv) {
-        total *= 1.18;
+    console.log('Calculando cambio...');
+    
+    // Verificar que el método de pago sea efectivo
+    if (POSState.paymentMethod !== 'cash') {
+        console.log('No es pago en efectivo, no se calcula cambio');
+        return;
     }
     
-    POSState.cashReceived = cashReceived;
+    // Obtener el monto recibido del input
+    const cashReceivedInput = document.getElementById('cashReceivedInput');
+    if (!cashReceivedInput) {
+        console.error('No se encontró el campo de monto recibido');
+        return;
+    }
     
+    // Convertir el valor a número y asegurarse de que sea un número válido
+    const cashReceived = parseFloat(cashReceivedInput.value) || 0;
+    
+    // Calcular el total de la compra
+    const subtotal = POSState.cart.reduce((sum, item) => sum + (parseFloat(item.subtotal) || 0), 0);
+    const total = POSState.includeIgv ? subtotal * 1.18 : subtotal;
+    const change = cashReceived - total;
+    
+    console.log('Monto recibido:', cashReceived, 'Total:', total, 'Cambio:', change);
+    
+    // Actualizar la interfaz de usuario con el cambio
     const changeAmount = document.getElementById('changeAmount');
     const changeValue = document.getElementById('changeValue');
     
-    if (cashReceived >= total && cashReceived > 0) {
-        const change = cashReceived - total;
-        changeValue.textContent = `S/ ${change.toFixed(2)}`;
-        changeAmount.style.display = 'block';
+    if (changeAmount && changeValue) {
+        if (change >= 0) {
+            changeAmount.style.display = 'block';
+            changeValue.textContent = `S/ ${change.toFixed(2)}`;
+            changeValue.style.color = change > 0 ? '#10b981' : '#333';
+            
+            // Resaltar el botón de confirmar pago cuando hay cambio positivo
+            const confirmBtn = document.querySelector('#paymentContent .btn-primary:not(.btn-outline)');
+            if (confirmBtn) {
+                confirmBtn.style.backgroundColor = change > 0 ? '#10b981' : '';
+                confirmBtn.style.borderColor = change > 0 ? '#10b981' : '';
+            }
+        } else {
+            changeAmount.style.display = 'none';
+        }
     } else {
-        changeAmount.style.display = 'none';
+        console.error('No se encontraron los elementos para mostrar el cambio');
+    }
+    
+    // Actualizar el estado global con el monto recibido
+    POSState.cashReceived = cashReceived;
+}
+
+function selectPaymentMethod(method) {
+    console.log('Seleccionando método de pago:', method);
+    POSState.paymentMethod = method;
+    
+    // Actualizar botones en el modal de pago
+    const paymentButtons = document.querySelectorAll('#paymentContent .payment-method');
+    paymentButtons.forEach(btn => {
+        if (btn.dataset.method === method) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+    
+    // Mostrar/ocultar sección de efectivo
+    const cashPaymentSection = document.getElementById('cashPaymentSection');
+    const cashReceivedInput = document.getElementById('cashReceivedInput');
+    
+    if (cashPaymentSection) {
+        if (method === 'cash') {
+            cashPaymentSection.style.display = 'block';
+            if (cashReceivedInput) {
+                setTimeout(() => cashReceivedInput.focus(), 100);
+            }
+        } else {
+            cashPaymentSection.style.display = 'none';
+        }
+    }
+    
+    // Recalcular el cambio si es pago en efectivo
+    if (method === 'cash' && cashReceivedInput) {
+        calculateChange();
+    } else {
+        const changeAmount = document.getElementById('changeAmount');
+        if (changeAmount) {
+            changeAmount.style.display = 'none';
+        }
     }
 }
 
@@ -414,6 +469,8 @@ function clearFilters() {
 
 // ===== TRANSACCIONES =====
 function showPaymentModal() {
+    console.log('Mostrando modal de pago...');
+    
     if (POSState.cart.length === 0) {
         showMessage('El carrito está vacío', 'warning');
         return;
@@ -423,17 +480,27 @@ function showPaymentModal() {
     const tax = POSState.includeIgv ? subtotal * 0.18 : 0;
     const total = subtotal + tax;
     
-    // Actualizar el contenido del modal de pago
-    const paymentModal = document.getElementById('paymentModal');
-    const paymentContent = document.getElementById('paymentContent');
+    // Verificar si el modal ya existe
+    let paymentModal = document.getElementById('paymentModal');
+    let paymentContent = document.getElementById('paymentContent');
     
     if (!paymentModal || !paymentContent) {
-        console.error('Modal de pago no encontrado');
-        return;
+        console.error('No se pudo encontrar el modal de pago o su contenido');
+        // Crear el modal dinámicamente si no existe
+        createPaymentModal();
+        paymentModal = document.getElementById('paymentModal');
+        paymentContent = document.getElementById('paymentContent');
+        
+        if (!paymentModal || !paymentContent) {
+            console.error('No se pudo crear el modal de pago');
+            return;
+        }
     }
     
+    // Actualizar el contenido del modal de pago
     paymentContent.innerHTML = `
         <div class="payment-summary">
+            <h3>Resumen de la Venta</h3>
             <div class="summary-row">
                 <span>Subtotal:</span>
                 <span>S/ ${subtotal.toFixed(2)}</span>
@@ -449,40 +516,45 @@ function showPaymentModal() {
             </div>
         </div>
         
-        <div class="payment-method-selection">
+        <div class="payment-method-selection" style="margin: 20px 0;">
             <h4>Método de pago</h4>
-            <div class="payment-methods">
-                <button class="payment-method ${POSState.paymentMethod === 'cash' ? 'active' : ''}" 
-                        data-method="cash" onclick="selectPaymentMethod('cash')">
-                    <i class="fas fa-money-bill"></i>
-                    Efectivo
+            <div class="payment-methods" style="display: flex; gap: 10px; margin: 10px 0;">
+                <button class="btn ${POSState.paymentMethod === 'cash' ? 'btn-primary' : 'btn-outline'}" 
+                        data-method="cash" 
+                        onclick="selectPaymentMethod('cash')"
+                        style="flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px;">
+                    <i class="fas fa-money-bill" style="font-size: 24px; margin-bottom: 5px;"></i>
+                    <span>Efectivo</span>
                 </button>
-                <button class="payment-method ${POSState.paymentMethod === 'card' ? 'active' : ''}" 
-                        data-method="card" onclick="selectPaymentMethod('card')">
-                    <i class="fas fa-credit-card"></i>
-                    Tarjeta
+                <button class="btn ${POSState.paymentMethod === 'card' ? 'btn-primary' : 'btn-outline'}" 
+                        data-method="card" 
+                        onclick="selectPaymentMethod('card')"
+                        style="flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px;">
+                    <i class="fas fa-credit-card" style="font-size: 24px; margin-bottom: 5px;"></i>
+                    <span>Tarjeta</span>
                 </button>
             </div>
         </div>
         
-        <div id="cashPaymentSection" style="display: ${POSState.paymentMethod === 'cash' ? 'block' : 'none'};">
+        <div id="cashPaymentSection" style="display: ${POSState.paymentMethod === 'cash' ? 'block' : 'none'}; margin: 15px 0;">
             <div class="form-group">
-                <label for="cashReceivedInput">Monto recibido:</label>
+                <label for="cashReceivedInput" style="display: block; margin-bottom: 5px; font-weight: 500;">Monto recibido:</label>
                 <input type="number" id="cashReceivedInput" class="form-input" 
                        step="0.01" min="0" value="0.00" 
-                       oninput="calculateChange()">
+                       oninput="calculateChange()"
+                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px;">
             </div>
-            <div id="changeAmount" class="change-amount" style="display: none;">
-                Vuelto: <span id="changeValue">S/ 0.00</span>
+            <div id="changeAmount" class="change-amount" style="margin-top: 10px; font-weight: 500; display: none;">
+                Vuelto: <span id="changeValue" style="color: #10b981; font-weight: bold;">S/ 0.00</span>
             </div>
         </div>
         
-        <div class="modal-actions" style="margin-top: 20px;">
-            <button class="btn btn-outline" onclick="closeModal('paymentModal')">
+        <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
+            <button class="btn btn-outline" onclick="closeModal('paymentModal')" style="padding: 8px 16px;">
                 Cancelar
             </button>
-            <button class="btn btn-primary" onclick="processPayment()">
-                Confirmar Pago
+            <button class="btn btn-primary" onclick="processPayment()" style="padding: 8px 16px;">
+                <i class="fas fa-check"></i> Confirmar Pago
             </button>
         </div>
     `;
@@ -490,37 +562,107 @@ function showPaymentModal() {
     // Mostrar el modal
     openModal('paymentModal');
     
+    // Configurar el método de pago inicial
+    selectPaymentMethod(POSState.paymentMethod || 'cash');
+    
     // Enfocar el campo de monto recibido si es pago en efectivo
     if (POSState.paymentMethod === 'cash') {
         setTimeout(() => {
             const cashInput = document.getElementById('cashReceivedInput');
-            if (cashInput) cashInput.focus();
-        }, 100);
+            if (cashInput) {
+                cashInput.focus();
+                // Seleccionar todo el texto para facilitar la edición
+                cashInput.select();
+            }
+        }, 300);
     }
 }
 
-function processPayment() {
+// Función para crear el modal de pago dinámicamente si no existe
+function createPaymentModal() {
+    // Verificar si ya existe el modal
+    if (document.getElementById('paymentModal')) {
+        return;
+    }
+    
+    // Crear el elemento del modal
+    const modalHTML = `
+    <div class="modal-overlay" id="paymentModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 1000; display: flex; justify-content: center; align-items: center;">
+        <div class="modal" style="background: white; border-radius: 8px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);">
+            <div class="modal-header" style="padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+                <h3 class="modal-title" style="margin: 0; font-size: 1.25rem; color: #333;">Procesar Pago</h3>
+                <button class="modal-close" onclick="closeModal('paymentModal')" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <div id="paymentContent">
+                    <!-- El contenido se llenará dinámicamente con JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>`;
+    
+    // Agregar el modal al final del body
+    const div = document.createElement('div');
+    div.innerHTML = modalHTML;
+    document.body.appendChild(div.firstChild);
+}
+
+async function processPayment() {
+    console.log('Procesando pago...', POSState);
+    
+    // Validar que hay productos en el carrito
+    if (POSState.cart.length === 0) {
+        showMessage('El carrito está vacío', 'warning');
+        return;
+    }
+    
+    // Calcular totales
+    const subtotal = POSState.cart.reduce((sum, item) => sum + (parseFloat(item.subtotal) || 0), 0);
+    const total = POSState.includeIgv ? subtotal * 1.18 : subtotal;
+    
+    // Validar método de pago
     if (POSState.paymentMethod === 'cash') {
+        // Validar monto recibido para pago en efectivo
         const cashInput = document.getElementById('cashReceivedInput');
         if (!cashInput) {
-            showMessage('Error al procesar el pago', 'error');
+            console.error('No se encontró el campo de monto recibido');
+            showMessage('Error al procesar el pago en efectivo', 'error');
             return;
         }
         
         const cashReceived = parseFloat(cashInput.value) || 0;
-        const subtotal = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
-        let total = POSState.includeIgv ? subtotal * 1.18 : subtotal;
         
+        // Validar que el monto sea suficiente
         if (cashReceived < total) {
             showMessage('El monto recibido es insuficiente', 'warning');
             return;
         }
         
+        // Actualizar estado con el monto recibido
         POSState.cashReceived = cashReceived;
+        console.log('Pago en efectivo procesado. Monto recibido:', cashReceived);
+    } else if (POSState.paymentMethod === 'card') {
+        // Validaciones adicionales para pago con tarjeta si es necesario
+        console.log('Procesando pago con tarjeta');
+    } else {
+        console.error('Método de pago no válido:', POSState.paymentMethod);
+        showMessage('Método de pago no válido', 'error');
+        return;
     }
     
+    // Cerrar el modal de pago
     closeModal('paymentModal');
-    completeTransaction();
+    
+    // Mostrar mensaje de confirmación
+    showMessage('Procesando pago...', 'info');
+    
+    // Llamar a la función para completar la transacción
+    try {
+        await completeTransaction();
+    } catch (error) {
+        console.error('Error al completar la transacción:', error);
+        showMessage('Error al procesar el pago: ' + error.message, 'error');
+    }
 }
 
 async function completeTransaction() {
@@ -600,24 +742,33 @@ function newTransaction() {
 
 // ===== FUNCIONES DE MODAL =====
 function openModal(modalId) {
+    console.log('Abriendo modal:', modalId);
     const modal = document.getElementById(modalId);
     if (modal) {
         // Asegurarse de que el modal sea visible
         modal.style.display = 'flex';
-        document.body.style.overflow = 'hidden'; // Prevenir scroll del body
+        modal.style.opacity = '0';
+        modal.style.visibility = 'visible';
+        
+        // Forzar un reflow para que la animación funcione
+        void modal.offsetWidth;
         
         // Agregar clase para animación
         setTimeout(() => {
-            modal.classList.add('show');
             modal.style.opacity = '1';
-            modal.style.visibility = 'visible';
+            modal.classList.add('show');
         }, 10);
         
+        // Prevenir scroll del body
+        document.body.style.overflow = 'hidden';
+        
         // Enfocar el primer elemento interactivo si existe
-        const firstInput = modal.querySelector('input, select, textarea, button');
-        if (firstInput) {
-            setTimeout(() => firstInput.focus(), 100);
-        }
+        setTimeout(() => {
+            const firstInput = modal.querySelector('input, select, textarea, button');
+            if (firstInput) {
+                firstInput.focus();
+            }
+        }, 100);
     } else {
         console.error('No se pudo encontrar el modal con ID:', modalId);
     }
