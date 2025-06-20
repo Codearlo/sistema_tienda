@@ -410,7 +410,7 @@ function calculateChange() {
     POSState.cashReceived = cashReceived;
 }
 
-
+/* duplicate block removed
     const cashInput = document.getElementById('cashReceivedInput');
     if (!cashInput) return;
     console.log('Calculando cambio...');
