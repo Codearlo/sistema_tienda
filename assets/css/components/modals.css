@@ -1,85 +1,147 @@
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  opacity: 0;
-  visibility: hidden;
-  transition: var(--transition-normal);
-}
-
-.modal-overlay.show {
-  opacity: 1;
-  visibility: visible;
-}
+codearlo/sistema_tienda/sistema_tienda-edec0d0f67713d8b4bdc29773d3a0170dcccf2ad/assets/css/components/modals.css
+/* =====================================================
+    MODALS - Ventanas Modales
+    ===================================================== */
 
 .modal {
-  background-color: white;
-  border-radius: var(--border-radius-lg);
-  max-width: 500px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-  transform: scale(0.9);
-  transition: var(--transition-normal);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Fondo semitransparente oscuro */
+    display: flex; /* Cambiado a flex para centrar contenido */
+    align-items: center;
+    justify-content: center;
+    z-index: 10000; /* Asegura que esté por encima de todo */
+    backdrop-filter: blur(4px); /* Efecto de desenfoque */
+    transition: opacity 0.3s ease, visibility 0.3s ease; /* Añadido visibility para una mejor transición */
+    opacity: 0; /* Inicialmente transparente */
+    visibility: hidden; /* Inicialmente oculto */
+    pointer-events: none; /* No interactuable cuando está oculto */
 }
 
-.modal-overlay.show .modal {
-  transform: scale(1);
+.modal.show {
+    opacity: 1; /* Completamente visible */
+    visibility: visible; /* Hacer visible */
+    pointer-events: auto; /* Hacer interactuable */
+}
+
+.modal-content {
+    background: white;
+    border-radius: var(--border-radius-lg);
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-xl);
+    transform: translateY(-20px); /* Efecto de entrada */
+    transition: transform 0.3s ease;
+}
+
+.modal.show .modal-content {
+    transform: translateY(0); /* Posición final */
 }
 
 .modal-large {
-  max-width: 800px;
-  width: 95%;
+    max-width: 800px;
+    width: 95%;
 }
 
 .modal-receipt {
-  max-width: 400px;
+    max-width: 400px;
 }
 
 .modal-header {
-  padding: var(--spacing-lg);
-  border-bottom: 1px solid var(--gray-200);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-.modal-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--gray-900);
+.modal-header h3 {
+    margin: 0;
+    font-size: var(--text-xl);
+    font-weight: 700;
+    color: var(--gray-800);
 }
 
 .modal-close {
-  background: none;
-  border: none;
-  color: var(--gray-400);
-  cursor: pointer;
-  padding: var(--spacing-sm);
-  border-radius: var(--border-radius-sm);
-  transition: var(--transition-fast);
+    background: none;
+    border: none;
+    font-size: var(--text-2xl);
+    color: var(--gray-400);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-md);
 }
 
 .modal-close:hover {
-  background-color: var(--gray-100);
-  color: var(--gray-600);
+    color: var(--error-600);
+    background-color: var(--error-50);
 }
 
 .modal-body {
-  padding: var(--spacing-lg);
+    padding: var(--spacing-lg);
 }
 
 .modal-footer {
-  padding: var(--spacing-lg);
-  border-top: 1px solid var(--gray-200);
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-lg);
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: flex-end;
+    border-top: 1px solid var(--gray-200);
+}
+
+/* Estilos específicos para el modal de ventas suspendidas */
+#suspendedSalesModal .modal-content {
+    max-width: 600px;
+}
+
+.suspended-sales-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.suspended-sale-item {
+    background-color: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.suspended-sale-item .sale-info {
+    flex: 1;
+    min-width: 200px;
+}
+
+.suspended-sale-item h4 {
+    margin: 0 0 var(--spacing-xs) 0;
+    font-size: var(--text-base);
+    color: var(--gray-900);
+}
+
+.suspended-sale-item p {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--gray-700);
+}
+
+.suspended-sale-item .sale-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-shrink: 0;
+}
+
+.suspended-sale-item .btn-sm {
+    padding: var(--spacing-xs) var(--spacing-md);
+    font-size: var(--text-sm);
 }
