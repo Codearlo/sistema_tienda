@@ -3,12 +3,12 @@
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    width: 100%; /* ¡CORREGIDO: Asegurar que ocupe el 100% del ancho del viewport! */
+    height: 100%; /* Asegurar que ocupe el 100% del alto del viewport */
     background-color: rgba(0, 0, 0, 0.5);
     display: none; /* Oculto por defecto */
-    justify-content: center;
-    align-items: center;
+    justify-content: center; /* Centrar contenido horizontalmente */
+    align-items: center;    /* Centrar contenido verticalmente */
     z-index: 1000;
     opacity: 0;
     transition: opacity 0.3s ease-in-out;
@@ -20,22 +20,31 @@
     opacity: 1;
 }
 
-/* Estilos para la ventana del modal (el contenido en sí) */
+/* Estilos para la ventana del modal (el cuadro blanco con contenido) */
 .modal {
     background-color: #fff; /* O tu color de fondo */
     padding: 25px; /* Ajusta según necesites */
     border-radius: 8px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     
-    /* --- CAMBIOS CLAVE PARA HACERLO FLOTANTE --- */
-    width: 90%; /* Ocupa hasta el 90% del ancho de la ventana */
-    max-width: 550px; /* **AJUSTADO**: Máximo 550px de ancho para que no sea tan lateral */
+    width: 90%; /* Ocupa hasta el 90% del ancho de su contenedor (.modal-overlay) */
+    max-width: 550px; /* **AJUSTADO**: Máximo 550px de ancho para que sea una ventana flotante */
     height: auto; /* La altura se ajusta al contenido */
     max-height: 90vh; /* Máximo 90% del alto de la ventana para evitar desbordamiento */
     overflow-y: auto; /* Permite scroll si el contenido es muy largo */
-    /* --- FIN CAMBIOS CLAVE --- */
 
     z-index: 1001; /* Siempre encima del overlay */
+
+    /* --- CORRECCIONES CLAVE para el centrado del modal en sí --- */
+    /* Estas propiedades deben eliminarse o ajustarse para que el flexbox del padre lo centre. */
+    /* Si tienes position:fixed aquí, debe usarse con top/left/transform para centrar */
+    /* Pero para centrado con flexbox del padre, lo más limpio es 'position: relative;' o no definir 'position' aquí. */
+    position: relative; /* CAMBIADO: Permite que flexbox del padre lo centre. */
+                       /* Si no quieres que tenga posición relativa, puedes quitar esta línea si no tienes otro 'position' */
+    left: auto; /* CAMBIADO: Eliminar cualquier 'left' fijo que lo pegue a la izquierda */
+    top: auto;  /* CAMBIADO: Eliminar cualquier 'top' fijo */
+    /* La propiedad width se mantiene para controlar el ancho, pero ahora se ajustará al padre y max-width */
+    /* --- FIN CORRECCIONES CLAVE --- */
 
     /* Propiedades para la animación y visibilidad predeterminada */
     display: none; /* Crucial: oculto por defecto para que la transición funcione */
@@ -43,11 +52,10 @@
     transform: translateY(-20px); /* Posición inicial para animación */
     transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
 
-    /* Propiedades para el layout interno del modal (si las usas) */
+    /* Propiedades para el layout interno del modal */
     flex-direction: column;
-    gap: 15px; /* Espacio entre las secciones del modal */
+    gap: 15px;
 }
-
 
 /* Cuando el overlay se muestra, también se muestra el contenido del modal */
 .modal-overlay.show .modal {
@@ -56,7 +64,7 @@
     transform: translateY(0);
 }
 
-/* Estilos para el encabezado del modal */
+/* Estilos para el encabezado del modal (Mantenidos y revisados para el botón X) */
 .modal-header {
     padding: 0 0 15px 0; /* Ajuste del padding para el botón X */
     border-bottom: 1px solid var(--gray-200);
@@ -66,7 +74,6 @@
     background: var(--gray-50); /* Fondo ligeramente gris para el header */
     border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
     
-    /* Añadido para dar espacio al título y al botón cerrar */
     padding-left: 25px; /* Mismo padding que el modal */
     padding-right: 25px; /* Mismo padding que el modal */
 }
