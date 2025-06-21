@@ -26,8 +26,15 @@
     padding: 25px; /* Ajusta según necesites */
     border-radius: 8px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    width: 90%;
-    max-width: 600px; /* Ajusta según tu diseño */
+    
+    /* --- CAMBIOS CLAVE PARA HACERLO FLOTANTE --- */
+    width: 90%; /* Ocupa hasta el 90% del ancho de la ventana */
+    max-width: 550px; /* **AJUSTADO**: Máximo 550px de ancho para que no sea tan lateral */
+    height: auto; /* La altura se ajusta al contenido */
+    max-height: 90vh; /* Máximo 90% del alto de la ventana para evitar desbordamiento */
+    overflow-y: auto; /* Permite scroll si el contenido es muy largo */
+    /* --- FIN CAMBIOS CLAVE --- */
+
     z-index: 1001; /* Siempre encima del overlay */
 
     /* Propiedades para la animación y visibilidad predeterminada */
@@ -38,26 +45,30 @@
 
     /* Propiedades para el layout interno del modal (si las usas) */
     flex-direction: column;
-    gap: 15px;
+    gap: 15px; /* Espacio entre las secciones del modal */
 }
 
 
 /* Cuando el overlay se muestra, también se muestra el contenido del modal */
 .modal-overlay.show .modal {
-    display: flex; /* <-- ¡Esta es la regla que debe hacer visible el contenido del modal! */
+    display: flex; /* Esta regla hace visible el contenido del modal */
     opacity: 1;
     transform: translateY(0);
 }
 
-/* Estilos opcionales para la estructura interna del modal (si los tienes definidos) */
+/* Estilos para el encabezado del modal */
 .modal-header {
-    padding: var(--spacing-lg);
+    padding: 0 0 15px 0; /* Ajuste del padding para el botón X */
     border-bottom: 1px solid var(--gray-200);
     display: flex;
-    justify-content: space-between;
+    justify-content: space-between; /* Mueve el título a un lado y el botón X al otro */
     align-items: center;
-    background: var(--gray-50);
+    background: var(--gray-50); /* Fondo ligeramente gris para el header */
     border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+    
+    /* Añadido para dar espacio al título y al botón cerrar */
+    padding-left: 25px; /* Mismo padding que el modal */
+    padding-right: 25px; /* Mismo padding que el modal */
 }
 
 .modal-header h3 {
@@ -65,8 +76,10 @@
     font-size: var(--text-xl);
     font-weight: 700;
     color: var(--gray-800);
+    flex-grow: 1; /* Permite que el título ocupe espacio y empuje la X */
 }
 
+/* Estilos para el botón de cerrar (X) */
 .modal-close {
     background: none;
     border: none;
@@ -74,9 +87,16 @@
     color: var(--gray-400);
     cursor: pointer;
     transition: var(--transition-fast);
-    padding: var(--spacing-sm);
-    border-radius: var(--border-radius-md);
-    line-height: 1;
+    padding: 0; /* Eliminado padding que podría afectar posicionamiento */
+    width: 30px; /* Tamaño fijo para el botón */
+    height: 30px; /* Tamaño fijo para el botón */
+    display: flex; /* Para centrar la X */
+    align-items: center;
+    justify-content: center;
+    line-height: 1; /* Asegura que la X esté centrada verticalmente */
+    border-radius: var(--border-radius-md); /* Pequeño redondeo al pasar el ratón */
+    flex-shrink: 0; /* Evita que el botón se encoja */
+    margin-left: 15px; /* Espacio entre el título y la X */
 }
 
 .modal-close:hover {
@@ -84,6 +104,7 @@
     background-color: var(--error-50);
 }
 
+/* Estilos para el cuerpo del modal */
 .modal-body {
     padding: var(--spacing-lg);
     flex-grow: 1; /* Permite que el cuerpo ocupe el espacio disponible */
@@ -91,6 +112,7 @@
     padding-bottom: 15px;
 }
 
+/* Estilos para el pie de página del modal */
 .modal-footer {
     padding: var(--spacing-md) var(--spacing-lg);
     display: flex;
