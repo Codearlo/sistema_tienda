@@ -1,130 +1,159 @@
-/*
- * Archivo: modals.css
- * Ubicación: assets/css/components/modals.css
- */
+/* assets/css/components/modals.css */
 
-/* ==========================================================================
-   Components / Modal Styles
-   ========================================================================== */
-
-/* Modal Overlay (the dimmed background) */
+/* Estilos para el overlay del modal */
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.6); /* Semi-transparent dark background */
-    display: flex; /* Use flexbox to center content */
-    justify-content: center; /* Center horizontally */
-    align-items: center; /* Center vertically */
-    opacity: 0; /* Start hidden */
-    visibility: hidden; /* Start hidden */
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-    z-index: 1000; /* Ensure it's on top of other content */
+    width: 100%; /* Asegurar que ocupe el 100% del ancho del viewport */
+    height: 100%; /* Asegurar que ocupe el 100% del alto del viewport */
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none; /* Oculto por defecto */
+    justify-content: center; /* Centrar contenido horizontalmente */
+    align-items: center;    /* Centrar contenido verticalmente */
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
 }
 
-/* State when modal is open */
+/* Cuando el overlay tiene la clase 'show', se vuelve visible */
 .modal-overlay.show {
+    display: flex; /* Hace visible el overlay */
     opacity: 1;
-    visibility: visible;
 }
 
-/* Modal Container (the actual modal box) */
+/* Estilos para la ventana del modal (el cuadro blanco con contenido) */
 .modal {
-    background-color: var(--color-white);
-    border-radius: var(--border-radius-lg);
-    box-shadow: var(--shadow-xl);
-    max-width: 600px; /* Default max width */
-    width: 90%; /* Responsive width */
-    transform: translateY(-50px); /* Start slightly above center */
-    transition: transform 0.3s ease, opacity 0.3s ease;
-    opacity: 0; /* Start hidden */
-    display: none; /* Hidden by default, will be block/flex when shown via JS */
-    max-height: 90vh; /* Limit modal height for long content */
-    overflow-y: auto; /* Enable scrolling for modal content if it overflows */
-    position: relative; /* Needed for absolute positioning of close button if any */
+    background-color: #fff; /* O tu color de fondo */
+    padding: 25px; /* Ajusta según necesites */
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    
+    width: 90%; /* Ocupa hasta el 90% del ancho de su contenedor (.modal-overlay) */
+    max-width: 550px; /* Máximo 550px de ancho para que sea una ventana flotante */
+    height: auto; /* La altura se ajusta al contenido */
+    max-height: 90vh; /* Máximo 90% del alto de la ventana para evitar desbordamiento */
+    overflow-y: auto; /* Permite scroll si el contenido es muy largo */
+
+    z-index: 1001; /* Siempre encima del overlay */
+
+    /* --- ¡CORRECCIONES CLAVE AQUI! --- */
+    /* ELIMINAR propiedades que lo pegan a la esquina y le dan un ancho/alto fijo */
+    position: relative; /* Cambiado a relative para que flexbox del padre lo centre */
+    left: auto; /* Eliminar left: 0px; */
+    top: auto;  /* Eliminar top: 0px; (o cualquier valor fijo) */
+    /* Eliminar width: 100%; y height: 100%; si estaban aquí */
+    /* Ahora su width/height serán controlados por max-width/max-height/auto y flex-shrink. */
+    /* --- FIN CORRECCIONES CLAVE --- */
+
+    /* Propiedades para la animación y visibilidad predeterminada */
+    display: none; /* Crucial: oculto por defecto para que la transición funcione */
+    opacity: 0; /* Opacidad inicial para animación */
+    transform: translateY(-20px); /* Posición inicial para animación */
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+
+    /* Propiedades para el layout interno del modal */
+    flex-direction: column;
+    gap: 15px;
 }
 
-/* When the modal overlay is shown, reveal and animate the modal */
+/* Cuando el overlay se muestra, también se muestra el contenido del modal */
 .modal-overlay.show .modal {
+    display: flex; /* Esta regla hace visible el contenido del modal */
     opacity: 1;
-    transform: translateY(0); /* Move to center */
-    display: block; /* Or flex/grid depending on content layout */
+    transform: translateY(0);
 }
 
-/* Modal Header */
+/* Estilos para el encabezado del modal (mantener los últimos ajustes) */
 .modal-header {
+    padding: 0 0 15px 0;
+    border-bottom: 1px solid var(--gray-200);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--spacing-md);
-    border-bottom: 1px solid var(--color-border);
+    background: var(--gray-50);
+    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+    padding-left: 25px;
+    padding-right: 25px;
 }
 
-.modal-header .modal-title {
-    font-size: var(--font-size-xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--color-dark);
+.modal-header h3 {
+    margin: 0;
+    font-size: var(--text-xl);
+    font-weight: 700;
+    color: var(--gray-800);
+    flex-grow: 1;
 }
 
-.modal-header .close-modal {
+.modal-close {
     background: none;
     border: none;
-    font-size: var(--font-size-lg);
-    color: var(--color-gray-dark);
+    font-size: var(--text-2xl);
+    color: var(--gray-400);
     cursor: pointer;
-    padding: var(--spacing-xs);
-    transition: color 0.2s ease;
-}
-
-.modal-header .close-modal:hover {
-    color: var(--color-danger);
-}
-
-/* Modal Body */
-.modal-body {
-    padding: var(--spacing-md);
-    line-height: 1.6;
-    color: var(--color-dark);
-}
-
-/* Modal Footer */
-.modal-footer {
+    transition: var(--transition-fast);
+    padding: 0;
+    width: 30px;
+    height: 30px;
     display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    border-radius: var(--border-radius-md);
+    flex-shrink: 0;
+    margin-left: 15px;
+}
+
+.modal-close:hover {
+    color: var(--error-600);
+    background-color: var(--error-50);
+}
+
+/* Estilos para el cuerpo del modal */
+.modal-body {
+    padding: var(--spacing-lg);
+    flex-grow: 1;
+    padding-top: 15px;
+    padding-bottom: 15px;
+}
+
+/* Estilos para el pie de página del modal */
+.modal-footer {
+    padding: var(--spacing-md) var(--spacing-lg);
+    display: flex;
+    gap: var(--spacing-md);
     justify-content: flex-end;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-md);
-    border-top: 1px solid var(--color-border);
+    border-top: 1px solid var(--gray-200);
+    background: var(--gray-50);
+    border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
 }
 
-/* Specific modal sizes */
-.modal.modal-sm {
-    max-width: 400px;
+.modal-footer .btn {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    min-width: 120px;
 }
 
-.modal.modal-lg {
-    max-width: 800px;
+.modal-footer .btn-outline {
+    background: white;
+    border: 2px solid var(--gray-300);
+    color: var(--gray-700);
 }
 
-.modal.modal-xl {
-    max-width: 1100px;
+.modal-footer .btn-outline:hover {
+    border-color: var(--gray-400);
+    background: var(--gray-50);
 }
 
-/* Responsive Adjustments for Modals */
-@media (max-width: 768px) {
-    .modal {
-        width: 95%; /* Make modals slightly wider on smaller screens */
-        margin: var(--spacing-sm); /* Add some margin from edges */
-    }
+.modal-footer .btn-primary {
+    background: var(--primary-600);
+    border: 2px solid var(--primary-600);
+    color: white;
+}
 
-    .modal-header,
-    .modal-body,
-    .modal-footer {
-        padding: var(--spacing-sm); /* Reduce padding */
-    }
-
-    .modal-header .modal-title {
-        font-size: var(--font-size-lg);
-    }
+.modal-footer .btn-primary:hover {
+    background: var(--primary-700);
+    border-color: var(--primary-700);
+    transform: translateY(-1px);
 }
