@@ -30,6 +30,8 @@ html {
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
   text-rendering: optimizeLegibility;
+  height: 100%; /* <-- AÑADIR/ASEGURAR ESTO */
+  width: 100%; /* <-- AÑADIR/ASEGURAR ESTO */
 }
 
 /* Set core body defaults */
@@ -41,6 +43,8 @@ body {
   background-color: var(--gray-50);
   min-height: 100vh;
   overflow-x: hidden;
+  height: 100%; /* <-- AÑADIR/ASEGURAR ESTO */
+  width: 100%; /* <-- AÑADIR/ASEGURAR ESTO */
 }
 
 /* Remove default button styles */

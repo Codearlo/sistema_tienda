@@ -1,9 +1,11 @@
+/* assets/css/components/modals.css */
+
 /* Estilos para el overlay del modal */
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%; /* ¡CORREGIDO: Asegurar que ocupe el 100% del ancho del viewport! */
+    width: 100%; /* Asegurar que ocupe el 100% del ancho del viewport */
     height: 100%; /* Asegurar que ocupe el 100% del alto del viewport */
     background-color: rgba(0, 0, 0, 0.5);
     display: none; /* Oculto por defecto */
@@ -28,17 +30,20 @@
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     
     width: 90%; /* Ocupa hasta el 90% del ancho de su contenedor (.modal-overlay) */
-    max-width: 550px; /* **AJUSTADO**: Máximo 550px de ancho para que sea una ventana flotante */
+    max-width: 550px; /* Máximo 550px de ancho para que sea una ventana flotante */
     height: auto; /* La altura se ajusta al contenido */
     max-height: 90vh; /* Máximo 90% del alto de la ventana para evitar desbordamiento */
     overflow-y: auto; /* Permite scroll si el contenido es muy largo */
 
     z-index: 1001; /* Siempre encima del overlay */
 
-    /* --- CORRECCIONES CLAVE para el centrado del modal en sí --- */
-    position: relative; /* CAMBIADO: Permite que flexbox del padre lo centre. */
-    left: auto; /* CAMBIADO: Eliminar cualquier 'left' fijo que lo pegue a la izquierda */
-    top: auto;  /* CAMBIADO: Eliminar cualquier 'top' fijo */
+    /* --- ¡CORRECCIONES CLAVE AQUI! --- */
+    /* ELIMINAR propiedades que lo pegan a la esquina y le dan un ancho/alto fijo */
+    position: relative; /* Cambiado a relative para que flexbox del padre lo centre */
+    left: auto; /* Eliminar left: 0px; */
+    top: auto;  /* Eliminar top: 0px; (o cualquier valor fijo) */
+    /* Eliminar width: 100%; y height: 100%; si estaban aquí */
+    /* Ahora su width/height serán controlados por max-width/max-height/auto y flex-shrink. */
     /* --- FIN CORRECCIONES CLAVE --- */
 
     /* Propiedades para la animación y visibilidad predeterminada */
@@ -59,18 +64,17 @@
     transform: translateY(0);
 }
 
-/* Estilos para el encabezado del modal */
+/* Estilos para el encabezado del modal (mantener los últimos ajustes) */
 .modal-header {
-    padding: 0 0 15px 0; /* Ajuste del padding para el botón X */
+    padding: 0 0 15px 0;
     border-bottom: 1px solid var(--gray-200);
     display: flex;
-    justify-content: space-between; /* Mueve el título a un lado y el botón X al otro */
+    justify-content: space-between;
     align-items: center;
-    background: var(--gray-50); /* Fondo ligeramente gris para el header */
+    background: var(--gray-50);
     border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
-    
-    padding-left: 25px; /* Mismo padding que el modal */
-    padding-right: 25px; /* Mismo padding que el modal */
+    padding-left: 25px;
+    padding-right: 25px;
 }
 
 .modal-header h3 {
@@ -78,10 +82,9 @@
     font-size: var(--text-xl);
     font-weight: 700;
     color: var(--gray-800);
-    flex-grow: 1; /* Permite que el título ocupe espacio y empuje la X */
+    flex-grow: 1;
 }
 
-/* Estilos para el botón de cerrar (X) */
 .modal-close {
     background: none;
     border: none;
@@ -89,16 +92,16 @@
     color: var(--gray-400);
     cursor: pointer;
     transition: var(--transition-fast);
-    padding: 0; /* Eliminado padding que podría afectar posicionamiento */
-    width: 30px; /* Tamaño fijo para el botón */
-    height: 30px; /* Tamaño fijo para el botón */
-    display: flex; /* Para centrar la X */
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
     align-items: center;
     justify-content: center;
-    line-height: 1; /* Asegura que la X esté centrada verticalmente */
-    border-radius: var(--border-radius-md); /* Pequeño redondeo al pasar el ratón */
-    flex-shrink: 0; /* Evita que el botón se encoja */
-    margin-left: 15px; /* Espacio entre el título y la X */
+    line-height: 1;
+    border-radius: var(--border-radius-md);
+    flex-shrink: 0;
+    margin-left: 15px;
 }
 
 .modal-close:hover {
@@ -109,7 +112,7 @@
 /* Estilos para el cuerpo del modal */
 .modal-body {
     padding: var(--spacing-lg);
-    flex-grow: 1; /* Permite que el cuerpo ocupe el espacio disponible */
+    flex-grow: 1;
     padding-top: 15px;
     padding-bottom: 15px;
 }
