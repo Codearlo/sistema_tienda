@@ -151,15 +151,3 @@
         width: 100%;
     }
 }
-
-/* DEBUG: forzar visibilidad del modal de pago */
-/* ESTE BLOQUE DEBE ELIMINARSE SI EXISTE EN TU ARCHIVO pos-payment-modal.css */
-/* Ya que su propósito era de depuración y no es parte de la solución final. */
-/*
-#paymentModal .modal {
-  background: #ffffff !important;
-  opacity: 1 !important;
-  transform: scale(1) !important;
-  z-index: 9999 !important;
-}
-*/

@@ -11,7 +11,7 @@
 @import url('components/cards.css');
 @import url('components/forms.css');
 @import url('components/modals.css');
-@import url('components/pos-payment-modal.css');
+@import url('components/modal/pos-complete-sale-modal.css'); /* Modificado para el nuevo modal de POS */
 @import url('components/pagination.css');
 @import url('components/slidebar.css');
 @import url('components/tables.css');
@@ -23,6 +23,7 @@
 @import url('layouts/pos.css');
 @import url('layouts/products.css');
 @import url('layouts/settings.css');
+/* Nota: 'layouts/add-product.css' no estaba en tu original, no se añadió. */
 
 /* ===== PRINT STYLES ===== */
 @media print {
