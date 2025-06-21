@@ -814,119 +814,29 @@
     padding: var(--spacing-sm) var(--spacing-md);
 }
 
-/* Estilos para el modal-content (el cuadro dentro del overlay) */
-/* NOTA: La regla .modal-content estaba dispersa y se consolidó en modals.css */
-/* Pero si hay una regla específica para .modal-content aquí, se mantiene */
-/* (Se mantiene el bloque original del usuario para .modal-content, .modal.show .modal-content, etc.) */
+/* Resto de estilos del modal (sección comentada que debe ser eliminada si existe, ya que está en modals.css) */
+/* Si tenías un bloque para .modal, .modal-content, .modal-header, etc., aquí, DEBES ELIMINARLO */
+/* Ya que estas reglas pertenecen a modals.css */
 
-.modal-content {
-    background: white;
-    border-radius: var(--border-radius-lg);
-    max-width: 500px;
-    width: 90%;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: var(--shadow-xl);
-    transform: translateY(-20px);
-    transition: transform 0.3s ease;
-}
-
-.modal.show .modal-content,
-.modal.modal-open .modal-content {
-    transform: translateY(0);
-}
-
-.modal-large {
-    max-width: 800px;
-    width: 95%;
-}
-
-.modal-receipt {
-    max-width: 400px;
-}
-
-/* Modal específico de transacción */
-#transactionModal .modal-content {
-    max-width: 600px;
-}
-
-.modal-header { /* Regla duplicada con modals.css, preferiblemente usar la de modals.css */
-    padding: var(--spacing-lg);
-    border-bottom: 1px solid var(--gray-200);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: var(--gray-50);
-    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
-}
-
-.modal-header h3 { /* Regla duplicada con modals.css */
-    margin: 0;
-    font-size: var(--text-xl);
-    font-weight: 700;
-    color: var(--gray-800);
-}
-
-.modal-close { /* Regla duplicada con modals.css */
-    background: none;
-    border: none;
-    font-size: var(--text-2xl);
-    color: var(--gray-400);
-    cursor: pointer;
-    transition: var(--transition-fast);
-    padding: var(--spacing-sm);
-    border-radius: var(--border-radius-md);
-    line-height: 1;
-}
-
-.modal-close:hover { /* Regla duplicada con modals.css */
-    color: var(--error-600);
-    background-color: var(--error-50);
-}
-
-.modal-body { /* Regla duplicada con modals.css */
-    padding: var(--spacing-lg);
-}
-
-.modal-footer { /* Regla duplicada con modals.css */
-    padding: var(--spacing-md) var(--spacing-lg);
-    display: flex;
-    gap: var(--spacing-md);
-    justify-content: flex-end;
-    border-top: 1px solid var(--gray-200);
-    background: var(--gray-50);
-    border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
-}
-
-.modal-footer .btn { /* Regla duplicada con modals.css */
-    padding: var(--spacing-sm) var(--spacing-lg);
-    font-size: var(--text-sm);
-    font-weight: 600;
-    min-width: 120px;
-}
-
-.modal-footer .btn-outline { /* Regla duplicada con modals.css */
-    background: white;
-    border: 2px solid var(--gray-300);
-    color: var(--gray-700);
-}
-
-.modal-footer .btn-outline:hover { /* Regla duplicada con modals.css */
-    border-color: var(--gray-400);
-    background: var(--gray-50);
-}
-
-.modal-footer .btn-primary { /* Regla duplicada con modals.css */
-    background: var(--primary-600);
-    border: 2px solid var(--primary-600);
-    color: white;
-}
-
-.modal-footer .btn-primary:hover { /* Regla duplicada con modals.css */
-    background: var(--primary-700);
-    border-color: var(--primary-700);
-    transform: translateY(-1px);
-}
+/* Por ejemplo, ESTO debe ser ELIMINADO si existe en este archivo (pos.css): */
+/*
+.modal-content { ... }
+.modal.show .modal-content, .modal.modal-open .modal-content { ... }
+.modal-large { ... }
+.modal-receipt { ... }
+#transactionModal .modal-content { ... }
+.modal-header { ... }
+.modal-header h3 { ... }
+.modal-close { ... }
+.modal-close:hover { ... }
+.modal-body { ... }
+.modal-footer { ... }
+.modal-footer .btn { ... }
+.modal-footer .btn-outline { ... }
+.modal-footer .btn-outline:hover { ... }
+.modal-footer .btn-primary { ... }
+.modal-footer .btn-primary:hover { ... }
+*/
 
 /* Estilos para el modal de transacción completa */
 .transaction-summary {
@@ -1151,6 +1061,9 @@
         padding: var(--spacing-md);
     }
     
+    /* ESTOS BLOQUES TAMBIÉN DEBERÍAN ESTAR EN MODALS.CSS, NO AQUÍ */
+    /* Aquí se eliminan para centralizar en modals.css */
+    /*
     .modal-content {
         width: 95%;
         max-width: none;
@@ -1166,6 +1079,7 @@
         width: 100%;
         min-width: auto;
     }
+    */
     
     .transaction-summary {
         padding: var(--spacing-md);

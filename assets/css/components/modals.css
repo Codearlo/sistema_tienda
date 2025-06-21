@@ -36,14 +36,9 @@
     z-index: 1001; /* Siempre encima del overlay */
 
     /* --- CORRECCIONES CLAVE para el centrado del modal en sí --- */
-    /* Estas propiedades deben eliminarse o ajustarse para que el flexbox del padre lo centre. */
-    /* Si tienes position:fixed aquí, debe usarse con top/left/transform para centrar */
-    /* Pero para centrado con flexbox del padre, lo más limpio es 'position: relative;' o no definir 'position' aquí. */
     position: relative; /* CAMBIADO: Permite que flexbox del padre lo centre. */
-                       /* Si no quieres que tenga posición relativa, puedes quitar esta línea si no tienes otro 'position' */
     left: auto; /* CAMBIADO: Eliminar cualquier 'left' fijo que lo pegue a la izquierda */
     top: auto;  /* CAMBIADO: Eliminar cualquier 'top' fijo */
-    /* La propiedad width se mantiene para controlar el ancho, pero ahora se ajustará al padre y max-width */
     /* --- FIN CORRECCIONES CLAVE --- */
 
     /* Propiedades para la animación y visibilidad predeterminada */
@@ -64,7 +59,7 @@
     transform: translateY(0);
 }
 
-/* Estilos para el encabezado del modal (Mantenidos y revisados para el botón X) */
+/* Estilos para el encabezado del modal */
 .modal-header {
     padding: 0 0 15px 0; /* Ajuste del padding para el botón X */
     border-bottom: 1px solid var(--gray-200);
