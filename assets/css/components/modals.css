@@ -44,30 +44,89 @@
 
 /* Cuando el overlay se muestra, también se muestra el contenido del modal */
 .modal-overlay.show .modal {
-    display: flex; /* <-- ¡Asegúrate de que esta regla esté aquí y NO esté tachada en dev tools! */
+    display: flex; /* <-- ¡Esta es la regla que debe hacer visible el contenido del modal! */
     opacity: 1;
     transform: translateY(0);
 }
 
 /* Estilos opcionales para la estructura interna del modal (si los tienes definidos) */
 .modal-header {
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--gray-200);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: 15px;
-    border-bottom: 1px solid var(--gray-200); /* Usar tu variable de color */
+    background: var(--gray-50);
+    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: var(--text-xl);
+    font-weight: 700;
+    color: var(--gray-800);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: var(--text-2xl);
+    color: var(--gray-400);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-md);
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: var(--error-600);
+    background-color: var(--error-50);
 }
 
 .modal-body {
+    padding: var(--spacing-lg);
     flex-grow: 1; /* Permite que el cuerpo ocupe el espacio disponible */
     padding-top: 15px;
     padding-bottom: 15px;
 }
 
 .modal-footer {
+    padding: var(--spacing-md) var(--spacing-lg);
     display: flex;
+    gap: var(--spacing-md);
     justify-content: flex-end;
-    gap: 10px;
-    padding-top: 15px;
-    border-top: 1px solid var(--gray-200); /* Usar tu variable de color */
+    border-top: 1px solid var(--gray-200);
+    background: var(--gray-50);
+    border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
+}
+
+.modal-footer .btn {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    min-width: 120px;
+}
+
+.modal-footer .btn-outline {
+    background: white;
+    border: 2px solid var(--gray-300);
+    color: var(--gray-700);
+}
+
+.modal-footer .btn-outline:hover {
+    border-color: var(--gray-400);
+    background: var(--gray-50);
+}
+
+.modal-footer .btn-primary {
+    background: var(--primary-600);
+    border: 2px solid var(--primary-600);
+    color: white;
+}
+
+.modal-footer .btn-primary:hover {
+    background: var(--primary-700);
+    border-color: var(--primary-700);
+    transform: translateY(-1px);
 }

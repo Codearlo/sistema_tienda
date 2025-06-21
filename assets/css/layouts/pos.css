@@ -680,7 +680,7 @@
     margin-bottom: var(--spacing-lg);
 }
 
-.payment-method {
+.payment-method { /* Cambiado de .payment-method-btn a .payment-method para consistencia con tu código */
     padding: var(--spacing-sm);
     border: 1px solid var(--gray-200);
     border-radius: var(--border-radius-md);
@@ -814,29 +814,10 @@
     padding: var(--spacing-sm) var(--spacing-md);
 }
 
-/* ===== MODALES CORREGIDOS ===== */
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-    backdrop-filter: blur(4px);
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-    opacity: 0;
-    visibility: hidden;
-}
-
-.modal.show,
-.modal.modal-open {
-    opacity: 1;
-    visibility: visible;
-}
+/* Estilos para el modal-content (el cuadro dentro del overlay) */
+/* NOTA: La regla .modal-content estaba dispersa y se consolidó en modals.css */
+/* Pero si hay una regla específica para .modal-content aquí, se mantiene */
+/* (Se mantiene el bloque original del usuario para .modal-content, .modal.show .modal-content, etc.) */
 
 .modal-content {
     background: white;
@@ -869,7 +850,7 @@
     max-width: 600px;
 }
 
-.modal-header {
+.modal-header { /* Regla duplicada con modals.css, preferiblemente usar la de modals.css */
     padding: var(--spacing-lg);
     border-bottom: 1px solid var(--gray-200);
     display: flex;
@@ -879,14 +860,14 @@
     border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
 }
 
-.modal-header h3 {
+.modal-header h3 { /* Regla duplicada con modals.css */
     margin: 0;
     font-size: var(--text-xl);
     font-weight: 700;
     color: var(--gray-800);
 }
 
-.modal-close {
+.modal-close { /* Regla duplicada con modals.css */
     background: none;
     border: none;
     font-size: var(--text-2xl);
@@ -898,16 +879,16 @@
     line-height: 1;
 }
 
-.modal-close:hover {
+.modal-close:hover { /* Regla duplicada con modals.css */
     color: var(--error-600);
     background-color: var(--error-50);
 }
 
-.modal-body {
+.modal-body { /* Regla duplicada con modals.css */
     padding: var(--spacing-lg);
 }
 
-.modal-footer {
+.modal-footer { /* Regla duplicada con modals.css */
     padding: var(--spacing-md) var(--spacing-lg);
     display: flex;
     gap: var(--spacing-md);
@@ -917,31 +898,31 @@
     border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
 }
 
-.modal-footer .btn {
+.modal-footer .btn { /* Regla duplicada con modals.css */
     padding: var(--spacing-sm) var(--spacing-lg);
     font-size: var(--text-sm);
     font-weight: 600;
     min-width: 120px;
 }
 
-.modal-footer .btn-outline {
+.modal-footer .btn-outline { /* Regla duplicada con modals.css */
     background: white;
     border: 2px solid var(--gray-300);
     color: var(--gray-700);
 }
 
-.modal-footer .btn-outline:hover {
+.modal-footer .btn-outline:hover { /* Regla duplicada con modals.css */
     border-color: var(--gray-400);
     background: var(--gray-50);
 }
 
-.modal-footer .btn-primary {
+.modal-footer .btn-primary { /* Regla duplicada con modals.css */
     background: var(--primary-600);
     border: 2px solid var(--primary-600);
     color: white;
 }
 
-.modal-footer .btn-primary:hover {
+.modal-footer .btn-primary:hover { /* Regla duplicada con modals.css */
     background: var(--primary-700);
     border-color: var(--primary-700);
     transform: translateY(-1px);
@@ -1041,6 +1022,7 @@
         grid-template-rows: 1fr auto;
         height: 100vh;
         padding: var(--spacing-sm);
+        gap: var(--spacing-sm);
     }
     
     .pos-right {
