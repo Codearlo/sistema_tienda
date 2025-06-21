@@ -570,14 +570,16 @@
 .quantity-controls {
     display: flex;
     align-items: center;
-    border: 1px solid var(--gray-300);
+    border: 1px solid var(--gray-300); /* Añadido borde para el contenedor */
     border-radius: var(--border-radius-md);
     overflow: hidden;
 }
 
 .quantity-btn {
     background: var(--gray-100);
-    border: none;
+    border: 1px solid var(--gray-300); /* Añadido borde */
+    border-top-left-radius: var(--border-radius-md); /* Asegurar redondeo */
+    border-bottom-left-radius: var(--border-radius-md); /* Asegurar redondeo */
     padding: var(--spacing-xs);
     width: 28px;
     height: 28px;
@@ -585,14 +587,33 @@
     transition: var(--transition-fast);
     font-weight: 600;
     color: var(--gray-700);
+    display: flex; /* Asegurar centrado del texto/icono */
+    align-items: center;
+    justify-content: center;
 }
 
 .quantity-btn:hover {
     background: var(--gray-200);
+    border-color: var(--gray-400); /* Oscurecer borde al pasar el ratón */
 }
 
+/* Ajustes para el botón derecho del control de cantidad */
+.quantity-controls .quantity-btn:last-of-type {
+    border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;
+    border-left: none; /* Eliminar borde duplicado si el input tiene borde */
+}
+
+/* Ajuste para el botón izquierdo del control de cantidad */
+.quantity-controls .quantity-btn:first-of-type {
+    border-radius: var(--border-radius-md) 0 0 var(--border-radius-md);
+    border-right: none; /* Eliminar borde duplicado si el input tiene borde */
+}
+
+
 .quantity-input {
-    border: none;
+    border: 1px solid var(--gray-300); /* Añadido borde al input */
+    border-left: none; /* Quitar borde izquierdo */
+    border-right: none; /* Quitar borde derecho */
     width: 40px;
     text-align: center;
     padding: var(--spacing-xs);
@@ -603,6 +624,8 @@
 
 .quantity-input:focus {
     outline: none;
+    border-color: var(--primary-500); /* Resaltar al enfocar */
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15); /* Sombra al enfocar */
 }
 
 .item-total {
@@ -615,7 +638,7 @@
 
 .remove-btn {
     background: var(--error-100);
-    border: none;
+    border: 1px solid var(--error-300); /* Añadido borde */
     color: var(--error-600);
     padding: var(--spacing-xs);
     border-radius: var(--border-radius-md);
@@ -626,11 +649,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: var(--shadow-xs); /* Sombra sutil */
 }
 
 .remove-btn:hover {
     background: var(--error-200);
+    border-color: var(--error-400); /* Oscurecer borde al pasar el ratón */
     color: var(--error-700);
+    transform: translateY(-1px); /* Efecto ligero de elevación */
+    box-shadow: var(--shadow-md); /* Sombra más pronunciada al pasar el ratón */
 }
 
 /* Resumen del carrito */
@@ -680,7 +707,7 @@
     margin-bottom: var(--spacing-lg);
 }
 
-.payment-method { /* Cambiado de .payment-method-btn a .payment-method para consistencia con tu código */
+.payment-method-btn { /* Revertido a payment-method-btn para coincidir con JS y HTML */
     padding: var(--spacing-sm);
     border: 1px solid var(--gray-200);
     border-radius: var(--border-radius-md);
@@ -696,25 +723,25 @@
     color: var(--gray-600);
 }
 
-.payment-method i {
+.payment-method-btn i { /* Revertido a payment-method-btn para coincidir con JS y HTML */
     font-size: 1.2rem;
     color: var(--gray-400);
 }
 
-.payment-method:hover {
+.payment-method-btn:hover { /* Revertido a payment-method-btn para coincidir con JS y HTML */
     border-color: var(--primary-300);
     background-color: var(--primary-50);
     color: var(--primary-700);
 }
 
-.payment-method.active {
+.payment-method-btn.active { /* Revertido a payment-method-btn para coincidir con JS y HTML */
     border-color: var(--primary-500);
     background-color: var(--primary-100);
     color: var(--primary-700);
     font-weight: 600;
 }
 
-.payment-method.active i {
+.payment-method-btn.active i { /* Revertido a payment-method-btn para coincidir con JS y HTML */
     color: var(--primary-600);
 }
 
