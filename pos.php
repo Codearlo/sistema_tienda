@@ -68,7 +68,7 @@ function formatCurrency($amount) {
     <?php 
     forceCssReload();
     includeCss('assets/css/style.css');
-    includeCss('assets/css/layouts/pos.css');
+    // includeCss('assets/css/layouts/pos.css'); // pos.css ya está importado desde style.css
     ?>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -206,7 +206,8 @@ function formatCurrency($amount) {
         </div>
     </main>
 
-    <div class="modal-overlay" id="paymentModal">
+    <!-- Eliminado style="display: none;" para que las reglas CSS de modals.css controlen la visibilidad y centrado -->
+    <div class="modal-overlay" id="paymentModal"> 
         <div class="modal modal-payment">
             <div class="modal-header">
                 <h3 class="modal-title">Procesar Pago</h3>
