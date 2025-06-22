@@ -206,7 +206,7 @@ function formatCurrency($amount) {
         </div>
     </main>
 
-    <div class="modal-overlay" id="paymentModal" style="display: none;">
+    <div class="modal-overlay" id="paymentModal">
         <div class="modal modal-payment">
             <div class="modal-header">
                 <h3 class="modal-title">Procesar Pago</h3>

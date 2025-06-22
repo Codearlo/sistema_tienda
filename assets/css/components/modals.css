@@ -5,73 +5,66 @@
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%; /* Asegurar que ocupe el 100% del ancho del viewport */
-    height: 100%; /* Asegurar que ocupe el 100% del alto del viewport */
-    background-color: rgba(0, 0, 0, 0.5);
-    display: none; /* Oculto por defecto */
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Fondo semitransparente oscuro */
+    display: flex; /* Siempre visible, pero controlado por visibility/opacity */
     justify-content: center; /* Centrar contenido horizontalmente */
     align-items: center;    /* Centrar contenido verticalmente */
     z-index: 1000;
-    opacity: 0;
-    transition: opacity 0.3s ease-in-out;
+    visibility: hidden; /* Oculto por defecto usando visibility para transiciones */
+    opacity: 0; /* Opacidad inicial para animación */
+    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
 }
 
 /* Cuando el overlay tiene la clase 'show', se vuelve visible */
 .modal-overlay.show {
-    display: flex; /* Hace visible el overlay */
+    visibility: visible; /* Hace visible el overlay */
     opacity: 1;
 }
 
 /* Estilos para la ventana del modal (el cuadro blanco con contenido) */
 .modal {
-    background-color: #fff; /* O tu color de fondo */
-    padding: 25px; /* Ajusta según necesites */
+    background-color: #fff; /* Fondo blanco sólido para el contenido del modal */
+    padding: 25px;
     border-radius: 8px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     
     width: 90%; /* Ocupa hasta el 90% del ancho de su contenedor (.modal-overlay) */
-    max-width: 550px; /* Máximo 550px de ancho para que sea una ventana flotante */
+    max-width: 550px; /* Máximo 550px de ancho */
     height: auto; /* La altura se ajusta al contenido */
     max-height: 90vh; /* Máximo 90% del alto de la ventana para evitar desbordamiento */
     overflow-y: auto; /* Permite scroll si el contenido es muy largo */
 
     z-index: 1001; /* Siempre encima del overlay */
 
-    /* --- ¡CORRECCIONES CLAVE AQUI! --- */
-    /* ELIMINAR propiedades que lo pegan a la esquina y le dan un ancho/alto fijo */
-    position: relative; /* Cambiado a relative para que flexbox del padre lo centre */
-    left: auto; /* Eliminar left: 0px; */
-    top: auto;  /* Eliminar top: 0px; (o cualquier valor fijo) */
-    /* Eliminar width: 100%; y height: 100%; si estaban aquí */
-    /* Ahora su width/height serán controlados por max-width/max-height/auto y flex-shrink. */
-    /* --- FIN CORRECCIONES CLAVE --- */
+    position: relative; /* Para que flexbox del padre lo centre */
 
-    /* Propiedades para la animación y visibilidad predeterminada */
-    display: none; /* Crucial: oculto por defecto para que la transición funcione */
+    display: flex; /* Siempre flex, controlado por visibility/opacity */
+    flex-direction: column; /* Organiza el contenido en columna */
+    gap: 15px; /* Espaciado entre elementos hijos */
+
+    visibility: hidden; /* Oculto por defecto usando visibility */
     opacity: 0; /* Opacidad inicial para animación */
     transform: translateY(-20px); /* Posición inicial para animación */
-    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
-
-    /* Propiedades para el layout interno del modal */
-    flex-direction: column;
-    gap: 15px;
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, visibility 0.3s ease-in-out;
 }
 
 /* Cuando el overlay se muestra, también se muestra el contenido del modal */
 .modal-overlay.show .modal {
-    display: flex; /* Esta regla hace visible el contenido del modal */
+    visibility: visible; /* Hace visible el contenido del modal */
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0); /* Vuelve a su posición original */
 }
 
-/* Estilos para el encabezado del modal (mantener los últimos ajustes) */
+/* Estilos para el encabezado del modal */
 .modal-header {
     padding: 0 0 15px 0;
     border-bottom: 1px solid var(--gray-200);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--gray-50);
+    background: var(--gray-50); /* Fondo ligeramente gris para el encabezado */
     border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
     padding-left: 25px;
     padding-right: 25px;
@@ -124,7 +117,7 @@
     gap: var(--spacing-md);
     justify-content: flex-end;
     border-top: 1px solid var(--gray-200);
-    background: var(--gray-50);
+    background: var(--gray-50); /* Fondo ligeramente gris para el pie de página */
     border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
 }
 
