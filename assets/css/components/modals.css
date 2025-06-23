@@ -1,76 +1,87 @@
-/* assets/css/components/modals.css */
+/* =====================================================
+   SISTEMA DE MODALES OPTIMIZADO
+   Archivo: assets/css/components/modals.css
+   ===================================================== */
 
-/* Estilos para el overlay del modal */
+/* ===== OVERLAY BASE DEL MODAL ===== */
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* Fondo semitransparente oscuro */
-    display: flex; /* Siempre visible, pero controlado por visibility/opacity */
-    justify-content: center; /* Centrar contenido horizontalmente */
-    align-items: center;    /* Centrar contenido verticalmente */
-    z-index: 1000;
-    visibility: hidden; /* Oculto por defecto usando visibility para transiciones */
-    opacity: 0; /* Opacidad inicial para animación */
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: var(--z-modal, 1000);
+    visibility: hidden;
+    opacity: 0;
     transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+    backdrop-filter: blur(2px);
 }
 
-/* Cuando el overlay tiene la clase 'show', se vuelve visible */
+/* Estado visible del overlay */
 .modal-overlay.show {
-    visibility: visible; /* Hace visible el overlay */
+    visibility: visible;
     opacity: 1;
 }
 
-/* Estilos para la ventana del modal (el cuadro blanco con contenido) */
+/* ===== CONTENEDOR PRINCIPAL DEL MODAL ===== */
 .modal {
-    background-color: #fff; /* Fondo blanco sólido para el contenido del modal */
-    padding: 25px;
-    border-radius: 8px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    
-    width: 90%; /* Ocupa hasta el 90% del ancho de su contenedor (.modal-overlay) */
-    max-width: 550px; /* Máximo 550px de ancho */
-    height: auto; /* La altura se ajusta al contenido */
-    max-height: 90vh; /* Máximo 90% del alto de la ventana para evitar desbordamiento */
-    overflow-y: auto; /* Permite scroll si el contenido es muy largo */
-
-    z-index: 1001; /* Siempre encima del overlay */
-
-    position: relative; /* Para que flexbox del padre lo centre */
-
-    display: flex; /* Siempre flex, controlado por visibility/opacity */
-    flex-direction: column; /* Organiza el contenido en columna */
-    gap: 15px; /* Espaciado entre elementos hijos */
-
-    visibility: hidden; /* Oculto por defecto usando visibility */
-    opacity: 0; /* Opacidad inicial para animación */
-    transform: translateY(-20px); /* Posición inicial para animación */
+    background-color: white;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-xl);
+    width: 90%;
+    max-width: 550px;
+    max-height: 90vh;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
     transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, visibility 0.3s ease-in-out;
 }
 
-/* Cuando el overlay se muestra, también se muestra el contenido del modal */
+/* Estado visible del modal */
 .modal-overlay.show .modal {
-    visibility: visible; /* Hace visible el contenido del modal */
+    visibility: visible;
     opacity: 1;
-    transform: translateY(0); /* Vuelve a su posición original */
+    transform: translateY(0) scale(1);
 }
 
-/* Estilos para el encabezado del modal */
+/* ===== VARIANTES DE TAMAÑO ===== */
+.modal-sm {
+    max-width: 400px;
+}
+
+.modal-md {
+    max-width: 550px;
+}
+
+.modal-lg {
+    max-width: 800px;
+}
+
+.modal-xl {
+    max-width: 1200px;
+}
+
+/* ===== HEADER DEL MODAL ===== */
 .modal-header {
-    padding: 0 0 15px 0;
-    border-bottom: 1px solid var(--gray-200);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--gray-50); /* Fondo ligeramente gris para el encabezado */
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--gray-200);
+    background: var(--gray-50);
     border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
-    padding-left: 25px;
-    padding-right: 25px;
+    flex-shrink: 0;
 }
 
-.modal-header h3 {
+.modal-title {
     margin: 0;
     font-size: var(--text-xl);
     font-weight: 700;
@@ -84,17 +95,17 @@
     font-size: var(--text-2xl);
     color: var(--gray-400);
     cursor: pointer;
-    transition: var(--transition-fast);
     padding: 0;
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
-    line-height: 1;
     border-radius: var(--border-radius-md);
+    transition: var(--transition-fast);
     flex-shrink: 0;
-    margin-left: 15px;
+    margin-left: var(--spacing-md);
+    line-height: 1;
 }
 
 .modal-close:hover {
@@ -102,23 +113,47 @@
     background-color: var(--error-50);
 }
 
-/* Estilos para el cuerpo del modal */
+.modal-close:focus {
+    outline: 2px solid var(--primary-500);
+    outline-offset: 2px;
+}
+
+/* ===== BODY DEL MODAL ===== */
 .modal-body {
     padding: var(--spacing-lg);
     flex-grow: 1;
-    padding-top: 15px;
-    padding-bottom: 15px;
+    overflow-y: auto;
+    max-height: calc(90vh - 120px); /* Ajuste para header y footer */
 }
 
-/* Estilos para el pie de página del modal */
+.modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+    background: var(--gray-100);
+    border-radius: var(--border-radius-sm);
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+    background: var(--gray-300);
+    border-radius: var(--border-radius-sm);
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-400);
+}
+
+/* ===== FOOTER DEL MODAL ===== */
 .modal-footer {
-    padding: var(--spacing-md) var(--spacing-lg);
     display: flex;
     gap: var(--spacing-md);
     justify-content: flex-end;
+    padding: var(--spacing-md) var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
     border-top: 1px solid var(--gray-200);
-    background: var(--gray-50); /* Fondo ligeramente gris para el pie de página */
+    background: var(--gray-50);
     border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
+    flex-shrink: 0;
 }
 
 .modal-footer .btn {
@@ -126,8 +161,11 @@
     font-size: var(--text-sm);
     font-weight: 600;
     min-width: 120px;
+    border-radius: var(--border-radius-md);
+    transition: var(--transition-fast);
 }
 
+/* Estilos específicos para botones en footer */
 .modal-footer .btn-outline {
     background: white;
     border: 2px solid var(--gray-300);
@@ -137,6 +175,7 @@
 .modal-footer .btn-outline:hover {
     border-color: var(--gray-400);
     background: var(--gray-50);
+    transform: translateY(-1px);
 }
 
 .modal-footer .btn-primary {
@@ -149,4 +188,291 @@
     background: var(--primary-700);
     border-color: var(--primary-700);
     transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.modal-footer .btn-success {
+    background: var(--success-600);
+    border: 2px solid var(--success-600);
+    color: white;
+}
+
+.modal-footer .btn-success:hover {
+    background: var(--success-700);
+    border-color: var(--success-700);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.modal-footer .btn-error {
+    background: var(--error-600);
+    border: 2px solid var(--error-600);
+    color: white;
+}
+
+.modal-footer .btn-error:hover {
+    background: var(--error-700);
+    border-color: var(--error-700);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+/* ===== MODALES ESPECIALES ===== */
+
+/* Modal de confirmación */
+.modal-confirm .modal-body {
+    text-align: center;
+    padding: var(--spacing-xl);
+}
+
+.modal-confirm .confirm-icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-lg);
+    color: var(--warning-500);
+}
+
+.modal-confirm .confirm-title {
+    font-size: var(--text-xl);
+    font-weight: 600;
+    color: var(--gray-900);
+    margin-bottom: var(--spacing-md);
+}
+
+.modal-confirm .confirm-message {
+    color: var(--gray-600);
+    margin-bottom: var(--spacing-lg);
+    line-height: 1.6;
+}
+
+/* Modal de carga */
+.modal-loading .modal-body {
+    text-align: center;
+    padding: var(--spacing-xl);
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.loading-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid var(--gray-200);
+    border-top: 4px solid var(--primary-500);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: var(--spacing-lg);
+}
+
+.loading-text {
+    color: var(--gray-600);
+    font-size: var(--text-base);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .modal {
+        width: 95%;
+        margin: var(--spacing-md);
+        max-height: 95vh;
+    }
+    
+    .modal-header {
+        padding: var(--spacing-md);
+        flex-wrap: wrap;
+        gap: var(--spacing-sm);
+    }
+    
+    .modal-title {
+        font-size: var(--text-lg);
+    }
+    
+    .modal-body {
+        padding: var(--spacing-md);
+        max-height: calc(95vh - 100px);
+    }
+    
+    .modal-footer {
+        padding: var(--spacing-md);
+        flex-direction: column;
+    }
+    
+    .modal-footer .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    /* Ajustes para modales grandes en móvil */
+    .modal-lg,
+    .modal-xl {
+        max-width: none;
+        width: 95%;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal {
+        width: 100%;
+        height: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+    
+    .modal-header {
+        border-radius: 0;
+    }
+    
+    .modal-footer {
+        border-radius: 0;
+    }
+    
+    .modal-body {
+        max-height: calc(100vh - 120px);
+    }
+}
+
+/* ===== ANIMACIONES ===== */
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        backdrop-filter: blur(0);
+    }
+    to {
+        opacity: 1;
+        backdrop-filter: blur(2px);
+    }
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Aplicar animaciones cuando se muestra */
+.modal-overlay.show {
+    animation: modalFadeIn 0.3s ease-out;
+}
+
+.modal-overlay.show .modal {
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+/* ===== PREVENCIÓN DE SCROLL ===== */
+body.modal-open {
+    overflow: hidden;
+    padding-right: var(--scrollbar-width, 0);
+}
+
+/* ===== ACCESIBILIDAD ===== */
+.modal-overlay[aria-hidden="true"] {
+    visibility: hidden;
+    opacity: 0;
+}
+
+.modal-overlay[aria-hidden="false"] {
+    visibility: visible;
+    opacity: 1;
+}
+
+.modal:focus {
+    outline: none;
+}
+
+.modal-header *:focus,
+.modal-body *:focus,
+.modal-footer *:focus {
+    outline: 2px solid var(--primary-500);
+    outline-offset: 2px;
+}
+
+/* ===== ESTADOS DE ERROR Y VALIDACIÓN ===== */
+.modal .form-group.error .form-input {
+    border-color: var(--error-500);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.modal .error-message {
+    color: var(--error-600);
+    font-size: var(--text-sm);
+    margin-top: var(--spacing-xs);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.modal .error-message i {
+    font-size: var(--text-xs);
+}
+
+/* ===== UTILIDADES ESPECÍFICAS PARA MODALES ===== */
+.modal-backdrop-blur {
+    backdrop-filter: blur(4px);
+}
+
+.modal-no-padding .modal-body {
+    padding: 0;
+}
+
+.modal-wide {
+    max-width: 90vw;
+}
+
+.modal-tall {
+    max-height: 95vh;
+}
+
+.modal-full-mobile {
+    @media (max-width: 768px) {
+        width: 100%;
+        height: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+}
+
+/* ===== PRINT STYLES ===== */
+@media print {
+    .modal-overlay {
+        display: none !important;
+    }
+}
+
+/* ===== MODAL ESPECÍFICO DE RECIBO (si se necesita) ===== */
+.modal-receipt .modal-body {
+    font-family: var(--font-mono);
+    background: white;
+    padding: var(--spacing-xl);
+}
+
+.modal-receipt .receipt-header {
+    text-align: center;
+    border-bottom: 2px dashed var(--gray-300);
+    padding-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.modal-receipt .receipt-footer {
+    text-align: center;
+    border-top: 2px dashed var(--gray-300);
+    padding-top: var(--spacing-md);
+    margin-top: var(--spacing-md);
+}
+
+/* ===== OVERRIDE PARA COMPATIBILIDAD ===== */
+/* Asegurar que no haya conflictos con otros sistemas de modales */
+.modal-overlay.modal-overlay {
+    position: fixed !important;
+    z-index: var(--z-modal, 1000) !important;
 }
