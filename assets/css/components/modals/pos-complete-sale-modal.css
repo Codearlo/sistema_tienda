@@ -1,377 +1,153 @@
-/* =====================================================
-   MODAL DE PAGO POS - CORRECCIÓN ESPECÍFICA
-   Archivo: assets/css/layouts/pos-payment-modal.css
-   ===================================================== */
+/* Estilos específicos para el modal de pago del POS */
 
-/* OVERRIDE ESPECÍFICO PARA EL MODAL DE PAGO */
-#paymentModal.modal-overlay {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    background-color: rgba(0, 0, 0, 0.6) !important; /* Fondo oscuro visible */
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    z-index: 1000 !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out !important;
+/* Contenedor principal del modal de pago */
+.payment-summary {
+    margin-bottom: 1.5rem;
 }
 
-/* Estado visible del modal de pago */
-#paymentModal.modal-overlay.show {
-    visibility: visible !important;
-    opacity: 1 !important;
+.payment-summary h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: var(--gray-800);
+    font-size: 1.25rem;
 }
 
-/* Contenedor del modal de pago */
-#paymentModal .modal,
-#paymentModal .modal-payment {
-    background-color: white !important;
-    border-radius: var(--border-radius-lg) !important;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
-    width: 90% !important;
-    max-width: 500px !important;
-    max-height: 90vh !important;
-    overflow-y: auto !important;
-    position: relative !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    transform: translateY(-20px) !important;
-    transition: transform 0.3s ease-in-out !important;
+/* Filas del resumen */
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--gray-100);
 }
 
-/* Estado visible del contenido del modal */
-#paymentModal.show .modal,
-#paymentModal.show .modal-payment {
-    transform: translateY(0) !important;
+.summary-row:last-child {
+    border-bottom: none;
 }
 
-/* Header del modal de pago */
-#paymentModal .modal-header {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-md) var(--spacing-lg) !important;
-    border-bottom: 1px solid var(--gray-200) !important;
-    background: var(--gray-50) !important;
-    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0 !important;
-    margin: 0 !important;
+.summary-row.total {
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 2px solid var(--gray-200);
 }
 
-#paymentModal .modal-title {
-    margin: 0 !important;
-    font-size: var(--text-xl) !important;
-    font-weight: 700 !important;
-    color: var(--gray-800) !important;
-    flex-grow: 1 !important;
+/* Sección de métodos de pago */
+.payment-method-selection {
+    margin: 1.5rem 0;
 }
 
-#paymentModal .modal-close {
-    background: none !important;
-    border: none !important;
-    font-size: var(--text-2xl) !important;
-    color: var(--gray-400) !important;
-    cursor: pointer !important;
-    padding: 0 !important;
-    width: 30px !important;
-    height: 30px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    border-radius: var(--border-radius-md) !important;
-    transition: var(--transition-fast) !important;
-    margin-left: 15px !important;
-    flex-shrink: 0 !important;
+.payment-method-selection h4 {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    color: var(--gray-700);
 }
 
-#paymentModal .modal-close:hover {
-    color: var(--error-600) !important;
-    background-color: var(--error-50) !important;
+.payment-methods {
+    display: flex;
+    gap: 0.75rem;
+    margin: 1rem 0;
 }
 
-/* Body del modal de pago */
-#paymentModal .modal-body {
-    padding: var(--spacing-lg) !important;
+.payment-method-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--border-radius-md);
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-/* Footer del modal de pago */
-#paymentModal .modal-footer {
-    display: flex !important;
-    justify-content: flex-end !important;
-    gap: var(--spacing-md) !important;
-    padding: var(--spacing-md) var(--spacing-lg) var(--spacing-lg) var(--spacing-lg) !important;
-    border-top: 1px solid var(--gray-200) !important;
-    background: var(--gray-50) !important;
-    border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg) !important;
-    margin: 0 !important;
+.payment-method-btn:hover {
+    border-color: var(--primary-color);
+    background-color: var(--primary-light);
 }
 
-#paymentModal .modal-footer .btn {
-    padding: var(--spacing-sm) var(--spacing-lg) !important;
-    font-size: var(--text-sm) !important;
-    font-weight: 600 !important;
-    min-width: 120px !important;
-    border-radius: var(--border-radius-md) !important;
-    transition: var(--transition-fast) !important;
+.payment-method-btn.active {
+    border-color: var(--primary-color);
+    background-color: var(--primary-light);
 }
 
-#paymentModal .modal-footer .btn-outline {
-    background: white !important;
-    border: 2px solid var(--gray-300) !important;
-    color: var(--gray-700) !important;
+.payment-method-btn i {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--gray-700);
 }
 
-#paymentModal .modal-footer .btn-outline:hover {
-    border-color: var(--gray-400) !important;
-    background: var(--gray-50) !important;
-}
-
-#paymentModal .modal-footer .btn-primary {
-    background: var(--primary-600) !important;
-    border: 2px solid var(--primary-600) !important;
-    color: white !important;
-}
-
-#paymentModal .modal-footer .btn-primary:hover {
-    background: var(--primary-700) !important;
-    border-color: var(--primary-700) !important;
-    transform: translateY(-1px) !important;
-    box-shadow: var(--shadow-md) !important;
-}
-
-/* ===== CONTENIDO ESPECÍFICO DEL MODAL DE PAGO ===== */
-
-/* Resumen de pago */
-#paymentModal .payment-summary {
-    margin-bottom: var(--spacing-lg) !important;
-    background: var(--gray-50) !important;
-    padding: var(--spacing-lg) !important;
-    border-radius: var(--border-radius-md) !important;
-    border: 1px solid var(--gray-200) !important;
-}
-
-#paymentModal .payment-summary h3 {
-    margin: 0 0 var(--spacing-md) 0 !important;
-    font-size: var(--text-lg) !important;
-    font-weight: 600 !important;
-    color: var(--gray-800) !important;
-}
-
-#paymentModal .summary-row {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    margin-bottom: var(--spacing-sm) !important;
-    padding: var(--spacing-xs) 0 !important;
-    font-size: var(--text-sm) !important;
-    color: var(--gray-700) !important;
-}
-
-#paymentModal .summary-row:last-child {
-    margin-bottom: 0 !important;
-}
-
-#paymentModal .summary-row.total {
-    font-size: var(--text-base) !important;
-    font-weight: 700 !important;
-    color: var(--gray-900) !important;
-    border-top: 2px solid var(--gray-300) !important;
-    padding-top: var(--spacing-sm) !important;
-    margin-top: var(--spacing-md) !important;
-}
-
-/* Selección de método de pago */
-#paymentModal .payment-method-selection {
-    margin: var(--spacing-lg) 0 !important;
-}
-
-#paymentModal .payment-method-selection h4 {
-    margin: 0 0 var(--spacing-md) 0 !important;
-    font-size: var(--text-base) !important;
-    font-weight: 600 !important;
-    color: var(--gray-700) !important;
-}
-
-#paymentModal .payment-methods {
-    display: flex !important;
-    gap: var(--spacing-sm) !important;
-    margin: 0 !important;
-}
-
-#paymentModal .payment-method-btn {
-    flex: 1 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    padding: var(--spacing-md) !important;
-    border: 2px solid var(--gray-300) !important;
-    border-radius: var(--border-radius-md) !important;
-    background: white !important;
-    cursor: pointer !important;
-    transition: var(--transition-fast) !important;
-    text-align: center !important;
-    font-size: var(--text-sm) !important;
-    color: var(--gray-600) !important;
-    min-height: 80px !important;
-}
-
-#paymentModal .payment-method-btn:hover {
-    border-color: var(--primary-400) !important;
-    background-color: var(--primary-50) !important;
-    color: var(--primary-700) !important;
-    transform: translateY(-2px) !important;
-    box-shadow: var(--shadow-md) !important;
-}
-
-#paymentModal .payment-method-btn.active {
-    border-color: var(--primary-500) !important;
-    background-color: var(--primary-100) !important;
-    color: var(--primary-700) !important;
-    font-weight: 600 !important;
-    box-shadow: var(--shadow-sm) !important;
-}
-
-#paymentModal .payment-method-btn i {
-    font-size: 1.5rem !important;
-    margin-bottom: var(--spacing-xs) !important;
-    color: inherit !important;
-}
-
-#paymentModal .payment-method-btn span {
-    font-weight: inherit !important;
-    color: inherit !important;
+.payment-method-btn.active i {
+    color: var(--primary-color);
 }
 
 /* Sección de pago en efectivo */
-#paymentModal .cash-payment-section {
-    margin: var(--spacing-lg) 0 !important;
-    padding: var(--spacing-lg) !important;
-    background: var(--success-50) !important;
-    border: 1px solid var(--success-200) !important;
-    border-radius: var(--border-radius-md) !important;
+.cash-payment-section {
+    margin: 1.5rem 0;
 }
 
-#paymentModal .form-group {
-    margin-bottom: var(--spacing-md) !important;
+/* Campo de entrada de monto */
+.form-group {
+    margin-bottom: 1rem;
 }
 
-#paymentModal .form-group:last-child {
-    margin-bottom: 0 !important;
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--gray-700);
 }
 
-#paymentModal .form-group label {
-    display: block !important;
-    margin-bottom: var(--spacing-xs) !important;
-    font-weight: 600 !important;
-    color: var(--gray-700) !important;
-    font-size: var(--text-sm) !important;
+.form-control {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--gray-900);
+    background-color: white;
+    background-clip: padding-box;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--border-radius-md);
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
-#paymentModal .form-input {
-    width: 100% !important;
-    padding: var(--spacing-md) !important;
-    border: 2px solid var(--gray-300) !important;
-    border-radius: var(--border-radius-md) !important;
-    font-size: var(--text-base) !important;
-    background-color: white !important;
-    transition: var(--transition-fast) !important;
-    box-sizing: border-box !important;
+.form-control:focus {
+    border-color: var(--primary-color);
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 
-#paymentModal .form-input:focus {
-    outline: none !important;
-    border-color: var(--primary-500) !important;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+/* Sección de cambio */
+.change-amount {
+    margin-top: 1rem;
+    font-weight: 500;
+    display: none;
 }
 
-#paymentModal .change-amount {
-    margin-top: var(--spacing-md) !important;
-    padding: var(--spacing-md) !important;
-    background-color: var(--success-100) !important;
-    border: 2px solid var(--success-300) !important;
-    border-radius: var(--border-radius-md) !important;
-    text-align: center !important;
-    font-weight: 700 !important;
-    color: var(--success-700) !important;
-    font-size: var(--text-base) !important;
+.change-value {
+    color: var(--success-color);
+    font-weight: bold;
 }
 
-#paymentModal .change-value {
-    font-weight: 800 !important;
-    font-size: var(--text-lg) !important;
+/* Pie del modal */
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--gray-200);
 }
 
-/* ===== RESPONSIVE ===== */
-@media (max-width: 768px) {
-    #paymentModal .modal,
-    #paymentModal .modal-payment {
-        width: 95% !important;
-        max-width: none !important;
-        margin: var(--spacing-sm) !important;
+/* Ajustes responsivos */
+@media (max-width: 480px) {
+    .payment-methods {
+        flex-direction: column;
     }
     
-    #paymentModal .payment-methods {
-        flex-direction: column !important;
-    }
-    
-    #paymentModal .payment-method-btn {
-        width: 100% !important;
-        flex-direction: row !important;
-        justify-content: flex-start !important;
-        gap: var(--spacing-md) !important;
-        min-height: 50px !important;
-    }
-    
-    #paymentModal .payment-method-btn i {
-        margin-bottom: 0 !important;
-        font-size: 1.2rem !important;
-    }
-    
-    #paymentModal .modal-footer {
-        flex-direction: column !important;
-    }
-    
-    #paymentModal .modal-footer .btn {
-        width: 100% !important;
-    }
-}
-
-/* ===== ANIMACIONES ===== */
-@keyframes modalSlideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-30px) scale(0.95);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-#paymentModal.show .modal,
-#paymentModal.show .modal-payment {
-    animation: modalSlideIn 0.3s ease-out !important;
-}
-
-/* ===== PREVENCIÓN DE SCROLL EN BODY ===== */
-body.modal-open {
-    overflow: hidden !important;
-}
-
-/* ===== ACCESIBILIDAD ===== */
-#paymentModal .modal-close:focus,
-#paymentModal .btn:focus {
-    outline: 2px solid var(--primary-500) !important;
-    outline-offset: 2px !important;
-}
-
-/* ===== PRINT STYLES ===== */
-@media print {
-    #paymentModal {
-        display: none !important;
+    .payment-method-btn {
+        width: 100%;
     }
 }
