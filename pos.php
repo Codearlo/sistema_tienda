@@ -209,32 +209,29 @@ function formatCurrency($amount) {
     <div class="modal-overlay" id="paymentModal">
         <div class="modal modal-payment">
             <div class="modal-header">
-                <h3 class="modal-title">💳 Procesar Pago</h3>
-                <button type="button" class="modal-close" onclick="closeModal('paymentModal')" aria-label="Cerrar">&times;</button>
+                <h3 class="modal-title">Procesar Pago</h3>
+                <button class="modal-close" onclick="closeModal('paymentModal')">&times;</button>
             </div>
             <div class="modal-body">
                 <div id="paymentContent">
-                 <!-- El contenido se genera dinámicamente por JavaScript -->
-                </div>
+                    </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal de Transacción Completada -->
-    <div class="modal-overlay" id="transactionModal">
-        <div class="modal modal-transaction">
+    <div class="modal-overlay" id="transactionModal" style="display: none;">
+        <div class="modal">
             <div class="modal-header">
-                <h3 class="modal-title">🎉 Venta Completada</h3>
-                <button type="button" class="modal-close" onclick="closeTransactionModal()" aria-label="Cerrar">&times;</button>
+                <h3 class="modal-title">Venta Completada</h3>
+                <button class="modal-close" onclick="closeTransactionModal()">&times;</button>
             </div>
             <div class="modal-body" id="transactionDetails">
-                <!-- Contenido dinámico de la transacción -->
-            </div>
+                </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-outline" onclick="printReceipt()">
+                <button class="btn btn-outline" onclick="printReceipt()">
                     <i class="fas fa-print"></i> Imprimir
                 </button>
-                <button type="button" class="btn btn-primary" onclick="newTransaction()">
+                <button class="btn btn-primary" onclick="newTransaction()">
                     <i class="fas fa-plus"></i> Nueva Venta
                 </button>
             </div>
