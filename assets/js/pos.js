@@ -1,6 +1,6 @@
 /**
- * POINT OF SALE (POS) - JavaScript Completo
- * Sistema funcional de punto de venta
+ * POINT OF SALE (POS) - JavaScript Completo Corregido
+ * Sistema funcional de punto de venta con modal de pago arreglado
  */
 
 // Estado global del POS
@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializePOS() {
-    console.log('Inicializando POS...');
+    console.log('🚀 Inicializando POS...');
     
     // Usar datos del PHP
     if (typeof products_data !== 'undefined') {
@@ -40,9 +40,9 @@ function initializePOS() {
         console.warn('customers_data no está definido en el ámbito global.');
     }
 
-    console.log('POSState.products después de inicializar:', POSState.products);
-    console.log('POSState.categories después de inicializar:', POSState.categories);
-    console.log('POSState.customers después de inicializar:', POSState.customers);
+    console.log('📦 POSState.products después de inicializar:', POSState.products);
+    console.log('📂 POSState.categories después de inicializar:', POSState.categories);
+    console.log('👥 POSState.customers después de inicializar:', POSState.customers);
     
     updateClock();
     setInterval(updateClock, 1000);
@@ -56,7 +56,7 @@ function initializePOS() {
     setupPaymentMethods(); 
     updateIgvButtonState();
     
-    console.log('POS inicializado correctamente');
+    console.log('✅ POS inicializado correctamente');
 }
 
 // ===== CONFIGURACIÓN DE EVENTOS =====
@@ -82,6 +82,96 @@ function setupEventListeners() {
     });
 }
 
+// ===== SISTEMA DE MODALES UNIFICADO ===== 
+const ModalSystem = {
+    
+    // Abrir modal con manejo robusto
+    open(modalId) {
+        console.log('🔓 Abriendo modal:', modalId);
+        
+        const modal = document.getElementById(modalId);
+        if (!modal) {
+            console.error('❌ Modal no encontrado:', modalId);
+            return false;
+        }
+        
+        // Remover cualquier clase conflictiva
+        modal.classList.remove('modal-open');
+        
+        // Aplicar estilos y clases necesarias
+        modal.style.display = 'flex';
+        modal.classList.add('show');
+        
+        // Prevenir scroll del body
+        document.body.classList.add('modal-open');
+        document.body.style.overflow = 'hidden';
+        
+        // Forzar reflow para asegurar la animación
+        modal.offsetHeight;
+        
+        // Enfocar primer elemento interactivo
+        setTimeout(() => {
+            const focusable = modal.querySelector('input, select, textarea, button:not(.modal-close)');
+            if (focusable) {
+                focusable.focus();
+            }
+        }, 100);
+        
+        console.log('✅ Modal abierto exitosamente:', modalId);
+        return true;
+    },
+    
+    // Cerrar modal con cleanup completo
+    close(modalId) {
+        console.log('🔒 Cerrando modal:', modalId);
+        
+        const modal = document.getElementById(modalId);
+        if (!modal) {
+            console.warn('⚠️ Modal no encontrado al cerrar:', modalId);
+            return false;
+        }
+        
+        // Remover clases de visualización
+        modal.classList.remove('show');
+        
+        // Restaurar scroll del body
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        
+        // Ocultar después de la animación
+        setTimeout(() => {
+            modal.style.display = 'none';
+            modal.classList.remove('modal-open'); // Limpiar cualquier clase residual
+        }, 300);
+        
+        console.log('✅ Modal cerrado exitosamente:', modalId);
+        return true;
+    },
+    
+    // Cerrar todos los modales
+    closeAll() {
+        const modals = document.querySelectorAll('.modal-overlay');
+        modals.forEach(modal => {
+            if (modal.id) {
+                this.close(modal.id);
+            }
+        });
+        
+        // Forzar limpieza del body
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+    }
+};
+
+// ===== FUNCIONES GLOBALES PARA COMPATIBILIDAD =====
+function openModal(modalId) {
+    return ModalSystem.open(modalId);
+}
+
+function closeModal(modalId) {
+    return ModalSystem.close(modalId);
+}
+
 // ===== MANEJO DE PRODUCTOS =====
 function loadCategories() {
     const grid = document.getElementById('categoriesGrid');
@@ -91,88 +181,125 @@ function loadCategories() {
     }
     
     let html = `
-        <button class="category-btn ${!POSState.selectedCategory ? 'active' : ''}" onclick="filterByCategory(null)" data-category-id="null">
+        <button class="category-btn ${!POSState.selectedCategory ? 'active' : ''}" 
+                onclick="selectCategory(null)">
             <i class="fas fa-th-large"></i>
-            Todos
+            <span>Todos</span>
         </button>
     `;
     
     POSState.categories.forEach(category => {
-        const isActive = POSState.selectedCategory == category.id;
         html += `
-            <button class="category-btn ${isActive ? 'active' : ''}" onclick="filterByCategory(${category.id})" data-category-id="${category.id}">
-                <i class="${category.icon || 'fas fa-folder'}"></i>
-                ${htmlspecialchars(category.name)}
+            <button class="category-btn ${POSState.selectedCategory === category.id ? 'active' : ''}" 
+                    onclick="selectCategory(${category.id})">
+                <i class="fas fa-tag"></i>
+                <span>${category.name}</span>
             </button>
         `;
     });
     
     grid.innerHTML = html;
-    console.log('Categorías cargadas:', POSState.categories.length);
+}
+
+function selectCategory(categoryId) {
+    POSState.selectedCategory = categoryId;
+    loadCategories();
+    loadProducts();
 }
 
 function loadProducts() {
     const grid = document.getElementById('productsGrid');
-    const emptyProductsState = document.getElementById('emptyProducts');
     if (!grid) {
         console.error('productsGrid no encontrado.');
         return;
     }
     
-    const searchTerm = document.getElementById('productSearch')?.value.toLowerCase() || '';
+    let filteredProducts = POSState.products;
     
-    let filteredProducts = POSState.products.filter(product => {
-        const matchesSearch = !searchTerm || 
-            product.name.toLowerCase().includes(searchTerm) ||
-            (product.sku && product.sku.toLowerCase().includes(searchTerm)) ||
-            (product.barcode && product.barcode.toLowerCase().includes(searchTerm));
-        
-        const matchesCategory = POSState.selectedCategory === null || 
-            product.category_id == POSState.selectedCategory;
-        
-        return matchesSearch && matchesCategory;
-    });
+    if (POSState.selectedCategory) {
+        filteredProducts = POSState.products.filter(product => 
+            product.category_id == POSState.selectedCategory
+        );
+    }
     
     if (filteredProducts.length === 0) {
-        grid.style.display = 'none';
-        if (emptyProductsState) {
-            emptyProductsState.style.display = 'flex';
-        }
-        console.log('No se encontraron productos filtrados.');
+        grid.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-box-open"></i>
+                <h3>No hay productos</h3>
+                <p>No se encontraron productos en esta categoría</p>
+            </div>
+        `;
         return;
     }
     
-    grid.style.display = 'grid';
-    if (emptyProductsState) {
-        emptyProductsState.style.display = 'none';
+    grid.innerHTML = filteredProducts.map(product => `
+        <div class="product-card" onclick="addToCart(${product.id})">
+            <div class="product-image">
+                <img src="${product.image_url || 'assets/images/product-placeholder.png'}" 
+                     alt="${product.name}" 
+                     onerror="this.src='assets/images/product-placeholder.png'">
+            </div>
+            <div class="product-info">
+                <h4>${product.name}</h4>
+                <p class="product-price">S/ ${parseFloat(product.selling_price).toFixed(2)}</p>
+                <p class="product-stock">Stock: ${product.stock_quantity || 0}</p>
+            </div>
+        </div>
+    `).join('');
+}
+
+function handleProductSearch() {
+    const searchTerm = document.getElementById('productSearch').value.toLowerCase();
+    
+    let filteredProducts = POSState.products.filter(product =>
+        product.name.toLowerCase().includes(searchTerm) ||
+        (product.sku && product.sku.toLowerCase().includes(searchTerm)) ||
+        (product.barcode && product.barcode.toLowerCase().includes(searchTerm))
+    );
+    
+    if (POSState.selectedCategory) {
+        filteredProducts = filteredProducts.filter(product => 
+            product.category_id == POSState.selectedCategory
+        );
     }
     
-    let html = '';
-    filteredProducts.forEach(product => {
-        const stock = product.stock_quantity || 0;
-        const isLowStock = stock <= (product.min_stock || 5);
-        
-        html += `
-            <div class="product-card ${stock === 0 ? 'out-of-stock' : ''}" onclick="addToCart(${product.id})">
-                <div class="product-image">
-                    <img src="${product.image_url || 'assets/images/product-placeholder.png'}" 
-                         alt="${htmlspecialchars(product.name)}" 
-                         onerror="this.src='assets/images/product-placeholder.png'">
-                    ${stock === 0 ? '<div class="out-of-stock-badge">Agotado</div>' : ''}
-                    ${isLowStock && stock > 0 ? '<div class="low-stock-badge">Poco stock</div>' : ''}
-                </div>
-                <div class="product-info">
-                    <h3>${htmlspecialchars(product.name)}</h3>
-                    <p class="product-price">S/ ${parseFloat(product.selling_price).toFixed(2)}</p>
-                    <p class="product-stock">Stock: ${stock}</p>
-                    ${product.sku ? `<p class="product-sku">SKU: ${htmlspecialchars(product.sku)}</p>` : ''}
-                </div>
+    const grid = document.getElementById('productsGrid');
+    if (!grid) return;
+    
+    if (filteredProducts.length === 0) {
+        grid.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-search"></i>
+                <h3>Sin resultados</h3>
+                <p>No se encontraron productos que coincidan con "${searchTerm}"</p>
             </div>
         `;
-    });
+        return;
+    }
     
-    grid.innerHTML = html;
-    console.log('Productos cargados:', filteredProducts.length);
+    grid.innerHTML = filteredProducts.map(product => `
+        <div class="product-card" onclick="addToCart(${product.id})">
+            <div class="product-image">
+                <img src="${product.image_url || 'assets/images/product-placeholder.png'}" 
+                     alt="${product.name}" 
+                     onerror="this.src='assets/images/product-placeholder.png'">
+            </div>
+            <div class="product-info">
+                <h4>${product.name}</h4>
+                <p class="product-price">S/ ${parseFloat(product.selling_price).toFixed(2)}</p>
+                <p class="product-stock">Stock: ${product.stock_quantity || 0}</p>
+            </div>
+        </div>
+    `).join('');
+}
+
+function clearSearch() {
+    const searchInput = document.getElementById('productSearch');
+    if (searchInput) {
+        searchInput.value = '';
+        loadProducts();
+    }
 }
 
 // ===== MANEJO DEL CARRITO =====
@@ -183,152 +310,120 @@ function addToCart(productId) {
         return;
     }
     
-    const stock = product.stock_quantity || 0;
-    if (stock === 0) {
-        showMessage('Producto sin stock', 'warning');
+    if (product.stock_quantity <= 0) {
+        showMessage('Producto sin stock disponible', 'warning');
         return;
     }
     
     const existingItem = POSState.cart.find(item => item.product_id == productId);
     
     if (existingItem) {
-        if (existingItem.quantity >= stock) {
-            showMessage('No hay suficiente stock', 'warning');
+        if (existingItem.quantity >= product.stock_quantity) {
+            showMessage('No hay suficiente stock disponible', 'warning');
             return;
         }
-        existingItem.quantity += 1;
+        existingItem.quantity++;
         existingItem.subtotal = existingItem.quantity * existingItem.price;
     } else {
         POSState.cart.push({
-            product_id: productId,
+            product_id: product.id,
             name: product.name,
             price: parseFloat(product.selling_price),
             quantity: 1,
             subtotal: parseFloat(product.selling_price),
-            stock: stock 
+            stock_available: product.stock_quantity
         });
     }
     
     updateCartDisplay();
     updateTotals();
+    
+    showMessage(`${product.name} agregado al carrito`, 'success');
 }
 
-function removeFromCart(productId) {
-    const index = POSState.cart.findIndex(item => item.product_id == productId);
-    if (index !== -1) {
-        POSState.cart.splice(index, 1);
-        updateCartDisplay();
-        updateTotals();
+function updateCartDisplay() {
+    const cartItems = document.getElementById('cartItems');
+    if (!cartItems) return;
+    
+    if (POSState.cart.length === 0) {
+        cartItems.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-shopping-cart"></i>
+                <h3>Carrito vacío</h3>
+                <p>Agrega productos para comenzar una venta</p>
+            </div>
+        `;
+        return;
     }
+    
+    cartItems.innerHTML = POSState.cart.map(item => `
+        <div class="cart-item">
+            <div class="cart-item-info">
+                <h4>${item.name}</h4>
+                <p class="item-price">S/ ${item.price.toFixed(2)} c/u</p>
+            </div>
+            <div class="cart-item-controls">
+                <div class="quantity-controls">
+                    <button class="quantity-btn" onclick="updateQuantity(${item.product_id}, ${item.quantity - 1})">-</button>
+                    <input type="number" class="quantity-input" value="${item.quantity}" 
+                           onchange="updateQuantity(${item.product_id}, this.value)" min="1" max="${item.stock_available}">
+                    <button class="quantity-btn" onclick="updateQuantity(${item.product_id}, ${item.quantity + 1})">+</button>
+                </div>
+                <span class="item-total">S/ ${item.subtotal.toFixed(2)}</span>
+                <button class="remove-btn" onclick="removeFromCart(${item.product_id})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
 }
 
 function updateQuantity(productId, newQuantity) {
-    const item = POSState.cart.find(item => item.product_id == productId);
-    if (!item) return;
+    const quantity = parseInt(newQuantity);
     
-    newQuantity = parseInt(newQuantity);
-    
-    if (isNaN(newQuantity) || newQuantity <= 0) {
+    if (quantity <= 0) {
         removeFromCart(productId);
         return;
     }
     
-    if (newQuantity > item.stock) {
-        showMessage(`Cantidad excede el stock disponible (${item.stock})`, 'warning');
-        item.quantity = item.stock;
-    } else {
-        item.quantity = newQuantity;
+    const item = POSState.cart.find(item => item.product_id == productId);
+    if (!item) return;
+    
+    if (quantity > item.stock_available) {
+        showMessage('Cantidad excede el stock disponible', 'warning');
+        return;
     }
     
+    item.quantity = quantity;
     item.subtotal = item.quantity * item.price;
     
     updateCartDisplay();
     updateTotals();
 }
 
-function updateCartDisplay() {
-    const cartItemsContainer = document.getElementById('cartItems');
-    const emptyState = cartItemsContainer ? cartItemsContainer.querySelector('.empty-state') : null;
-    const completeBtn = document.getElementById('completeBtn');
-    const cartCountSpan = document.getElementById('cartCount');
-    const cartSummaryDiv = document.getElementById('cartSummary');
-    
-    if (!cartItemsContainer) return;
-    
-    if (POSState.cart.length === 0) {
-        if (cartItemsContainer) cartItemsContainer.innerHTML = `<div class="empty-state"><i class="fas fa-shopping-cart fa-2x"></i><h3>El carrito está vacío</h3><p>Agregue productos para comenzar</p></div>`;
-        if (emptyState) emptyState.style.display = 'flex';
-        if (completeBtn) completeBtn.disabled = true;
-        if (cartSummaryDiv) cartSummaryDiv.style.display = 'none';
-    } else {
-        if (emptyState) emptyState.style.display = 'none';
-        if (completeBtn) completeBtn.disabled = false;
-        if (cartSummaryDiv) cartSummaryDiv.style.display = 'block';
-        
-        let html = '';
-        POSState.cart.forEach(item => {
-            html += `
-                <div class="cart-item">
-                    <div class="cart-item-info">
-                        <h4>${htmlspecialchars(item.name)}</h4>
-                        <p class="item-price">S/ ${item.price.toFixed(2)} c/u</p>
-                    </div>
-                    <div class="cart-item-controls">
-                        <div class="quantity-controls">
-                            <button onclick="updateQuantity(${item.product_id}, ${item.quantity - 1})" 
-                                    class="quantity-btn">-</button>
-                            <input type="number" 
-                                   value="${item.quantity}" 
-                                   min="1" 
-                                   max="${item.stock}"
-                                   onchange="updateQuantity(${item.product_id}, parseInt(this.value))"
-                                   class="quantity-input">
-                            <button onclick="updateQuantity(${item.product_id}, ${item.quantity + 1})" 
-                                    class="quantity-btn">+</button>
-                        </div>
-                        <div class="item-total">S/ ${item.subtotal.toFixed(2)}</div>
-                        <button onclick="removeFromCart(${item.product_id})" 
-                                class="remove-btn" title="Eliminar">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
-        });
-        cartItemsContainer.innerHTML = html;
-    }
-    
-    if (cartCountSpan) {
-        cartCountSpan.textContent = `${POSState.cart.length} productos`;
-    }
+function removeFromCart(productId) {
+    POSState.cart = POSState.cart.filter(item => item.product_id != productId);
+    updateCartDisplay();
+    updateTotals();
 }
 
+// ===== CÁLCULOS Y TOTALES =====
 function updateTotals() {
     const subtotal = POSState.cart.reduce((sum, item) => sum + item.subtotal, 0);
-    let tax = 0;
-    let total = subtotal;
+    const tax = POSState.includeIgv ? subtotal * 0.18 : 0;
+    const total = subtotal + tax;
     
-    if (POSState.includeIgv) {
-        tax = subtotal * 0.18;
-        total = subtotal + tax;
-    }
+    const subtotalElement = document.getElementById('subtotalAmount');
+    const taxElement = document.getElementById('taxAmount');
+    const totalElement = document.getElementById('totalAmount');
     
-    const elements = {
-        'subtotal': `S/ ${subtotal.toFixed(2)}`, 
-        'tax': `S/ ${tax.toFixed(2)}`,         
-        'total': `S/ ${total.toFixed(2)}`       
-    };
+    if (subtotalElement) subtotalElement.textContent = `S/ ${subtotal.toFixed(2)}`;
+    if (taxElement) taxElement.textContent = `S/ ${tax.toFixed(2)}`;
+    if (totalElement) totalElement.textContent = `S/ ${total.toFixed(2)}`;
     
-    Object.keys(elements).forEach(id => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.textContent = elements[id];
-        }
-    });
-
-    const igvRow = document.getElementById('igvRow');
-    if (igvRow) {
-        igvRow.style.display = POSState.includeIgv ? 'flex' : 'none';
+    const completeBtn = document.getElementById('completeSaleBtn');
+    if (completeBtn) {
+        completeBtn.disabled = POSState.cart.length === 0;
     }
     
     calculateChange();
@@ -341,41 +436,26 @@ function toggleIgv() {
 }
 
 function updateIgvButtonState() {
-    const igvBtn = document.getElementById('toggleIgvBtn');
+    const igvBtn = document.getElementById('igvToggleBtn');
     if (igvBtn) {
         if (POSState.includeIgv) {
-            igvBtn.textContent = 'IGV Incluido ✓';
-            igvBtn.classList.remove('btn-outline');
-            igvBtn.classList.add('btn-success');
+            igvBtn.classList.add('active');
+            igvBtn.innerHTML = '<i class="fas fa-check"></i> IGV Incluido';
         } else {
-            igvBtn.textContent = 'Sin IGV';
-            igvBtn.classList.remove('btn-success');
-            igvBtn.classList.add('btn-outline');
+            igvBtn.classList.remove('active');
+            igvBtn.innerHTML = '<i class="fas fa-times"></i> Sin IGV';
         }
     }
 }
 
-// ===== MÉTODOS DE PAGO =====
-function setupPaymentMethods() {
-    const initialMethodBtn = document.querySelector('.payment-section .payment-method-btn.active');
-    if (initialMethodBtn) {
-        selectPaymentMethod(initialMethodBtn.dataset.method);
-    } else {
-        selectPaymentMethod('cash');
-    }
-}
-
-// ===== CÁLCULO DE CAMBIO =====
 function calculateChange() {
-    console.log('Calculando cambio...');
-    
     const cashInput = document.getElementById('cashReceivedInput');
     const changeAmountDiv = document.getElementById('changeAmount');
     const changeValueSpan = document.getElementById('changeValue');
-    const completeBtn = document.getElementById('completeBtn');
-
+    const completeBtn = document.getElementById('completeSaleBtn');
+    
     if (!cashInput || !changeAmountDiv || !changeValueSpan || !completeBtn) {
-        console.warn('Algunos elementos del formulario de pago principal no se encontraron. Posiblemente se está inicializando el POS.');
+        console.warn('Elementos de cambio no encontrados');
         return;
     }
     
@@ -394,7 +474,7 @@ function calculateChange() {
     const total = POSState.includeIgv ? subtotal * 1.18 : subtotal;
     const change = cashReceived - total;
     
-    console.log('Monto recibido:', cashReceived, 'Total:', total, 'Cambio:', change);
+    console.log('💰 Monto recibido:', cashReceived, 'Total:', total, 'Cambio:', change);
     
     if (cashReceived > 0) {
         changeAmountDiv.style.display = 'block';
@@ -427,11 +507,16 @@ function calculateChange() {
     }
     
     POSState.cashReceived = cashReceived;
-    console.log('Cálculo de cambio completado');
+    console.log('✅ Cálculo de cambio completado');
+}
+
+// ===== MÉTODOS DE PAGO =====
+function setupPaymentMethods() {
+    selectPaymentMethod('cash');
 }
 
 function selectPaymentMethod(method) {
-    console.log('Seleccionando método de pago:', method);
+    console.log('💳 Seleccionando método de pago:', method);
     
     POSState.paymentMethod = method;
     
@@ -449,148 +534,107 @@ function selectPaymentMethod(method) {
         cashPaymentSection.style.display = method === 'cash' ? 'block' : 'none';
     }
     
-    if (method !== 'cash') {
-        const cashInput = document.getElementById('cashReceivedInput');
-        if (cashInput) {
-            cashInput.value = '0.00';
-        }
-        const changeAmountDiv = document.getElementById('changeAmount');
-        if (changeAmountDiv) {
-            changeAmountDiv.style.display = 'none';
-        }
-    } else {
-        setTimeout(() => {
-            const cashInput = document.getElementById('cashReceivedInput');
-            if (cashInput) {
-                cashInput.focus();
-                cashInput.select();
-            }
-        }, 100);
-    }
-    
+    updateTotals();
     calculateChange();
 }
 
-// ===== BÚSQUEDA Y FILTROS =====
-function handleProductSearch() {
-    const searchInput = document.getElementById('productSearch');
-    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
-    
-    loadProducts(); 
-    
-    const clearBtn = document.querySelector('.search-clear-btn');
-    if (clearBtn) {
-        clearBtn.style.display = searchTerm ? 'flex' : 'none';
-    }
-}
-
-function clearSearch() {
-    const searchInput = document.getElementById('productSearch');
-    if (searchInput) {
-        searchInput.value = '';
-    }
-    
-    const clearBtn = document.querySelector('.search-clear-btn');
-    if (clearBtn) {
-        clearBtn.style.display = 'none';
-    }
-    
-    loadProducts();
-}
-
-function filterByCategory(categoryId) {
-    POSState.selectedCategory = categoryId;
-    loadProducts();
-    
-    const categoryButtons = document.querySelectorAll('.category-btn');
-    if (categoryButtons.length > 0) {
-        categoryButtons.forEach(btn => {
-            const btnCategoryId = btn.getAttribute('data-category-id');
-            if ( (categoryId === null && btnCategoryId === "null") || (btnCategoryId == categoryId) ) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
-    }
-}
-
-function clearFilters() {
-    POSState.selectedCategory = null;
-    document.getElementById('productSearch').value = '';
-    document.querySelector('.search-clear-btn').style.display = 'none';
-    loadCategories();
-    loadProducts();
-}
-
-// ===== TRANSACCIONES =====
-function showPaymentModal() {
-    console.log('Mostrando modal de pago...');
+// ===== MODAL DE PAGO - FUNCIONES PRINCIPALES =====
+function showPaymentConfirmation() {
+    console.log('💳 Preparando modal de pago...');
     
     if (POSState.cart.length === 0) {
         showMessage('El carrito está vacío', 'warning');
         return false;
     }
     
+    // Calcular totales
     const subtotal = POSState.cart.reduce((sum, item) => sum + (parseFloat(item.subtotal) || 0), 0);
     const tax = POSState.includeIgv ? subtotal * 0.18 : 0;
     const total = subtotal + tax;
     
     // Crear el modal si no existe
-    createPaymentModal(); 
+    createPaymentModalIfNeeded();
     
     const paymentModal = document.getElementById('paymentModal');
     const paymentContent = document.getElementById('paymentContent');
     
     if (!paymentModal || !paymentContent) {
-        console.error('No se pudo crear el modal de pago');
+        console.error('❌ No se pudo crear el modal de pago');
         showMessage('Error al cargar el formulario de pago', 'error');
         return false;
     }
     
-    // Actualizar el contenido del modal de pago - ESTO ES PARA EL MODAL DE CONFIRMACIÓN
-    paymentContent.innerHTML = `
+    // Actualizar contenido del modal
+    paymentContent.innerHTML = generatePaymentModalContent(subtotal, tax, total);
+    
+    // Configurar eventos del modal
+    setupPaymentModalEvents();
+    
+    // Abrir el modal usando el sistema unificado
+    return ModalSystem.open('paymentModal');
+}
+
+function createPaymentModalIfNeeded() {
+    if (document.getElementById('paymentModal')) {
+        console.log('ℹ️ Modal de pago ya existe');
+        return;
+    }
+    
+    console.log('🏗️ Creando modal de pago...');
+    
+    const modalHTML = `
+    <div class="modal-overlay" id="paymentModal">
+        <div class="modal modal-payment">
+            <div class="modal-header">
+                <h3 class="modal-title">💳 Procesar Pago</h3>
+                <button type="button" class="modal-close" onclick="closeModal('paymentModal')" aria-label="Cerrar">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="paymentContent">
+                    <!-- Contenido dinámico -->
+                </div>
+            </div>
+        </div>
+    </div>`;
+    
+    const temp = document.createElement('div');
+    temp.innerHTML = modalHTML;
+    const modalElement = temp.firstElementChild;
+    document.body.appendChild(modalElement);
+    
+    console.log('✅ Modal de pago creado exitosamente');
+}
+
+function generatePaymentModalContent(subtotal, tax, total) {
+    return `
         <div class="payment-summary">
-            <h3>Resumen de la Venta</h3>
+            <h3>📋 Resumen de la Venta</h3>
             <div class="summary-row">
                 <span>Subtotal:</span>
-                <span>S/ ${subtotal.toFixed(2)}</span>
+                <span><strong>S/ ${subtotal.toFixed(2)}</strong></span>
             </div>
             ${POSState.includeIgv ? `
             <div class="summary-row">
                 <span>IGV (18%):</span>
-                <span>S/ ${tax.toFixed(2)}</span>
+                <span><strong>S/ ${tax.toFixed(2)}</strong></span>
             </div>` : ''}
             <div class="summary-row total">
-                <span>Total a pagar:</span>
-                <span>S/ ${total.toFixed(2)}</span>
+                <span>💰 Total a pagar:</span>
+                <span><strong>S/ ${total.toFixed(2)}</strong></span>
             </div>
         </div>
         
         <div class="payment-method-selection">
-            <h4>Método de pago seleccionado:</h4>
+            <h4>💳 Método de pago seleccionado:</h4>
             <div class="payment-methods">
-                <button type="button" class="payment-method-btn active" 
-                        data-method="${POSState.paymentMethod}">
-                    <i class="fas ${POSState.paymentMethod === 'cash' ? 'fa-money-bill' : (POSState.paymentMethod === 'card' ? 'fa-credit-card' : 'fa-exchange-alt')}"></i>
+                <button type="button" class="payment-method-btn active" data-method="${POSState.paymentMethod}">
+                    <i class="fas ${getPaymentMethodIcon(POSState.paymentMethod)}"></i>
                     <span>${getPaymentMethodName(POSState.paymentMethod)}</span>
                 </button>
             </div>
         </div>
         
-        ${POSState.paymentMethod === 'cash' ? `
-        <div id="modalCashPaymentSection" class="cash-payment-section">
-            <div class="form-group">
-                <label for="modalCashReceivedInput">Monto recibido:</label>
-                <input type="number" id="modalCashReceivedInput" class="form-input" 
-                       step="0.01" min="0" value="${POSState.cashReceived.toFixed(2)}" 
-                       readonly>
-            </div>
-            <div id="modalChangeAmount" class="change-amount" style="display: block;">
-                Vuelto: <span id="modalChangeValue" class="change-value">S/ ${(POSState.cashReceived - total).toFixed(2)}</span>
-            </div>
-        </div>
-        ` : ''}
+        ${POSState.paymentMethod === 'cash' ? generateCashPaymentSection(total) : ''}
 
         <div class="modal-footer">
             <button type="button" class="btn btn-outline" onclick="closeModal('paymentModal')">
@@ -601,51 +645,38 @@ function showPaymentModal() {
             </button>
         </div>
     `;
-    
-    const confirmBtnInModal = document.getElementById('confirmPaymentBtn');
-    if (confirmBtnInModal) {
-        confirmBtnInModal.onclick = processPayment; 
-    }
-    
-    openModal('paymentModal');
-    
-    return false;
 }
 
-// Función para crear el modal de pago dinámicamente si no existe
-function createPaymentModal() {
-    console.log('Creando modal de pago...');
+function generateCashPaymentSection(total) {
+    const change = POSState.cashReceived - total;
     
-    if (document.getElementById('paymentModal')) {
-        console.log('El modal de pago ya existe');
-        return;
-    }
-    
-    const modalHTML = `
-    <div class="modal-overlay" id="paymentModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h3 class="modal-title">Procesar Pago</h3>
-                <button type="button" class="modal-close" onclick="closeModal('paymentModal')" aria-label="Cerrar">&times;</button>
+    return `
+        <div class="cash-payment-section">
+            <div class="form-group">
+                <label for="modalCashReceivedInput">💵 Monto recibido:</label>
+                <input type="number" id="modalCashReceivedInput" class="form-input" 
+                       step="0.01" min="0" value="${POSState.cashReceived.toFixed(2)}" readonly>
             </div>
-            <div class="modal-body">
-                <div id="paymentContent">
-                    </div>
+            <div class="change-amount ${change >= 0 ? 'positive' : 'negative'}" 
+                 style="display: ${POSState.cashReceived > 0 ? 'block' : 'none'};">
+                ${change >= 0 ? 
+                    `✅ Vuelto: <span class="change-value">S/ ${change.toFixed(2)}</span>` :
+                    `⚠️ Faltan: <span class="change-value">S/ ${Math.abs(change).toFixed(2)}</span>`
+                }
             </div>
         </div>
-    </div>`;
-    
-    const temp = document.createElement('div');
-    temp.innerHTML = modalHTML;
-    
-    const modalElement = temp.firstElementChild;
-    document.body.appendChild(modalElement);
-    
-    console.log('Modal de pago creado exitosamente');
+    `;
+}
+
+function setupPaymentModalEvents() {
+    const confirmBtn = document.getElementById('confirmPaymentBtn');
+    if (confirmBtn) {
+        confirmBtn.onclick = processPayment;
+    }
 }
 
 async function processPayment() {
-    console.log('Iniciando proceso de pago...', POSState);
+    console.log('🔄 Iniciando proceso de pago...', POSState);
     
     if (POSState.cart.length === 0) {
         showMessage('El carrito está vacío', 'warning');
@@ -653,7 +684,8 @@ async function processPayment() {
     }
     
     const subtotal = POSState.cart.reduce((sum, item) => sum + (parseFloat(item.subtotal) || 0), 0);
-    const total = POSState.includeIgv ? subtotal * 1.18 : subtotal;
+    const tax = POSState.includeIgv ? subtotal * 0.18 : 0;
+    const total = subtotal + tax;
     let cashReceived = POSState.cashReceived; 
     
     showMessage('Procesando pago, por favor espere...', 'info');
@@ -663,7 +695,7 @@ async function processPayment() {
         await completeTransaction();
         return true;
     } catch (error) {
-        console.error('Error al procesar el pago:', error);
+        console.error('❌ Error al procesar el pago:', error);
         showMessage('Error al procesar el pago: ' + (error.message || 'Error desconocido'), 'error');
         return false;
     }
@@ -705,7 +737,7 @@ async function completeTransaction() {
             showMessage(response.message || 'Error al procesar la venta', 'error');
         }
     } catch (error) {
-        console.error('Error en completeTransaction:', error);
+        console.error('❌ Error en completeTransaction:', error);
         showMessage('Error de conexión al completar la transacción', 'error');
     }
 }
@@ -715,22 +747,32 @@ function showTransactionComplete(saleData) {
     const details = document.getElementById('transactionDetails');
     
     if (!modal || !details) {
-        console.error('Modal de transacción no encontrado');
+        console.error('❌ Modal de transacción no encontrado');
         return;
     }
     
     details.innerHTML = `
         <div class="transaction-summary">
-            <h4>Venta #${saleData.sale_number}</h4>
-            <p><strong>Fecha:</strong> ${new Date().toLocaleString()}</p>
-            <p><strong>Total:</strong> S/ ${parseFloat(saleData.total).toFixed(2)}</p>
-            <p><strong>Método de pago:</strong> ${getPaymentMethodName(saleData.payment_method)}</p>
+            <h4>🎉 Venta #${saleData.sale_number}</h4>
+            <p><strong>📅 Fecha:</strong> ${new Date().toLocaleString()}</p>
+            <p><strong>💰 Total:</strong> S/ ${parseFloat(saleData.total).toFixed(2)}</p>
+            <p><strong>💳 Método de pago:</strong> ${getPaymentMethodName(saleData.payment_method)}</p>
             ${saleData.change_amount > 0 ? 
-                `<p><strong>Vuelto:</strong> S/ ${parseFloat(saleData.change_amount).toFixed(2)}</p>` : ''}
+                `<p><strong>💵 Vuelto:</strong> S/ ${parseFloat(saleData.change_amount).toFixed(2)}</p>` : ''}
         </div>
     `;
     
     openModal('transactionModal');
+}
+
+// ===== FUNCIONES AUXILIARES =====
+function getPaymentMethodIcon(method) {
+    const icons = {
+        'cash': 'fa-money-bill-wave',
+        'card': 'fa-credit-card',
+        'transfer': 'fa-exchange-alt'
+    };
+    return icons[method] || 'fa-money-bill-wave';
 }
 
 function getPaymentMethodName(method) {
@@ -750,37 +792,6 @@ function newTransaction() {
     closeTransactionModal();
     clearCart();
     selectPaymentMethod('cash'); 
-}
-
-// ===== FUNCIONES DE MODAL =====
-function openModal(modalId) {
-    console.log('Abriendo modal:', modalId);
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'flex'; 
-        modal.classList.add('show');
-        document.body.style.overflow = 'hidden';
-        
-        setTimeout(() => {
-            const firstInput = modal.querySelector('input, select, textarea, button');
-            if (firstInput) {
-                firstInput.focus();
-            }
-        }, 100);
-    } else {
-        console.error('No se pudo encontrar el modal con ID:', modalId);
-    }
-}
-
-function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.classList.remove('show');
-        setTimeout(() => {
-            modal.style.display = 'none';
-            document.body.style.overflow = ''; 
-        }, 300);
-    }
 }
 
 // ===== UTILIDADES =====
@@ -806,76 +817,112 @@ function clearCart() {
 
 function updateClock() {
     const timeElement = document.getElementById('currentTime');
-    if (!timeElement) return;
-    
-    const now = new Date();
-    const options = {
-        day: '2-digit', month: '2-digit', year: 'numeric',
-        hour: '2-digit', minute: '2-digit', second: '2-digit'
-    };
-    const dateTimeString = now.toLocaleDateString('es-PE', options);
-    timeElement.innerHTML = dateTimeString;
-}
-
-function printReceipt() {
-    showMessage('Funcionalidad de impresión en desarrollo', 'info');
+    if (timeElement) {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('es-PE', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        timeElement.textContent = timeString;
+    }
 }
 
 function showMessage(message, type = 'info') {
-    const notificationContainer = document.querySelector('.pos-container');
-    if (!notificationContainer) return;
-
-    const existingAlert = notificationContainer.querySelector('.pos-alert');
-    if (existingAlert) {
-        existingAlert.remove();
-    }
-
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `pos-alert pos-alert-${type}`;
-    alertDiv.innerHTML = `
-        <span class="pos-alert-icon">
-            <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-triangle' : 'fa-info-circle'}"></i>
-        </span>
-        <span class="pos-alert-message">${message}</span>
-        <button class="pos-alert-close" onclick="this.parentElement.remove()">
+    console.log(`📢 ${type.toUpperCase()}: ${message}`);
+    
+    // Crear elemento de mensaje
+    const messageEl = document.createElement('div');
+    messageEl.className = `alert alert-${type} alert-toast`;
+    
+    const icons = {
+        'success': 'fa-check-circle',
+        'error': 'fa-exclamation-triangle',
+        'warning': 'fa-exclamation-circle',
+        'info': 'fa-info-circle'
+    };
+    
+    messageEl.innerHTML = `
+        <i class="fas ${icons[type] || icons.info}"></i>
+        <span>${message}</span>
+        <button class="alert-close" onclick="this.parentElement.remove()">
             <i class="fas fa-times"></i>
         </button>
     `;
-
-    notificationContainer.insertBefore(alertDiv, notificationContainer.firstChild);
-
-    setTimeout(() => {
-        alertDiv.classList.add('show');
-    }, 10);
-
-    setTimeout(() => {
-        alertDiv.classList.remove('show');
-        alertDiv.addEventListener('transitionend', () => alertDiv.remove(), { once: true });
-    }, 3000);
-}
-
-function htmlspecialchars(text) {
-    const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-    };
-    return text.replace(/[&<>"']/g, m => map[m]);
-}
-
-function toggleMobileSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('mobileOverlay');
     
-    if (sidebar && overlay) {
-        sidebar.classList.toggle('mobile-open');
-        overlay.classList.toggle('show');
-        if (sidebar.classList.contains('mobile-open')) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = '';
-        }
-    }
+    // Aplicar estilos
+    messageEl.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        max-width: 500px;
+        padding: 15px 20px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        ${type === 'success' ? 'background: #10b981;' : 
+          type === 'error' ? 'background: #ef4444;' :
+          type === 'warning' ? 'background: #f59e0b;' :
+          'background: #3b82f6;'}
+    `;
+    
+    document.body.appendChild(messageEl);
+    
+    // Animar entrada
+    setTimeout(() => {
+        messageEl.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Auto-remover después de 5 segundos
+    setTimeout(() => {
+        messageEl.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (messageEl.parentElement) {
+                messageEl.parentElement.removeChild(messageEl);
+            }
+        }, 300);
+    }, 5000);
 }
+
+// ===== EVENTOS GLOBALES PARA MODALES =====
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Inicializando sistema de modales...');
+    
+    // Cerrar modales con ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            ModalSystem.closeAll();
+        }
+    });
+    
+    // Cerrar modales clickeando en el overlay
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('modal-overlay')) {
+            const modalId = e.target.id;
+            if (modalId) {
+                ModalSystem.close(modalId);
+            }
+        }
+    });
+    
+    console.log('✅ Sistema de modales inicializado');
+});
+
+// ===== FUNCIONES GLOBALES ADICIONALES =====
+window.showPaymentConfirmation = showPaymentConfirmation;
+window.addToCart = addToCart;
+window.removeFromCart = removeFromCart;
+window.updateQuantity = updateQuantity;
+window.selectCategory = selectCategory;
+window.selectPaymentMethod = selectPaymentMethod;
+window.toggleIgv = toggleIgv;
+window.clearCart = clearCart;
+window.closeTransactionModal = closeTransactionModal;
+window.newTransaction = newTransaction;
