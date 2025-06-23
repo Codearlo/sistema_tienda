@@ -1,152 +1,385 @@
-/* assets/css/components/modals.css */
+/* =====================================================
+   MODALS COMPONENTS - ESTILOS GENERALES
+   Archivo: assets/css/components/modals.css
+   NOTA: Estilos del modal de POS están en modal/pos-complete-sale-modal.css
+   ===================================================== */
 
-/* Estilos para el overlay del modal */
+/* ===== OVERLAY GENERAL PARA MODALES ===== */
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* Fondo semitransparente oscuro */
-    display: flex; /* Siempre visible, pero controlado por visibility/opacity */
-    justify-content: center; /* Centrar contenido horizontalmente */
-    align-items: center;    /* Centrar contenido verticalmente */
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none; /* Oculto por defecto */
+    justify-content: center;
+    align-items: center;
     z-index: 1000;
-    visibility: hidden; /* Oculto por defecto usando visibility para transiciones */
-    opacity: 0; /* Opacidad inicial para animación */
-    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+    transition: opacity 0.3s ease-in-out;
 }
 
-/* Cuando el overlay tiene la clase 'show', se vuelve visible */
-.modal-overlay.show {
-    visibility: visible; /* Hace visible el overlay */
+/* Estado activo del overlay */
+.modal-overlay.show,
+.modal-overlay.modal-open {
+    display: flex !important;
     opacity: 1;
 }
 
-/* Estilos para la ventana del modal (el cuadro blanco con contenido) */
+/* ===== CONTENEDOR PRINCIPAL DEL MODAL ===== */
 .modal {
-    background-color: #fff; /* Fondo blanco sólido para el contenido del modal */
-    padding: 25px;
+    background-color: #ffffff;
     border-radius: 8px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    
-    width: 90%; /* Ocupa hasta el 90% del ancho de su contenedor (.modal-overlay) */
-    max-width: 550px; /* Máximo 550px de ancho */
-    height: auto; /* La altura se ajusta al contenido */
-    max-height: 90vh; /* Máximo 90% del alto de la ventana para evitar desbordamiento */
-    overflow-y: auto; /* Permite scroll si el contenido es muy largo */
-
-    z-index: 1001; /* Siempre encima del overlay */
-
-    position: relative; /* Para que flexbox del padre lo centre */
-
-    display: flex; /* Siempre flex, controlado por visibility/opacity */
-    flex-direction: column; /* Organiza el contenido en columna */
-    gap: 15px; /* Espaciado entre elementos hijos */
-
-    visibility: hidden; /* Oculto por defecto usando visibility */
-    opacity: 0; /* Opacidad inicial para animación */
-    transform: translateY(-20px); /* Posición inicial para animación */
-    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, visibility 0.3s ease-in-out;
-}
-
-/* Cuando el overlay se muestra, también se muestra el contenido del modal */
-.modal-overlay.show .modal {
-    visibility: visible; /* Hace visible el contenido del modal */
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+    width: 90%;
+    max-width: 550px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    transform: scale(1);
     opacity: 1;
-    transform: translateY(0); /* Vuelve a su posición original */
 }
 
-/* Estilos para el encabezado del modal */
+/* Animación de entrada general */
+.modal-overlay.show .modal {
+    animation: modalAppear 0.3s ease-out;
+}
+
+@keyframes modalAppear {
+    from {
+        transform: scale(0.7) translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+/* ===== HEADER DEL MODAL ===== */
 .modal-header {
-    padding: 0 0 15px 0;
-    border-bottom: 1px solid var(--gray-200);
+    padding: 20px 25px 15px 25px;
+    border-bottom: 1px solid #e5e7eb;
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border-radius: 8px 8px 0 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--gray-50); /* Fondo ligeramente gris para el encabezado */
-    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
-    padding-left: 25px;
-    padding-right: 25px;
 }
 
 .modal-header h3 {
     margin: 0;
-    font-size: var(--text-xl);
+    font-size: 1.25rem;
     font-weight: 700;
-    color: var(--gray-800);
+    color: #1f2937;
     flex-grow: 1;
 }
 
 .modal-close {
     background: none;
     border: none;
-    font-size: var(--text-2xl);
-    color: var(--gray-400);
+    font-size: 1.5rem;
+    color: #6b7280;
     cursor: pointer;
-    transition: var(--transition-fast);
-    padding: 0;
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
-    line-height: 1;
-    border-radius: var(--border-radius-md);
+    border-radius: 6px;
+    transition: all 0.2s ease;
     flex-shrink: 0;
     margin-left: 15px;
 }
 
 .modal-close:hover {
-    color: var(--error-600);
-    background-color: var(--error-50);
+    background-color: #fee2e2;
+    color: #dc2626;
 }
 
-/* Estilos para el cuerpo del modal */
+/* ===== BODY DEL MODAL ===== */
 .modal-body {
-    padding: var(--spacing-lg);
+    padding: 25px;
     flex-grow: 1;
-    padding-top: 15px;
-    padding-bottom: 15px;
+    background-color: #ffffff;
 }
 
-/* Estilos para el pie de página del modal */
+/* ===== FOOTER DEL MODAL ===== */
 .modal-footer {
-    padding: var(--spacing-md) var(--spacing-lg);
+    padding: 15px 25px 25px 25px;
     display: flex;
-    gap: var(--spacing-md);
+    gap: 12px;
     justify-content: flex-end;
-    border-top: 1px solid var(--gray-200);
-    background: var(--gray-50); /* Fondo ligeramente gris para el pie de página */
-    border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
+    border-top: 1px solid #e5e7eb;
+    background: #f8fafc;
+    border-radius: 0 0 8px 8px;
 }
 
 .modal-footer .btn {
-    padding: var(--spacing-sm) var(--spacing-lg);
-    font-size: var(--text-sm);
+    padding: 10px 20px;
+    font-size: 0.875rem;
     font-weight: 600;
     min-width: 120px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
 }
 
 .modal-footer .btn-outline {
     background: white;
-    border: 2px solid var(--gray-300);
-    color: var(--gray-700);
+    border: 2px solid #d1d5db;
+    color: #6b7280;
 }
 
 .modal-footer .btn-outline:hover {
-    border-color: var(--gray-400);
-    background: var(--gray-50);
+    border-color: #9ca3af;
+    background: #f9fafb;
+    color: #374151;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .modal-footer .btn-primary {
-    background: var(--primary-600);
-    border: 2px solid var(--primary-600);
+    background: #3b82f6;
+    border: 2px solid #3b82f6;
     color: white;
 }
 
 .modal-footer .btn-primary:hover {
-    background: var(--primary-700);
-    border-color: var(--primary-700);
+    background: #2563eb;
+    border-color: #2563eb;
     transform: translateY(-1px);
+    box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
+}
+
+/* ===== MODALES ESPECÍFICOS ===== */
+
+/* Modal de confirmación */
+.modal-confirm .modal-body {
+    text-align: center;
+    padding: 30px 25px;
+}
+
+.modal-confirm .modal-body i {
+    font-size: 3rem;
+    color: #f59e0b;
+    margin-bottom: 20px;
+}
+
+.modal-confirm .modal-body h4 {
+    margin: 0 0 15px 0;
+    color: #1f2937;
+    font-size: 1.25rem;
+}
+
+.modal-confirm .modal-body p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.95rem;
+}
+
+/* Modal de transacción completada */
+.modal-transaction .transaction-summary {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 25px;
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    border-radius: 12px;
+    border: 2px solid #10b981;
+}
+
+.modal-transaction .transaction-summary h4 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #065f46;
+    margin-bottom: 15px;
+}
+
+.modal-transaction .transaction-summary p {
+    font-size: 1rem;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+.modal-transaction .transaction-summary p strong {
+    color: #1f2937;
+    font-weight: 600;
+}
+
+/* Modal de productos */
+.modal-product .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.modal-product .form-group {
+    margin-bottom: 15px;
+}
+
+.modal-product .form-label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.875rem;
+}
+
+.modal-product .form-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    transition: border-color 0.2s ease;
+}
+
+.modal-product .form-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Modal de categorías */
+.modal-category .category-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.modal-category .category-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background-color 0.2s ease;
+}
+
+.modal-category .category-item:hover {
+    background-color: #f9fafb;
+}
+
+.modal-category .category-item:last-child {
+    border-bottom: none;
+}
+
+/* Modal de stock */
+.modal-stock .stock-info {
+    background: #f3f4f6;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #e5e7eb;
+}
+
+.modal-stock .stock-info h4 {
+    margin: 0 0 10px 0;
+    color: #1f2937;
+    font-size: 1.1rem;
+}
+
+.modal-stock .stock-info p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 768px) {
+    .modal {
+        width: 95%;
+        margin: 20px;
+        max-width: none;
+    }
+    
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+    
+    .modal-footer {
+        flex-direction: column;
+    }
+    
+    .modal-footer .btn {
+        width: 100%;
+    }
+    
+    .modal-product .form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal {
+        width: 98%;
+        margin: 10px;
+        border-radius: 8px;
+    }
+    
+    .modal-header h3 {
+        font-size: 1.1rem;
+    }
+    
+    .modal-body {
+        padding: 20px;
+    }
+    
+    .modal-footer {
+        padding: 15px 20px 20px 20px;
+    }
+}
+
+/* ===== PREVENIR SCROLL DEL BODY CUANDO MODAL ESTÁ ABIERTO ===== */
+body.modal-open {
+    overflow: hidden;
+    padding-right: var(--scrollbar-width, 0);
+}
+
+/* ===== ESTADOS DE LOADING ===== */
+.modal .btn.loading {
+    position: relative;
+    color: transparent;
+}
+
+.modal .btn.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ===== ACCESIBILIDAD ===== */
+.modal:focus {
+    outline: none;
+}
+
+.modal-close:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* ===== ESTILOS PARA PRINT (ocultar modales en impresión) ===== */
+@media print {
+    .modal-overlay {
+        display: none !important;
+    }
 }
